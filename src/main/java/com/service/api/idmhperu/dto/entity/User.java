@@ -9,7 +9,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -19,57 +18,35 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
-@Table(name = "service")
+@Table(name = "user")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Service {
-
+public class User {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(length = 30, nullable = false, unique = true)
-  private String sku;
-
-  @Column(length = 150, nullable = false)
-  private String name;
+  @ManyToOne
+  @JoinColumn(name = "document_type_id", nullable = false)
+  private DocumentType documentType;
 
   @ManyToOne
-  @JoinColumn(name = "service_category_id", nullable = false)
-  private ServiceCategory serviceCategory;
+  @JoinColumn(name = "profile_id", nullable = false)
+  private Profile profile;
 
-  @ManyToOne
-  @JoinColumn(name = "charge_unit_id", nullable = false)
-  private ChargeUnit chargeUnit;
+  // Identificación
+  @Column(name = "document_number", length = 20, nullable = false)
+  private String documentNumber;
+  private String firstName;
+  private String lastName;
 
-  private BigDecimal price;
+  // Credenciales
+  private String username;
+  private String password;
 
-  @Column(name = "estimated_time", length = 50)
-  private String estimatedTime;
-
-  @Column(name = "expected_delivery", length = 150)
-  private String expectedDelivery;
-
-  @Column(name = "includes_description", columnDefinition = "TEXT")
-  private String includesDescription;
-
-  @Column(name = "excludes_description", columnDefinition = "TEXT")
-  private String excludesDescription;
-
-  @Column(columnDefinition = "TEXT")
-  private String conditions;
-
-  private Integer requiresMaterials;
-  private Integer requiresPlan;
-
-  @Column(name = "short_description", nullable = false)
-  private String shortDescription;
-
-  @Column(name = "detailed_description", nullable = false, columnDefinition = "TEXT")
-  private String detailedDescription;
-
+  // Estado
   private Integer status;
 
   // Auditoría
@@ -77,7 +54,7 @@ public class Service {
   @CreationTimestamp
   private LocalDateTime createdAt;
 
-  @Column(name = "created_by", updatable = false)
+  @Column(name = "created_by", length = 50, updatable = false)
   private String createdBy;
 
   @Column(name = "updated_at")

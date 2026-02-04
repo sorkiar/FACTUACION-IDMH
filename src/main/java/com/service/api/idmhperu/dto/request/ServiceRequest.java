@@ -21,10 +21,10 @@ public class ServiceRequest {
 
   private BigDecimal price;
   private String estimatedTime;
-  private String expectedDeliverable;
+  private String expectedDelivery;
 
-  private String includes;
-  private String excludes;
+  private String includesDescription;
+  private String excludesDescription;
   private String conditions;
 
   @NotNull(message = "Indicar si requiere materiales es obligatorio")

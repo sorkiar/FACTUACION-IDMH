@@ -1,37 +1,31 @@
 package com.service.api.idmhperu.configuration;
 
-import io.swagger.v3.oas.models.ExternalDocumentation;
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.servers.Server;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+@OpenAPIDefinition
 @Configuration
 public class OpenApiConfig {
-  @Bean
-  public OpenAPI openAPI() {
-    // final String securitySchemeName = "bearerAuth";
+  @Value("${custom.server.hostname}")
+  private String server;
 
-    return new OpenAPI()
-        .info(new Info().title("IDMH Peru - Service API")
-            .description("Service API documentation for IDMH Peru")
-            .version("1.0.0")
-            .license(new License().name("Apache 2.0").url("http://springdoc.org")))
-        .externalDocs(new ExternalDocumentation()
-            .description("SpringDoc OpenAPI 3.0")
-            .url("https://springdoc.org/"));
-    //.addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
-        /*.components(new io.swagger.v3.oas.models.Components()
-            .addSecuritySchemes(securitySchemeName,
-                new SecurityScheme()
-                    .name(securitySchemeName)
-                    .type(SecurityScheme.Type.HTTP)
-                    .scheme("bearer")
-                    .bearerFormat("JWT")))
-                    ;
-         */
+  @Bean
+  public OpenAPI customOpenAPI() {
+    return new OpenAPI().components(new Components().addSecuritySchemes("BearerAuth",
+            new SecurityScheme()
+                .type(SecurityScheme.Type.HTTP)
+                .scheme("bearer")
+                .bearerFormat("JWT")))
+        .addServersItem(new Server().url(server).description("Local Server"))
+        .addSecurityItem(new SecurityRequirement().addList("BearerAuth"))
+        .info(new Info().title("Service API Rest documentation for IDMH Peru").version("1.0.0"));
   }
 }

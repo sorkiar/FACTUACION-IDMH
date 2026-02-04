@@ -2,6 +2,7 @@ package com.service.api.idmhperu.exception;
 
 import com.service.api.idmhperu.dto.response.ApiResponse;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -79,6 +80,17 @@ public class GlobalExceptionHandler {
       BusinessValidationException ex) {
     ApiResponse<Object> response = new ApiResponse<>(ex.getMessage(), null);
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+  }
+
+  /**
+   * Handles LoginException, which occurs during login-related errors.
+   * @param ex the exception that was thrown
+   * @return a ResponseEntity containing an ApiResponse with the error message
+   */
+  @ExceptionHandler(LoginException.class)
+  public ResponseEntity<ApiResponse<Object>> handleCustomBadRequestException(LoginException ex) {
+    ApiResponse<Object> response = new ApiResponse<>(ex.getMessage(), null);
+    return new ResponseEntity<>(response, HttpStatusCode.valueOf(ex.getStatusCode()));
   }
 
   /**

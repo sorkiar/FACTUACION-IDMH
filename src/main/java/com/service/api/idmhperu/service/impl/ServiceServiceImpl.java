@@ -60,9 +60,9 @@ public class ServiceServiceImpl implements ServiceService {
     service.setChargeUnit(chargeUnit);
     service.setPrice(request.getPrice());
     service.setEstimatedTime(request.getEstimatedTime());
-    service.setExpectedDeliverable(request.getExpectedDeliverable());
-    service.setIncludes(request.getIncludes());
-    service.setExcludes(request.getExcludes());
+    service.setExcludesDescription(request.getExcludesDescription());
+    service.setIncludesDescription(request.getIncludesDescription());
+    service.setExpectedDelivery(request.getExpectedDelivery());
     service.setConditions(request.getConditions());
     service.setRequiresMaterials(request.getRequiresMaterials());
     service.setRequiresPlan(request.getRequiresPlan());
@@ -86,9 +86,9 @@ public class ServiceServiceImpl implements ServiceService {
     service.setName(request.getName());
     service.setPrice(request.getPrice());
     service.setEstimatedTime(request.getEstimatedTime());
-    service.setExpectedDeliverable(request.getExpectedDeliverable());
-    service.setIncludes(request.getIncludes());
-    service.setExcludes(request.getExcludes());
+    service.setExcludesDescription(request.getExcludesDescription());
+    service.setIncludesDescription(request.getIncludesDescription());
+    service.setIncludesDescription(request.getExcludesDescription());
     service.setConditions(request.getConditions());
     service.setRequiresMaterials(request.getRequiresMaterials());
     service.setRequiresPlan(request.getRequiresPlan());

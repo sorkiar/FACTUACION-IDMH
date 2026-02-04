@@ -2,14 +2,10 @@ package com.service.api.idmhperu.dto.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -19,51 +15,21 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
-@Table(name = "product")
+@Table(name = "profile")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Product {
-
+public class Profile {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(length = 50, nullable = false, unique = true)
-  private String sku;
+  @Column(length = 20, nullable = false, unique = true)
+  private String code;
 
-  @Column(length = 200, nullable = false)
+  @Column(length = 100, nullable = false)
   private String name;
-
-  @ManyToOne
-  @JoinColumn(name = "category_id", nullable = false)
-  private Category category;
-
-  @ManyToOne
-  @JoinColumn(name = "unit_measure_id", nullable = false)
-  private UnitMeasure unitMeasure;
-
-  @Column(name = "sale_price", nullable = false, precision = 12, scale = 2)
-  private BigDecimal salePrice;
-
-  @Column(name = "estimated_cost", precision = 12, scale = 2)
-  private BigDecimal estimatedCost;
-
-  private String brand;
-  private String model;
-
-  @Column(name = "short_description", length = 500, nullable = false)
-  private String shortDescription;
-
-  @Column(name = "technical_spec", columnDefinition = "TEXT", nullable = false)
-  private String technicalSpec;
-
-  @Column(name = "main_image_url", nullable = false)
-  private String mainImageUrl;
-
-  @Column(name = "technical_sheet_url")
-  private String technicalSheetUrl;
 
   private Integer status;
 

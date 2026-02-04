@@ -3,9 +3,9 @@ spring:
     name: idmhperu
 
   datasource:
-    url: jdbc:mysql://localhost:3306/idmh
-    username: root
-    password: 090901
+    url: jdbc:mysql://31.97.133.166:3306/idmhperu_test
+    username: user-idmhperu
+    password: Secretoidmh2026.
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -22,3 +22,11 @@ spring:
 
 server:
   port: 8090
+
+jwt:
+  secret:
+    key: 6EAB10E2B4F3AASDG912F9C32C73F0AH41J21A9F5FCE3C423F6D489E7BA84DA82
+
+custom:
+  server:
+    hostname: http://localhost:8090

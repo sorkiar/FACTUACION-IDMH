@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: idmhperu
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/idmh
+    username: root
+    password: 090901
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+      #format_sql: true
+
+  jackson:
+    time-zone: America/Lima
+
+server:
+  port: 8090

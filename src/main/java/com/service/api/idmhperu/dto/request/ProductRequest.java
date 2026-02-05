@@ -7,7 +7,6 @@ import lombok.Data;
 @Data
 public class ProductRequest {
   @NotBlank(message = "El SKU es obligatorio")
-  @Size(min = 3, message = "El SKU debe tener al menos 3 caracteres")
   private String sku;
 
   @NotBlank(message = "El nombre es obligatorio")
@@ -34,9 +33,4 @@ public class ProductRequest {
 
   @NotBlank(message = "La especificación técnica es obligatoria")
   private String technicalSpec;
-
-  @NotBlank(message = "La imagen principal es obligatoria")
-  private String mainImageUrl;
-
-  private String technicalSheetUrl;
 }

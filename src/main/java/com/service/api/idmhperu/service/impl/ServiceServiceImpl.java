@@ -14,11 +14,15 @@ import com.service.api.idmhperu.repository.ChargeUnitRepository;
 import com.service.api.idmhperu.repository.ServiceCategoryRepository;
 import com.service.api.idmhperu.repository.ServiceRepository;
 import com.service.api.idmhperu.repository.spec.ServiceSpecification;
+import com.service.api.idmhperu.service.GoogleDriveService;
 import com.service.api.idmhperu.service.ServiceService;
 import jakarta.transaction.Transactional;
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +31,11 @@ public class ServiceServiceImpl implements ServiceService {
   private final ServiceCategoryRepository serviceCategoryRepository;
   private final ChargeUnitRepository chargeUnitRepository;
   private final ServiceMapper mapper;
+  private final GoogleDriveService googleDriveService;
+
+  // IDs reales de carpetas en Drive
+  private static final String SERVICE_IMAGE_FOLDER_ID = "ID_DE_CARPETA_IMAGENES";
+  private static final String SERVICE_TECH_SHEET_FOLDER_ID = "ID_DE_CARPETA_FICHAS";
 
   @Override
   public ApiResponse<List<ServiceResponse>> findAll(ServiceFilter filter) {
@@ -40,7 +49,12 @@ public class ServiceServiceImpl implements ServiceService {
 
   @Override
   @Transactional
-  public ApiResponse<ServiceResponse> create(ServiceRequest request) {
+  public ApiResponse<ServiceResponse> create(
+      ServiceRequest request,
+      MultipartFile image,
+      MultipartFile technicalSheet
+  ) {
+
     if (repository.existsBySku(request.getSku())) {
       throw new BusinessValidationException("El SKU ya existe");
     }
@@ -53,53 +67,140 @@ public class ServiceServiceImpl implements ServiceService {
         request.getChargeUnitId()
     ).orElseThrow(() -> new ResourceNotFoundException("Unidad de cobro no encontrada"));
 
-    com.service.api.idmhperu.dto.entity.Service service = new com.service.api.idmhperu.dto.entity.Service();
-    service.setSku(request.getSku());
-    service.setName(request.getName());
-    service.setServiceCategory(category);
-    service.setChargeUnit(chargeUnit);
-    service.setPrice(request.getPrice());
-    service.setEstimatedTime(request.getEstimatedTime());
-    service.setExcludesDescription(request.getExcludesDescription());
-    service.setIncludesDescription(request.getIncludesDescription());
-    service.setExpectedDelivery(request.getExpectedDelivery());
-    service.setConditions(request.getConditions());
-    service.setRequiresMaterials(request.getRequiresMaterials());
-    service.setRequiresPlan(request.getRequiresPlan());
-    service.setShortDescription(request.getShortDescription());
-    service.setDetailedDescription(request.getDetailedDescription());
-    service.setStatus(1);
-    service.setCreatedBy("system");
+    try {
+      String imageUrl = null;
+      if (image != null && !image.isEmpty()) {
+        File imageFile = convertMultipartToFile(
+            image,
+            request.getSku() + "_image"
+        );
 
-    return new ApiResponse<>(
-        "Servicio registrado correctamente",
-        mapper.toResponse(repository.save(service))
-    );
+        imageUrl = googleDriveService.uploadFileWithPublicAccess(
+            imageFile,
+            SERVICE_IMAGE_FOLDER_ID
+        );
+      }
+
+      String technicalSheetUrl = null;
+      if (technicalSheet != null && !technicalSheet.isEmpty()) {
+        File pdfFile = convertMultipartToFile(
+            technicalSheet,
+            request.getSku() + "_tech_sheet"
+        );
+
+        String fileId = googleDriveService.uploadPdf(
+            pdfFile,
+            SERVICE_TECH_SHEET_FOLDER_ID
+        );
+
+        technicalSheetUrl =
+            "https://drive.google.com/file/d/" + fileId + "/view";
+      }
+
+      com.service.api.idmhperu.dto.entity.Service service =
+          new com.service.api.idmhperu.dto.entity.Service();
+
+      service.setSku(request.getSku());
+      service.setName(request.getName());
+      service.setServiceCategory(category);
+      service.setChargeUnit(chargeUnit);
+      service.setPrice(request.getPrice());
+      service.setEstimatedTime(request.getEstimatedTime());
+      service.setExpectedDelivery(request.getExpectedDelivery());
+      service.setIncludesDescription(request.getIncludesDescription());
+      service.setExcludesDescription(request.getExcludesDescription());
+      service.setConditions(request.getConditions());
+      service.setRequiresMaterials(request.getRequiresMaterials());
+      service.setRequiresSpecification(request.getRequiresSpecification());
+      service.setShortDescription(request.getShortDescription());
+      service.setDetailedDescription(request.getDetailedDescription());
+      service.setImageUrl(imageUrl);
+      service.setTechnicalSheetUrl(technicalSheetUrl);
+      service.setStatus(1);
+      service.setCreatedBy("system");
+
+      return new ApiResponse<>(
+          "Servicio registrado correctamente",
+          mapper.toResponse(repository.save(service))
+      );
+
+    } catch (Exception e) {
+      throw new BusinessValidationException(
+          "Error al subir archivos del servicio"
+      );
+    }
   }
 
   @Override
   @Transactional
-  public ApiResponse<ServiceResponse> update(Long id, ServiceRequest request) {
-    com.service.api.idmhperu.dto.entity.Service service = repository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Servicio no encontrado"));
+  public ApiResponse<ServiceResponse> update(
+      Long id,
+      ServiceRequest request,
+      MultipartFile image,
+      MultipartFile technicalSheet
+  ) {
 
-    service.setName(request.getName());
-    service.setPrice(request.getPrice());
-    service.setEstimatedTime(request.getEstimatedTime());
-    service.setExcludesDescription(request.getExcludesDescription());
-    service.setIncludesDescription(request.getIncludesDescription());
-    service.setIncludesDescription(request.getExcludesDescription());
-    service.setConditions(request.getConditions());
-    service.setRequiresMaterials(request.getRequiresMaterials());
-    service.setRequiresPlan(request.getRequiresPlan());
-    service.setShortDescription(request.getShortDescription());
-    service.setDetailedDescription(request.getDetailedDescription());
-    service.setUpdatedBy("system");
+    com.service.api.idmhperu.dto.entity.Service service =
+        repository.findByIdAndStatusNot(id, 2)
+            .orElseThrow(() -> new ResourceNotFoundException("Servicio no encontrado"));
 
-    return new ApiResponse<>(
-        "Servicio actualizado correctamente",
-        mapper.toResponse(repository.save(service))
-    );
+    try {
+      if (image != null && !image.isEmpty()) {
+        File imageFile = convertMultipartToFile(
+            image,
+            service.getSku() + "_image"
+        );
+
+        String imageUrl = googleDriveService.uploadFileWithPublicAccess(
+            imageFile,
+            SERVICE_IMAGE_FOLDER_ID
+        );
+
+        service.setImageUrl(imageUrl);
+        imageFile.delete();
+      }
+
+      if (technicalSheet != null && !technicalSheet.isEmpty()) {
+        File pdfFile = convertMultipartToFile(
+            technicalSheet,
+            service.getSku() + "_tech_sheet"
+        );
+
+        String fileId = googleDriveService.uploadPdf(
+            pdfFile,
+            SERVICE_TECH_SHEET_FOLDER_ID
+        );
+
+        String technicalSheetUrl =
+            "https://drive.google.com/file/d/" + fileId + "/view";
+
+        service.setTechnicalSheetUrl(technicalSheetUrl);
+        pdfFile.delete();
+      }
+
+      service.setName(request.getName());
+      service.setPrice(request.getPrice());
+      service.setEstimatedTime(request.getEstimatedTime());
+      service.setExpectedDelivery(request.getExpectedDelivery());
+      service.setIncludesDescription(request.getIncludesDescription());
+      service.setExcludesDescription(request.getExcludesDescription());
+      service.setConditions(request.getConditions());
+      service.setRequiresMaterials(request.getRequiresMaterials());
+      service.setRequiresSpecification(request.getRequiresSpecification());
+      service.setShortDescription(request.getShortDescription());
+      service.setDetailedDescription(request.getDetailedDescription());
+      service.setUpdatedBy("system");
+
+      return new ApiResponse<>(
+          "Servicio actualizado correctamente",
+          mapper.toResponse(repository.save(service))
+      );
+
+    } catch (Exception e) {
+      throw new BusinessValidationException(
+          "Error al actualizar archivos del servicio"
+      );
+    }
   }
 
   @Override
@@ -115,4 +216,15 @@ public class ServiceServiceImpl implements ServiceService {
 
     return new ApiResponse<>("Estado actualizado correctamente", null);
   }
+
+  private File convertMultipartToFile(
+      MultipartFile multipart,
+      String prefix
+  ) throws IOException {
+
+    File file = File.createTempFile(prefix, "_" + multipart.getOriginalFilename());
+    multipart.transferTo(file);
+    return file;
+  }
+
 }

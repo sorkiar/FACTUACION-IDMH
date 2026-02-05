@@ -18,7 +18,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 
 @RestController
@@ -45,19 +47,23 @@ public class ProductController {
     return service.findAll(filter);
   }
 
-  @PostMapping
+  @PostMapping(consumes = "multipart/form-data")
   public ApiResponse<ProductResponse> create(
-      @Valid @RequestBody ProductRequest request
+      @Valid @RequestPart("data") ProductRequest request,
+      @RequestPart("mainImage") MultipartFile mainImage,
+      @RequestPart(value = "technicalSheet", required = false) MultipartFile technicalSheet
   ) {
-    return service.create(request);
+    return service.create(request, mainImage, technicalSheet);
   }
 
-  @PutMapping("/{id}")
+  @PutMapping(value = "/{id}", consumes = "multipart/form-data")
   public ApiResponse<ProductResponse> update(
       @PathVariable Long id,
-      @Valid @RequestBody ProductRequest request
+      @Valid @RequestPart("data") ProductRequest request,
+      @RequestPart(value = "mainImage", required = false) MultipartFile mainImage,
+      @RequestPart(value = "technicalSheet", required = false) MultipartFile technicalSheet
   ) {
-    return service.update(id, request);
+    return service.update(id, request, mainImage, technicalSheet);
   }
 
   @PatchMapping("/{id}/status")

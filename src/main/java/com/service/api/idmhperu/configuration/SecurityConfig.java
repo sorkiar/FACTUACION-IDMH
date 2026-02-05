@@ -32,12 +32,15 @@ public class SecurityConfig {
   private final JwtAuthFilter jwtAuthFilter;
   private final List<String> publicEndpoints = List.of(
       "/api/auth/**",
+      "/api/document-types/**",
       "/swagger-ui/**",
       "/v3/api-docs/**",
       "/api/"
   );
   private final List<String> allowedOrigins = List.of(
-      "http://localhost:4200"
+      "http://localhost:4200",
+      "http://31.97.133.166:8090/",
+      "http://localhost:8090"
   );
 
   @Bean

@@ -29,4 +29,4 @@ jwt:
 
 custom:
   server:
-    hostname: http://31.97.133.166:8090
+    hostname: http://locahost:8090

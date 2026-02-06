@@ -46,7 +46,9 @@ public interface ClientMapper {
   /* ============================
      RESPONSE
      ============================ */
+  @Mapping(target = "personTypeId", source = "personType.id")
   @Mapping(target = "personType", source = "personType.name")
+  @Mapping(target = "documentTypeId", source = "documentType.id")
   @Mapping(target = "documentType", source = "documentType.name")
   ClientResponse toResponse(Client client);
 

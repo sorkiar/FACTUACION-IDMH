@@ -5,4 +5,5 @@ import lombok.Data;
 @Data
 public class DocumentTypeFilter {
   private Integer status;
+  private Long personTypeId;
 }

@@ -1,5 +1,6 @@
 package com.service.api.idmhperu.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.service.api.idmhperu.dto.filter.ServiceFilter;
 import com.service.api.idmhperu.dto.request.ServiceRequest;
 import com.service.api.idmhperu.dto.request.ServiceStatusRequest;
@@ -49,20 +50,22 @@ public class ServiceController {
 
   @PostMapping(consumes = "multipart/form-data")
   public ApiResponse<ServiceResponse> create(
-      @Valid @RequestPart("data") ServiceRequest request,
+      @RequestPart("data") String data,
       @RequestPart(value = "image", required = false) MultipartFile image,
       @RequestPart(value = "technicalSheet", required = false) MultipartFile technicalSheet
-  ) {
+  ) throws Exception {
+    ServiceRequest request = new ObjectMapper().readValue(data, ServiceRequest.class);
     return service.create(request, image, technicalSheet);
   }
 
   @PutMapping(value = "/{id}", consumes = "multipart/form-data")
   public ApiResponse<ServiceResponse> update(
       @PathVariable Long id,
-      @Valid @RequestPart("data") ServiceRequest request,
+      @RequestPart("data") String data,
       @RequestPart(value = "image", required = false) MultipartFile image,
       @RequestPart(value = "technicalSheet", required = false) MultipartFile technicalSheet
-  ) {
+  ) throws Exception {
+    ServiceRequest request = new ObjectMapper().readValue(data, ServiceRequest.class);
     return service.update(id, request, image, technicalSheet);
   }
 

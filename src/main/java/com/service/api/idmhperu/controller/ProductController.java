@@ -1,5 +1,6 @@
 package com.service.api.idmhperu.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.service.api.idmhperu.dto.filter.ProductFilter;
 import com.service.api.idmhperu.dto.request.ProductRequest;
 import com.service.api.idmhperu.dto.request.ProductStatusRequest;
@@ -49,20 +50,22 @@ public class ProductController {
 
   @PostMapping(consumes = "multipart/form-data")
   public ApiResponse<ProductResponse> create(
-      @Valid @RequestPart("data") ProductRequest request,
+      @RequestPart("data") String data,
       @RequestPart("mainImage") MultipartFile mainImage,
       @RequestPart(value = "technicalSheet", required = false) MultipartFile technicalSheet
-  ) {
+  ) throws Exception {
+    ProductRequest request = new ObjectMapper().readValue(data, ProductRequest.class);
     return service.create(request, mainImage, technicalSheet);
   }
 
   @PutMapping(value = "/{id}", consumes = "multipart/form-data")
   public ApiResponse<ProductResponse> update(
       @PathVariable Long id,
-      @Valid @RequestPart("data") ProductRequest request,
+      @RequestPart("data") String data,
       @RequestPart(value = "mainImage", required = false) MultipartFile mainImage,
       @RequestPart(value = "technicalSheet", required = false) MultipartFile technicalSheet
-  ) {
+  ) throws Exception {
+    ProductRequest request = new ObjectMapper().readValue(data, ProductRequest.class);
     return service.update(id, request, mainImage, technicalSheet);
   }
 

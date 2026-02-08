@@ -1,5 +1,6 @@
 package com.service.api.idmhperu.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
@@ -19,6 +20,7 @@ public class ClientRequest {
   // Persona Natural
   private String firstName;
   private String lastName;
+  @JsonFormat(pattern = "yyyy-MM-dd")
   private LocalDate birthDate;
 
   // Persona Jurídica

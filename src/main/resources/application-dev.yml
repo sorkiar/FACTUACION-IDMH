@@ -29,4 +29,4 @@ jwt:
 
 custom:
   server:
-    hostname: http://locahost:8090
+    hostname: http://localhost:8090

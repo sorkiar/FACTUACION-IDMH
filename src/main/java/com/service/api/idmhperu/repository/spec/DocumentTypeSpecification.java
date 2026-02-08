@@ -17,6 +17,10 @@ public class DocumentTypeSpecification {
         predicates.add(cb.equal(root.get("status"), filter.getStatus()));
       }
 
+      if (filter.getPersonTypeId() != null) {
+        predicates.add(cb.equal(root.get("personType").get("id"), filter.getPersonTypeId()));
+      }
+
       return cb.and(predicates.toArray(new Predicate[0]));
     };
 

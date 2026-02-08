@@ -34,8 +34,8 @@ public class ServiceServiceImpl implements ServiceService {
   private final GoogleDriveService googleDriveService;
 
   // IDs reales de carpetas en Drive
-  private static final String SERVICE_IMAGE_FOLDER_ID = "ID_DE_CARPETA_IMAGENES";
-  private static final String SERVICE_TECH_SHEET_FOLDER_ID = "ID_DE_CARPETA_FICHAS";
+  private static final String SERVICE_IMAGE_FOLDER_ID = "1-tBwykk9Wcm-43CtV0M_q8gF7aBs2VQ_";
+  private static final String SERVICE_TECH_SHEET_FOLDER_ID = "1GFwVCReV9K4wKwJQ9T95egcO0wqNFpaW";
 
   @Override
   public ApiResponse<List<ServiceResponse>> findAll(ServiceFilter filter) {

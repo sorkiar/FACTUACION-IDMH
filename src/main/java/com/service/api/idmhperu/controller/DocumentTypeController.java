@@ -19,10 +19,12 @@ public class DocumentTypeController {
 
   @GetMapping
   public ApiResponse<List<DocumentTypeResponse>> list(
-      @RequestParam(required = false) Integer status
+      @RequestParam(required = false) Integer status,
+      @RequestParam(required = false) Long personTypeId
   ) {
     DocumentTypeFilter filter = new DocumentTypeFilter();
     filter.setStatus(status);
+    filter.setPersonTypeId(personTypeId);
 
     return service.findAll(filter);
   }

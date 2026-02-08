@@ -33,8 +33,8 @@ public class ProductServiceImpl implements ProductService {
   private final GoogleDriveService googleDriveService;
 
   // IDs reales de carpetas en Drive
-  private static final String PRODUCT_IMAGE_FOLDER_ID = "ID_DE_CARPETA_IMAGENES";
-  private static final String PRODUCT_TECH_SHEET_FOLDER_ID = "ID_DE_CARPETA_FICHAS";
+  private static final String PRODUCT_IMAGE_FOLDER_ID = "1vrVeXcPjUJyuj7ge2LBELuOVmH6FJefP";
+  private static final String PRODUCT_TECH_SHEET_FOLDER_ID = "1CsUe2qaZKXsBcReW8McCeR7wG8_IBmt6";
 
   @Override
   public ApiResponse<List<ProductResponse>> findAll(ProductFilter filter) {

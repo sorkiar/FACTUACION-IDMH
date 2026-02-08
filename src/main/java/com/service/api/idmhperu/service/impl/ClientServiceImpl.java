@@ -67,6 +67,8 @@ public class ClientServiceImpl implements ClientService {
 
     mapper.updateEntity(client, request);
     client.setPersonType(personType);
+    client.setDocumentType(documentTypeRepository.findById(request.getDocumentTypeId())
+        .orElseThrow(() -> new ResourceNotFoundException("Tipo de documento no válido")));
 
     return new ApiResponse<>("Cliente actualizado correctamente",
         mapper.toResponse(repository.save(client)));

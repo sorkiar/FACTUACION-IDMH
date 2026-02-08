@@ -60,6 +60,10 @@ public class ProductServiceImpl implements ProductService {
       throw new BusinessValidationException("La imagen principal es obligatoria");
     }
 
+    System.out.println("MAIN IMAGE: " + mainImage.getOriginalFilename());
+    System.out.println("SIZE: " + mainImage.getSize());
+    System.out.println("CONTENT TYPE: " + mainImage.getContentType());
+
     try {
       File imageFile = convertMultipartToFile(
           mainImage,

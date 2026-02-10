@@ -46,7 +46,7 @@ public class GoogleDriveServiceImpl implements GoogleDriveService {
 
   @Override
   public String uploadFileWithPublicAccess(java.io.File file, String folderId) throws IOException {
-    String mimeType = detectMimeType(file.getName());
+    String mimeType = detectMimeType(file);
     String fileId = uploadOrUpdateFile(file, folderId, mimeType, true);
     return getWebViewLink(fileId);
   }
@@ -103,7 +103,7 @@ public class GoogleDriveServiceImpl implements GoogleDriveService {
   private String uploadImageOptimized(java.io.File file, String folderId)
       throws IOException {
 
-    String mimeType = detectMimeType(file.getName());
+    String mimeType = detectMimeType(file);
     String fileId = uploadOrUpdateFile(file, folderId, mimeType, true);
 
     return buildOptimizedImageUrl(fileId);
@@ -159,16 +159,12 @@ public class GoogleDriveServiceImpl implements GoogleDriveService {
   // UTIL
   // =====================================================================================
 
-  private String detectMimeType(String fileName) {
-    String name = fileName.toLowerCase();
+  private String detectMimeType(java.io.File file) throws IOException {
+    String mimeType = java.nio.file.Files.probeContentType(file.toPath());
 
-    if (name.endsWith(".pdf")) return "application/pdf";
-    if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return "image/jpeg";
-    if (name.endsWith(".png")) return "image/png";
-    if (name.endsWith(".gif")) return "image/gif";
-    if (name.endsWith(".doc")) return "application/msword";
-    if (name.endsWith(".docx"))
-      return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    if (mimeType != null) {
+      return mimeType;
+    }
 
     return "application/octet-stream";
   }

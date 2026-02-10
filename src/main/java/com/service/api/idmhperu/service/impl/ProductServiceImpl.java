@@ -116,8 +116,9 @@ public class ProductServiceImpl implements ProductService {
       );
 
     } catch (Exception e) {
+      e.printStackTrace();
       throw new BusinessValidationException(
-          "Error al subir archivos a Google Drive"
+          "Error al subir archivos a Google Drive: " + e.getMessage()
       );
     }
   }
@@ -180,8 +181,9 @@ public class ProductServiceImpl implements ProductService {
       );
 
     } catch (Exception e) {
+      e.printStackTrace();
       throw new BusinessValidationException(
-          "Error al actualizar archivos del producto"
+          "Error al actualizar archivos del producto: " + e.getMessage()
       );
     }
   }

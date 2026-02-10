@@ -125,8 +125,9 @@ public class ServiceServiceImpl implements ServiceService {
       );
 
     } catch (Exception e) {
+      e.printStackTrace();
       throw new BusinessValidationException(
-          "Error al subir archivos del servicio"
+          "Error al subir archivos a Google Drive: " + e.getMessage()
       );
     }
   }
@@ -197,8 +198,9 @@ public class ServiceServiceImpl implements ServiceService {
       );
 
     } catch (Exception e) {
+      e.printStackTrace();
       throw new BusinessValidationException(
-          "Error al actualizar archivos del servicio"
+          "Error al actualizar archivos del servicio: " + e.getMessage()
       );
     }
   }

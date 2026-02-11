@@ -227,7 +227,7 @@ public class ServiceServiceImpl implements ServiceService {
       String prefix
   ) throws IOException {
 
-    File file = File.createTempFile(prefix, "_");
+    File file = File.createTempFile(prefix, "");
     // File file = File.createTempFile(prefix, "_" + multipart.getOriginalFilename());
     multipart.transferTo(file);
     return file;

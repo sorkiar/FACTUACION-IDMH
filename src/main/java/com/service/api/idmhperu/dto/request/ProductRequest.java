@@ -1,10 +1,12 @@
 package com.service.api.idmhperu.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import lombok.Data;
 
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ProductRequest {
   @NotBlank(message = "El nombre es obligatorio")
   private String name;

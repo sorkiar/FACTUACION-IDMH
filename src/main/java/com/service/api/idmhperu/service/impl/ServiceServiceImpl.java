@@ -16,6 +16,7 @@ import com.service.api.idmhperu.repository.ServiceRepository;
 import com.service.api.idmhperu.repository.spec.ServiceSpecification;
 import com.service.api.idmhperu.service.GoogleDriveService;
 import com.service.api.idmhperu.service.ServiceService;
+import com.service.api.idmhperu.service.SkuSequenceService;
 import jakarta.transaction.Transactional;
 import java.io.File;
 import java.io.IOException;
@@ -32,6 +33,7 @@ public class ServiceServiceImpl implements ServiceService {
   private final ChargeUnitRepository chargeUnitRepository;
   private final ServiceMapper mapper;
   private final GoogleDriveService googleDriveService;
+  private final SkuSequenceService skuSequenceService;
 
   // IDs reales de carpetas en Drive
   private static final String SERVICE_IMAGE_FOLDER_ID = "1-tBwykk9Wcm-43CtV0M_q8gF7aBs2VQ_";
@@ -54,11 +56,6 @@ public class ServiceServiceImpl implements ServiceService {
       MultipartFile image,
       MultipartFile technicalSheet
   ) {
-
-    if (repository.existsBySku(request.getSku())) {
-      throw new BusinessValidationException("El SKU ya existe");
-    }
-
     ServiceCategory category = serviceCategoryRepository.findById(
         request.getServiceCategoryId()
     ).orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada"));
@@ -67,12 +64,18 @@ public class ServiceServiceImpl implements ServiceService {
         request.getChargeUnitId()
     ).orElseThrow(() -> new ResourceNotFoundException("Unidad de cobro no encontrada"));
 
+    String sku = skuSequenceService.registerSku("SRV");
+
+    if (repository.existsBySku(sku)) {
+      throw new BusinessValidationException("El SKU ya existe");
+    }
+
     try {
       String imageUrl = null;
       if (image != null && !image.isEmpty()) {
         File imageFile = convertMultipartToFile(
             image,
-            request.getSku() + "_image"
+            sku + "_image"
         );
 
         imageUrl = googleDriveService.uploadFileWithPublicAccess(
@@ -85,7 +88,7 @@ public class ServiceServiceImpl implements ServiceService {
       if (technicalSheet != null && !technicalSheet.isEmpty()) {
         File pdfFile = convertMultipartToFile(
             technicalSheet,
-            request.getSku() + "_tech_sheet"
+            sku + "_tech_sheet"
         );
 
         String fileId = googleDriveService.uploadPdf(
@@ -100,7 +103,7 @@ public class ServiceServiceImpl implements ServiceService {
       com.service.api.idmhperu.dto.entity.Service service =
           new com.service.api.idmhperu.dto.entity.Service();
 
-      service.setSku(request.getSku());
+      service.setSku(sku);
       service.setName(request.getName());
       service.setServiceCategory(category);
       service.setChargeUnit(chargeUnit);
@@ -224,7 +227,8 @@ public class ServiceServiceImpl implements ServiceService {
       String prefix
   ) throws IOException {
 
-    File file = File.createTempFile(prefix, "_" + multipart.getOriginalFilename());
+    File file = File.createTempFile(prefix, "_");
+    // File file = File.createTempFile(prefix, "_" + multipart.getOriginalFilename());
     multipart.transferTo(file);
     return file;
   }

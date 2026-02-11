@@ -15,6 +15,7 @@ import com.service.api.idmhperu.repository.UnitMeasureRepository;
 import com.service.api.idmhperu.repository.spec.ProductSpecification;
 import com.service.api.idmhperu.service.GoogleDriveService;
 import com.service.api.idmhperu.service.ProductService;
+import com.service.api.idmhperu.service.SkuSequenceService;
 import jakarta.transaction.Transactional;
 import java.io.File;
 import java.io.IOException;
@@ -31,6 +32,7 @@ public class ProductServiceImpl implements ProductService {
   private final UnitMeasureRepository unitMeasureRepository;
   private final ProductMapper mapper;
   private final GoogleDriveService googleDriveService;
+  private final SkuSequenceService skuSequenceService;
 
   // IDs reales de carpetas en Drive
   private static final String PRODUCT_IMAGE_FOLDER_ID = "1vrVeXcPjUJyuj7ge2LBELuOVmH6FJefP";
@@ -51,11 +53,6 @@ public class ProductServiceImpl implements ProductService {
       MultipartFile mainImage,
       MultipartFile technicalSheet
   ) {
-
-    if (repository.existsBySku(request.getSku())) {
-      throw new BusinessValidationException("El SKU ya existe");
-    }
-
     if (mainImage == null || mainImage.isEmpty()) {
       throw new BusinessValidationException("La imagen principal es obligatoria");
     }
@@ -64,10 +61,16 @@ public class ProductServiceImpl implements ProductService {
     System.out.println("SIZE: " + mainImage.getSize());
     System.out.println("CONTENT TYPE: " + mainImage.getContentType());
 
+    String sku = skuSequenceService.registerSku("PRD");
+
+    if (repository.existsBySku(sku)) {
+      throw new BusinessValidationException("El SKU ya existe");
+    }
+
     try {
       File imageFile = convertMultipartToFile(
           mainImage,
-          request.getSku() + "_image"
+          sku + "_image"
       );
 
       String imageUrl = googleDriveService.uploadFileWithPublicAccess(
@@ -80,7 +83,7 @@ public class ProductServiceImpl implements ProductService {
       if (technicalSheet != null && !technicalSheet.isEmpty()) {
         File pdfFile = convertMultipartToFile(
             technicalSheet,
-            request.getSku() + "_tech_sheet"
+            sku + "_tech_sheet"
         );
 
         String fileId = googleDriveService.uploadPdf(
@@ -93,7 +96,7 @@ public class ProductServiceImpl implements ProductService {
       }
 
       Product product = new Product();
-      product.setSku(request.getSku());
+      product.setSku(sku);
       product.setName(request.getName());
       product.setCategory(categoryRepository.findById(request.getCategoryId())
           .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada")));
@@ -207,7 +210,8 @@ public class ProductServiceImpl implements ProductService {
       String prefix
   ) throws IOException {
 
-    File file = File.createTempFile(prefix, "_" + multipart.getOriginalFilename());
+    File file = File.createTempFile(prefix, "_");
+    // File file = File.createTempFile(prefix, "_" + multipart.getOriginalFilename());
     multipart.transferTo(file);
     return file;
   }

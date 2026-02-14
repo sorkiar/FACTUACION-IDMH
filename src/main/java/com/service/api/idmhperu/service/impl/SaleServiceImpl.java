@@ -27,6 +27,7 @@ import com.service.api.idmhperu.repository.SaleRepository;
 import com.service.api.idmhperu.repository.ServiceRepository;
 import com.service.api.idmhperu.repository.spec.SaleSpecification;
 import com.service.api.idmhperu.service.SaleService;
+import com.service.api.idmhperu.util.JwtUtils;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -51,27 +52,23 @@ public class SaleServiceImpl implements SaleService {
   @Override
   @Transactional
   public ApiResponse<SaleResponse> create(SaleRequest request) {
+    String username = JwtUtils.extractUsernameFromContext();
+
     Sale sale = new Sale();
     sale.setCurrencyCode("PEN");
     sale.setTaxPercentage(new BigDecimal("18"));
-    sale.setCreatedBy("system");
-
-    Client client = null;
-    if (request.getClientId() != null) {
-      client = clientRepository.findById(request.getClientId())
-          .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
-    }
-    sale.setClient(client);
-
+    sale.setCreatedBy(username);
     sale.setSaleDate(LocalDateTime.now());
 
-    // 🔵 BORRADOR
+    Client client = clientRepository.findById(request.getClientId())
+        .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
+    sale.setClient(client);
+
+    // BORRADOR
     if (Boolean.TRUE.equals(request.getDraft())) {
       sale.setSaleStatus("BORRADOR");
-      sale.setPaymentStatus("NO PAGADO");
     } else {
-      sale.setSaleStatus("PAGO PENDIENTE");
-      sale.setPaymentStatus("NO PAGADO");
+      sale.setSaleStatus("FINALIZADA");
     }
 
     sale = saleRepository.save(sale);
@@ -80,6 +77,9 @@ public class SaleServiceImpl implements SaleService {
     BigDecimal tax = BigDecimal.ZERO;
     BigDecimal total = BigDecimal.ZERO;
 
+    // =========================
+    // ITEMS
+    // =========================
     for (SaleItemRequest itemReq : request.getItems()) {
 
       BigDecimal itemSubtotal =
@@ -99,7 +99,7 @@ public class SaleServiceImpl implements SaleService {
       item.setSubtotalAmount(itemSubtotal);
       item.setTaxAmount(itemTax);
       item.setTotalAmount(itemTotal);
-      item.setCreatedBy("system");
+      item.setCreatedBy(username);
 
       saleItemRepository.save(item);
 
@@ -114,39 +114,34 @@ public class SaleServiceImpl implements SaleService {
 
     saleRepository.save(sale);
 
-    // 🔵 Si es borrador no procesamos pagos ni documento
+    // =========================
+    // SI ES BORRADOR TERMINA AQUÍ
+    // =========================
     if (Boolean.TRUE.equals(request.getDraft())) {
       return new ApiResponse<>("Venta guardada como borrador",
           mapper.toResponse(sale));
     }
 
-    // 🔵 VALIDACIÓN DE PAGOS
+    // =========================
+    // VALIDACIÓN DE PAGOS
+    // =========================
     if (request.getPayments() == null || request.getPayments().isEmpty()) {
       throw new BusinessValidationException("Debe registrar al menos un pago");
     }
 
     BigDecimal totalPaid = BigDecimal.ZERO;
+    SalePayment lastCashPayment = null;
 
     for (SalePaymentRequest paymentReq : request.getPayments()) {
 
-      PaymentMethod method =
-          paymentMethodRepository.findById(paymentReq.getPaymentMethodId())
-              .orElseThrow(() -> new ResourceNotFoundException("Método de pago no encontrado"));
+      PaymentMethod method = paymentMethodRepository
+          .findById(paymentReq.getPaymentMethodId())
+          .orElseThrow(() -> new ResourceNotFoundException("Método de pago no encontrado"));
 
-      // 🔥 VALIDACIONES POR TIPO
-
-      if (method.getCode().equals("CASH")) {
-        if (paymentReq.getAmountPaid().compareTo(total) < 0) {
-          throw new BusinessValidationException("El efectivo no cubre el total");
-        }
-      }
-
-      if (method.getRequiresProof()) {
-        if (paymentReq.getProofFileUrl() == null ||
-            paymentReq.getProofFileUrl().isBlank()) {
-          throw new BusinessValidationException(
-              "Este método de pago requiere comprobante");
-        }
+      if (method.getRequiresProof() &&
+          (paymentReq.getProofFileUrl() == null || paymentReq.getProofFileUrl().isBlank())) {
+        throw new BusinessValidationException(
+            "El método " + method.getName() + " requiere comprobante");
       }
 
       SalePayment payment = new SalePayment();
@@ -156,48 +151,67 @@ public class SaleServiceImpl implements SaleService {
       payment.setPaymentReference(paymentReq.getPaymentReference());
       payment.setProofFileUrl(paymentReq.getProofFileUrl());
       payment.setPaymentDate(LocalDateTime.now());
-      payment.setCreatedBy("system");
+      payment.setChangeAmount(BigDecimal.ZERO);
+      payment.setCreatedBy(username);
 
-      salePaymentRepository.save(payment);
+      payment = salePaymentRepository.save(payment);
 
       totalPaid = totalPaid.add(paymentReq.getAmountPaid());
+
+      if ("CASH".equals(method.getCode())) {
+        lastCashPayment = payment;
+      }
     }
 
-    // 🔵 VALIDAR PAGO MIXTO
+    // =========================
+    // VALIDAR QUE CUBRA EL TOTAL
+    // =========================
     if (totalPaid.compareTo(total) < 0) {
-      sale.setPaymentStatus("PARCIAL");
-    } else {
-      sale.setPaymentStatus("PAGADO");
-      sale.setSaleStatus("PAGADO");
+      throw new BusinessValidationException(
+          "El total pagado no cubre el total de la venta");
     }
 
-    saleRepository.save(sale);
+    // =========================
+    // MANEJO DE VUELTO
+    // =========================
+    if (totalPaid.compareTo(total) > 0) {
 
-    // 🔵 GENERAR DOCUMENTO SOLO SI ESTÁ PAGADO
-    if ("PAGADO".equals(sale.getPaymentStatus())) {
+      BigDecimal change = totalPaid.subtract(total);
 
-      DocumentSeries series = documentSeriesRepository
-          .findById(request.getDocumentSeriesId())
-          .orElseThrow(() -> new ResourceNotFoundException("Serie no encontrada"));
+      if (lastCashPayment == null) {
+        throw new BusinessValidationException(
+            "Si hay vuelto, debe existir un pago en efectivo (CASH)");
+      }
 
-      Integer nextSequence = series.getCurrentSequence() + 1;
-      series.setCurrentSequence(nextSequence);
-      documentSeriesRepository.save(series);
-
-      String formattedSequence = String.format("%08d", nextSequence);
-
-      Document document = new Document();
-      document.setSale(sale);
-      document.setDocumentSeries(series);
-      document.setDocumentTypeSunat(series.getDocumentTypeSunat());
-      document.setSeries(series.getSeries());
-      document.setSequence(formattedSequence);
-      document.setIssueDate(LocalDateTime.now());
-      document.setStatus("PENDIENTE");
-      document.setCreatedBy("system");
-
-      documentRepository.save(document);
+      lastCashPayment.setChangeAmount(change);
+      lastCashPayment.setUpdatedBy(username);
+      salePaymentRepository.save(lastCashPayment);
     }
+
+    // =========================
+    // GENERAR DOCUMENTO SIEMPRE (NO BORRADOR)
+    // =========================
+    DocumentSeries series = documentSeriesRepository
+        .findByIdForUpdate(request.getDocumentSeriesId())
+        .orElseThrow(() -> new ResourceNotFoundException("Serie no encontrada"));
+
+    Integer nextSequence = series.getCurrentSequence() + 1;
+    series.setCurrentSequence(nextSequence);
+    documentSeriesRepository.save(series);
+
+    String formattedSequence = String.format("%08d", nextSequence);
+
+    Document document = new Document();
+    document.setSale(sale);
+    document.setDocumentSeries(series);
+    document.setDocumentTypeSunat(series.getDocumentTypeSunat());
+    document.setSeries(series.getSeries());
+    document.setSequence(formattedSequence);
+    document.setIssueDate(LocalDateTime.now());
+    document.setStatus("PENDIENTE");
+    document.setCreatedBy(username);
+
+    documentRepository.save(document);
 
     return new ApiResponse<>("Venta registrada correctamente",
         mapper.toResponse(sale));

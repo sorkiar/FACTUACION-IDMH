@@ -7,6 +7,7 @@ import lombok.Data;
 
 @Data
 public class SaleRequest {
+  @NotEmpty
   private Long clientId;
 
   @Valid

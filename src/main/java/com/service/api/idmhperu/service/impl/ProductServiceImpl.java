@@ -16,6 +16,7 @@ import com.service.api.idmhperu.repository.spec.ProductSpecification;
 import com.service.api.idmhperu.service.GoogleDriveService;
 import com.service.api.idmhperu.service.ProductService;
 import com.service.api.idmhperu.service.SkuSequenceService;
+import com.service.api.idmhperu.util.JwtUtils;
 import jakarta.transaction.Transactional;
 import java.io.File;
 import java.io.IOException;
@@ -111,7 +112,7 @@ public class ProductServiceImpl implements ProductService {
       product.setMainImageUrl(imageUrl);
       product.setTechnicalSheetUrl(technicalSheetUrl);
       product.setStatus(1);
-      product.setCreatedBy("system");
+      product.setCreatedBy(JwtUtils.extractUsernameFromContext());
 
       return new ApiResponse<>(
           "Producto registrado correctamente",
@@ -176,7 +177,7 @@ public class ProductServiceImpl implements ProductService {
       product.setModel(request.getModel());
       product.setShortDescription(request.getShortDescription());
       product.setTechnicalSpec(request.getTechnicalSpec());
-      product.setUpdatedBy("system");
+      product.setUpdatedBy(JwtUtils.extractUsernameFromContext());
 
       return new ApiResponse<>(
           "Producto actualizado correctamente",
@@ -199,7 +200,7 @@ public class ProductServiceImpl implements ProductService {
         .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
 
     product.setStatus(request.getStatus());
-    product.setUpdatedBy("system");
+    product.setUpdatedBy(JwtUtils.extractUsernameFromContext());
 
     repository.save(product);
     return new ApiResponse<>("Estado del producto actualizado", null);

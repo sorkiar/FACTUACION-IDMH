@@ -17,6 +17,7 @@ import com.service.api.idmhperu.repository.spec.ServiceSpecification;
 import com.service.api.idmhperu.service.GoogleDriveService;
 import com.service.api.idmhperu.service.ServiceService;
 import com.service.api.idmhperu.service.SkuSequenceService;
+import com.service.api.idmhperu.util.JwtUtils;
 import jakarta.transaction.Transactional;
 import java.io.File;
 import java.io.IOException;
@@ -120,7 +121,7 @@ public class ServiceServiceImpl implements ServiceService {
       service.setImageUrl(imageUrl);
       service.setTechnicalSheetUrl(technicalSheetUrl);
       service.setStatus(1);
-      service.setCreatedBy("system");
+      service.setCreatedBy(JwtUtils.extractUsernameFromContext());
 
       return new ApiResponse<>(
           "Servicio registrado correctamente",
@@ -193,7 +194,7 @@ public class ServiceServiceImpl implements ServiceService {
       service.setRequiresSpecification(request.getRequiresSpecification());
       service.setShortDescription(request.getShortDescription());
       service.setDetailedDescription(request.getDetailedDescription());
-      service.setUpdatedBy("system");
+      service.setUpdatedBy(JwtUtils.extractUsernameFromContext());
 
       return new ApiResponse<>(
           "Servicio actualizado correctamente",
@@ -215,7 +216,7 @@ public class ServiceServiceImpl implements ServiceService {
         .orElseThrow(() -> new ResourceNotFoundException("Servicio no encontrado"));
 
     service.setStatus(request.getStatus());
-    service.setUpdatedBy("system");
+    service.setUpdatedBy(JwtUtils.extractUsernameFromContext());
 
     repository.save(service);
 

@@ -16,6 +16,7 @@ import com.service.api.idmhperu.repository.ProfileRepository;
 import com.service.api.idmhperu.repository.UserRepository;
 import com.service.api.idmhperu.repository.spec.UserSpecification;
 import com.service.api.idmhperu.service.UserService;
+import com.service.api.idmhperu.util.JwtUtils;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -64,7 +65,7 @@ public class UserServiceImpl implements UserService {
     user.setUsername(request.getUsername());
     user.setPassword(passwordEncoder.encode(request.getPassword()));
     user.setStatus(1);
-    user.setCreatedBy("system");
+    user.setCreatedBy(JwtUtils.extractUsernameFromContext());
 
     return new ApiResponse<>(
         "Usuario registrado correctamente",
@@ -81,7 +82,7 @@ public class UserServiceImpl implements UserService {
     user.setDocumentNumber(request.getDocumentNumber());
     user.setFirstName(request.getFirstName());
     user.setLastName(request.getLastName());
-    user.setUpdatedBy("system");
+    user.setUpdatedBy(JwtUtils.extractUsernameFromContext());
 
     return new ApiResponse<>(
         "Usuario actualizado correctamente",
@@ -96,7 +97,7 @@ public class UserServiceImpl implements UserService {
         .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
     user.setStatus(request.getStatus());
-    user.setUpdatedBy("system");
+    user.setUpdatedBy(JwtUtils.extractUsernameFromContext());
 
     repository.save(user);
 

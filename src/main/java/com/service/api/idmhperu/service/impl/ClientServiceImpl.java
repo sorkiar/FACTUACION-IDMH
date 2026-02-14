@@ -15,6 +15,7 @@ import com.service.api.idmhperu.repository.PersonTypeRepository;
 import com.service.api.idmhperu.repository.spec.ClientSpecification;
 import com.service.api.idmhperu.service.ClientService;
 import com.service.api.idmhperu.util.ClientValidator;
+import com.service.api.idmhperu.util.JwtUtils;
 import jakarta.transaction.Transactional;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +49,7 @@ public class ClientServiceImpl implements ClientService {
     client.setDocumentType(documentTypeRepository.findById(request.getDocumentTypeId())
         .orElseThrow(() -> new ResourceNotFoundException("Tipo de documento no válido")));
     client.setStatus(1);
+    client.setCreatedBy(JwtUtils.extractUsernameFromContext());
 
     return new ApiResponse<>("Cliente registrado correctamente",
         mapper.toResponse(repository.save(client)));
@@ -69,6 +71,7 @@ public class ClientServiceImpl implements ClientService {
     client.setPersonType(personType);
     client.setDocumentType(documentTypeRepository.findById(request.getDocumentTypeId())
         .orElseThrow(() -> new ResourceNotFoundException("Tipo de documento no válido")));
+    client.setUpdatedBy(JwtUtils.extractUsernameFromContext());
 
     return new ApiResponse<>("Cliente actualizado correctamente",
         mapper.toResponse(repository.save(client)));
@@ -82,6 +85,7 @@ public class ClientServiceImpl implements ClientService {
         .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
 
     client.setStatus(request.getStatus());
+    client.setUpdatedBy(JwtUtils.extractUsernameFromContext());
 
     return new ApiResponse<>("Estado del cliente actualizado correctamente", null);
   }

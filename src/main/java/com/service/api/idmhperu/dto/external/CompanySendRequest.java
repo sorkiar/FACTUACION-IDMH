@@ -1,0 +1,18 @@
+package com.service.api.idmhperu.dto.external;
+
+import lombok.Data;
+
+@Data
+public class CompanySendRequest {
+  private String emprRuc;
+  private String emprRazonSocial;
+  private String emprDireccionFiscal;
+  private String emprCodigoEstablecimientoSunat;
+  private Boolean emprLeyAmazonia;
+  private Boolean emprProduccion;
+  private String emprCertificadoLLavePublica;
+  private String emprCertificadoLLavePrivada;
+  private String emprUsuarioSecundario;
+  private String emprClaveUsuarioSecundario;
+  private UbigeoSendRequest ubigeo;
+}

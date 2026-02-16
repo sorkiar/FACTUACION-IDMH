@@ -28,6 +28,9 @@ public class UnitMeasure {
   @Column(length = 10, nullable = false)
   private String code;
 
+  @Column(name = "code_sunat", length = 4, nullable = false)
+  private String codeSunat;
+
   @Column(length = 50, nullable = false)
   private String name;
 

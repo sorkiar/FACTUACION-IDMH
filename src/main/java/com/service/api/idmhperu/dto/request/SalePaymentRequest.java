@@ -14,5 +14,6 @@ public class SalePaymentRequest {
   private BigDecimal amountPaid;
 
   private String paymentReference;
-  private String proofFileUrl;
+
+  private String proofKey; // clave para asociar archivo
 }

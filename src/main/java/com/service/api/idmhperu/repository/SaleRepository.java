@@ -19,7 +19,9 @@ public interface SaleRepository
       "items",
       "items.product",
       "items.service",
-      "items.unitMeasure"
+      "items.unitMeasure",
+      "documents",
+      "documents.documentTypeSunat",
   })
   @NullMarked
   List<Sale> findAll(Specification<Sale> spec);
@@ -29,7 +31,9 @@ public interface SaleRepository
       "items",
       "items.product",
       "items.service",
-      "items.unitMeasure"
+      "items.unitMeasure",
+      "documents",
+      "documents.documentTypeSunat",
   })
   Optional<Sale> findByIdAndDeletedAtIsNull(Long id);
 }

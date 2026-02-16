@@ -1,22 +1,26 @@
 package com.service.api.idmhperu.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.service.api.idmhperu.dto.filter.SaleFilter;
 import com.service.api.idmhperu.dto.request.SaleRequest;
 import com.service.api.idmhperu.dto.response.ApiResponse;
 import com.service.api.idmhperu.dto.response.SaleResponse;
 import com.service.api.idmhperu.service.SaleService;
-import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.util.MultiValueMap;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/sales")
@@ -47,10 +51,24 @@ public class SaleController {
     return service.findAll(filter);
   }
 
-  @PostMapping
+  @PostMapping(consumes = "multipart/form-data")
   public ApiResponse<SaleResponse> create(
-      @Valid @RequestBody SaleRequest request
-  ) {
-    return service.create(request);
+      @RequestPart("data") String data,
+      @RequestParam(required = false)
+      MultiValueMap<String, MultipartFile> paymentProofs
+  ) throws Exception {
+    SaleRequest request = new ObjectMapper().readValue(data, SaleRequest.class);
+    return service.create(request, paymentProofs);
+  }
+
+  @PutMapping(value = "/{id}/draft", consumes = "multipart/form-data")
+  public ApiResponse<SaleResponse> updateDraft(
+      @PathVariable Long id,
+      @RequestPart("data") String data,
+      @RequestParam(required = false)
+      MultiValueMap<String, MultipartFile> paymentProofs
+  ) throws Exception {
+    SaleRequest request = new ObjectMapper().readValue(data, SaleRequest.class);
+    return service.updateDraft(id, request, paymentProofs);
   }
 }

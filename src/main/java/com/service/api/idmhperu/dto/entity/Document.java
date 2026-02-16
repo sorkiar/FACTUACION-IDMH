@@ -66,10 +66,10 @@ public class Document {
   @Column(name = "sunat_message", columnDefinition = "TEXT")
   private String sunatMessage;
 
-  @Column(name = "hash_code", length = 255)
+  @Column(name = "hash_code")
   private String hashCode;
 
-  @Column(name = "qr_code", length = 255)
+  @Column(name = "qr_code")
   private String qrCode;
 
   @Column(name = "xml_base64", columnDefinition = "TEXT")
@@ -78,7 +78,7 @@ public class Document {
   @Column(name = "cdr_base64", columnDefinition = "TEXT")
   private String cdrBase64;
 
-  @Column(name = "pdf_url", length = 255)
+  @Column(name = "pdf_url")
   private String pdfUrl;
 
   // Audit

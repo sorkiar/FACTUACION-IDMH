@@ -96,6 +96,7 @@ public final class GoogleDriveOAuthUtils {
                 new FileDataStoreFactory(new File(tokensDirectory))
             )
             .setAccessType("offline")
+            .setApprovalPrompt("force")
             .build();
 
     LocalServerReceiver receiver = buildReceiver(receiverPort);

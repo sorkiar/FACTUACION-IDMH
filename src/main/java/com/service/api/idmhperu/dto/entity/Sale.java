@@ -10,10 +10,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -39,20 +42,17 @@ public class Sale {
   @Column(name = "sale_status", length = 20, nullable = false)
   private String saleStatus;
 
-  @Column(name = "payment_status", length = 20, nullable = false)
-  private String paymentStatus;
-
   @Column(name = "subtotal_amount", precision = 14, scale = 2, nullable = false)
-  private BigDecimal subtotalAmount;
+  private BigDecimal subtotalAmount = BigDecimal.ZERO;
 
   @Column(name = "discount_amount", precision = 14, scale = 2, nullable = false)
-  private BigDecimal discountAmount;
+  private BigDecimal discountAmount = BigDecimal.ZERO;
 
   @Column(name = "tax_amount", precision = 14, scale = 2, nullable = false)
-  private BigDecimal taxAmount;
+  private BigDecimal taxAmount = BigDecimal.ZERO;
 
   @Column(name = "total_amount", precision = 14, scale = 2, nullable = false)
-  private BigDecimal totalAmount;
+  private BigDecimal totalAmount = BigDecimal.ZERO;
 
   @Column(name = "currency_code", length = 4, nullable = false)
   private String currencyCode;
@@ -66,17 +66,17 @@ public class Sale {
   @Column(columnDefinition = "TEXT")
   private String observations;
 
-  @OneToMany(
-      mappedBy = "sale",
-      cascade = CascadeType.ALL,
-      orphanRemoval = true
-  )
+  @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true)
   @JsonManagedReference
-  private List<SaleItem> items;
+  private Set<SaleItem> items = new HashSet<>();
 
   @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true)
   @JsonManagedReference
-  private List<SalePayment> payments;
+  private Set<Document> documents = new HashSet<>();
+
+  @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true)
+  @JsonManagedReference
+  private Set<SalePayment> payments = new HashSet<>();
 
   // Audit
   @CreationTimestamp

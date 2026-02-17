@@ -21,4 +21,9 @@ public interface DocumentSeriesRepository
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT ds FROM DocumentSeries ds WHERE ds.id = :id")
   Optional<DocumentSeries> findByIdForUpdate(@Param("id") Long id);
+
+  Optional<DocumentSeries> findFirstByDocumentTypeSunat_CodeAndStatusNotOrderByIdAsc(
+      String code,
+      Integer status
+  );
 }

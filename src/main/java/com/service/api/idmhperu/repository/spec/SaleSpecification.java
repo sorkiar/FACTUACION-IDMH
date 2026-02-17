@@ -49,6 +49,7 @@ public class SaleSpecification {
             end));
       }
 
+      query.orderBy(cb.desc(root.get("saleDate")));
       return cb.and(predicates.toArray(new Predicate[0]));
     };
   }

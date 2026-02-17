@@ -1,8 +1,10 @@
 package com.service.api.idmhperu.dto.mapper;
 
+import com.service.api.idmhperu.dto.entity.Client;
 import com.service.api.idmhperu.dto.entity.Document;
 import com.service.api.idmhperu.dto.entity.Sale;
 import com.service.api.idmhperu.dto.entity.SaleItem;
+import com.service.api.idmhperu.dto.response.ClientResponse;
 import com.service.api.idmhperu.dto.response.DocumentResponse;
 import com.service.api.idmhperu.dto.response.SaleItemResponse;
 import com.service.api.idmhperu.dto.response.SaleResponse;
@@ -14,18 +16,25 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface SaleMapper {
-  @Mapping(source = "client.id", target = "clientId")
-  @Mapping(source = "client.businessName", target = "clientName")
   @Mapping(target = "document", expression = "java(mapLastDocument(entity.getDocuments()))")
   SaleResponse toResponse(Sale entity);
 
   List<SaleResponse> toResponseList(List<Sale> entities);
 
+  @Mapping(target = "productId", source = "product.id")
+  @Mapping(target = "serviceId", source = "service.id")
   SaleItemResponse toItemResponse(SaleItem entity);
 
   List<SaleItemResponse> toItemResponseList(List<SaleItem> entities);
 
   DocumentResponse toDocumentResponse(Document entity);
+
+  @Mapping(target = "personTypeId", source = "personType.id")
+  @Mapping(target = "personType", source = "personType.name")
+  @Mapping(target = "documentTypeId", source = "documentType.id")
+  @Mapping(target = "documentType", source = "documentType.name")
+  @Mapping(target = "birthDate", source = "birthDate", dateFormat = "yyyy-MM-dd")
+  ClientResponse toClientResponse(Client entity);
 
   default DocumentResponse mapLastDocument(Set<Document> documents) {
     if (documents == null || documents.isEmpty()) {

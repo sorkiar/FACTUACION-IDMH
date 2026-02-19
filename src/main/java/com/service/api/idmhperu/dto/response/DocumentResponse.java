@@ -13,4 +13,6 @@ public class DocumentResponse {
   private Integer sunatResponseCode;
   private String sunatMessage;
   private String pdfUrl;
+  private String xmlUrl;
+  private String cdrUrl;
 }

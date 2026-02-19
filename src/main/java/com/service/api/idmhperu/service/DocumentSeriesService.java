@@ -7,4 +7,6 @@ public interface DocumentSeriesService {
 
   ApiResponse<DocumentSeriesResponse> getNextSequencePreview(String documentTypeCode);
 
+  ApiResponse<DocumentSeriesResponse> getNextSequenceById(Long seriesId);
+
 }

@@ -36,3 +36,6 @@ jwt:
 custom:
   server:
     hostname: https://api-test.facturacion-idmhperu.website
+
+sunat:
+  url: https://e-fact.facturacion-idmhperu.website/facturador/sunat/comprobante/sent

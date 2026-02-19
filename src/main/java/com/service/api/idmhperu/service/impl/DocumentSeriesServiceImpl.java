@@ -41,4 +41,18 @@ public class DocumentSeriesServiceImpl implements DocumentSeriesService {
         response
     );
   }
+
+  @Override
+  @Transactional(readOnly = true)
+  public ApiResponse<DocumentSeriesResponse> getNextSequenceById(Long seriesId) {
+    DocumentSeries series = repository.findById(seriesId)
+        .orElseThrow(() ->
+            new ResourceNotFoundException("No existe serie con id: " + seriesId)
+        );
+
+    DocumentSeriesResponse response = mapper.toResponse(series);
+    response.setSequence(series.getCurrentSequence() + 1);
+
+    return new ApiResponse<>("Correlativo obtenido correctamente", response);
+  }
 }

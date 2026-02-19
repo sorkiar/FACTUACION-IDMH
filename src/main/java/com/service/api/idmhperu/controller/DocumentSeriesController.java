@@ -18,8 +18,12 @@ public class DocumentSeriesController {
 
   @GetMapping("/next-sequence")
   public ApiResponse<DocumentSeriesResponse> getNextSequence(
-      @RequestParam String documentTypeCode
+      @RequestParam(required = false) String documentTypeCode,
+      @RequestParam(required = false) Long seriesId
   ) {
+    if (seriesId != null) {
+      return service.getNextSequenceById(seriesId);
+    }
     return service.getNextSequencePreview(documentTypeCode);
   }
 }

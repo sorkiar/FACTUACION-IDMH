@@ -2,11 +2,15 @@ package com.service.api.idmhperu.dto.mapper;
 
 import com.service.api.idmhperu.dto.entity.Client;
 import com.service.api.idmhperu.dto.entity.Document;
+import com.service.api.idmhperu.dto.entity.PaymentMethod;
 import com.service.api.idmhperu.dto.entity.Sale;
 import com.service.api.idmhperu.dto.entity.SaleItem;
+import com.service.api.idmhperu.dto.entity.SalePayment;
 import com.service.api.idmhperu.dto.response.ClientResponse;
 import com.service.api.idmhperu.dto.response.DocumentResponse;
+import com.service.api.idmhperu.dto.response.PaymentMethodResponse;
 import com.service.api.idmhperu.dto.response.SaleItemResponse;
+import com.service.api.idmhperu.dto.response.SalePaymentResponse;
 import com.service.api.idmhperu.dto.response.SaleResponse;
 import java.util.Comparator;
 import java.util.List;
@@ -35,6 +39,13 @@ public interface SaleMapper {
   @Mapping(target = "documentType", source = "documentType.name")
   @Mapping(target = "birthDate", source = "birthDate", dateFormat = "yyyy-MM-dd")
   ClientResponse toClientResponse(Client entity);
+
+  PaymentMethodResponse toPaymentMethodResponse(PaymentMethod entity);
+
+  @Mapping(target = "paymentMethod", source = "paymentMethod")
+  SalePaymentResponse toPaymentResponse(SalePayment entity);
+
+  List<SalePaymentResponse> toPaymentResponseList(List<SalePayment> entities);
 
   default DocumentResponse mapLastDocument(Set<Document> documents) {
     if (documents == null || documents.isEmpty()) {

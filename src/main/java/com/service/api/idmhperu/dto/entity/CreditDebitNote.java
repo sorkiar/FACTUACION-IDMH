@@ -19,6 +19,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -111,6 +112,7 @@ public class CreditDebitNote {
   @Column(name = "cdr_url", length = 500)
   private String cdrUrl;
 
+  @BatchSize(size = 30)
   @OneToMany(mappedBy = "creditDebitNote", cascade = CascadeType.ALL, orphanRemoval = true)
   @JsonManagedReference
   private Set<CreditDebitNoteItem> items = new HashSet<>();

@@ -52,7 +52,7 @@ public class SalePayment {
   @Column(name = "payment_reference", length = 150)
   private String paymentReference;
 
-  @Column(name = "proof_file_url", length = 255)
+  @Column(name = "proof_file_url")
   private String proofFileUrl;
 
   @Column(columnDefinition = "TEXT")

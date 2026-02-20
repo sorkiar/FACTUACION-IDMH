@@ -16,24 +16,32 @@ public interface SaleRepository
   @Override
   @EntityGraph(attributePaths = {
       "client",
+      "client.documentType",
+      "client.personType",
       "items",
       "items.product",
       "items.service",
       "items.unitMeasure",
       "documents",
       "documents.documentTypeSunat",
+      "payments",
+      "payments.paymentMethod",
   })
   @NullMarked
   List<Sale> findAll(Specification<Sale> spec);
 
   @EntityGraph(attributePaths = {
       "client",
+      "client.documentType",
+      "client.personType",
       "items",
       "items.product",
       "items.service",
       "items.unitMeasure",
       "documents",
       "documents.documentTypeSunat",
+      "payments",
+      "payments.paymentMethod",
   })
   Optional<Sale> findByIdAndDeletedAtIsNull(Long id);
 }

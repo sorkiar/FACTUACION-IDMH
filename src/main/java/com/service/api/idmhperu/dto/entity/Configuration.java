@@ -35,16 +35,16 @@ public class Configuration {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(name = "config_group", length = 255)
+  @Column(name = "config_group")
   private String configGroup;
 
-  @Column(name = "config_key", length = 255)
+  @Column(name = "config_key")
   private String configKey;
 
   @Column(name = "config_value", columnDefinition = "LONGTEXT")
   private String configValue;
 
-  @Column(name = "config_datatype", length = 255)
+  @Column(name = "config_datatype")
   private String configDatatype;
 
   @Column(length = 255)

@@ -13,5 +13,6 @@ public class SaleResponse {
   private BigDecimal totalAmount;
   private ClientResponse client;
   private List<SaleItemResponse> items;
+  private List<SalePaymentResponse> payments;
   private DocumentResponse document;
 }

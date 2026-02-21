@@ -38,5 +38,5 @@ custom:
     hostname: http://localhost:8090
 
 sunat:
-  #url: http://localhost:8889/facturador/sunat/comprobante/sent
-  url: https://e-fact.facturacion-idmhperu.website/facturador/sunat/comprobante/sent
+  url: http://localhost:8889/facturador/sunat/comprobante/sent
+  #url: https://e-fact.facturacion-idmhperu.website/facturador/sunat/comprobante/sent

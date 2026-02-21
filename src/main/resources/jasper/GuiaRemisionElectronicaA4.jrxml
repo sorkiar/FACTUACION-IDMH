@@ -67,75 +67,8 @@
             <rightPen lineWidth="0.5" lineColor="#2282C7"/>
         </box>
     </style>
-    <parameter name="guiaId" class="java.lang.Integer"/>
     <parameter name="urlImagen" class="java.lang.String"/>
-    <queryString>
-        <![CDATA[select
-	e.ruc as empr_ruc,
-	e.denominacion as empr_nombre_comercial,
-	e.descripcion as empr_razon_social,
-	e.direccion as empr_direccion_fiscal,
-	e.telefono as empr_telefono,
-	e.pagina_web as empr_pagina_web,
-	'034-005-0005315' as empr_numero_autorizacion,
-	td.descripcion as tico_descripcion,
-	g.num_serie  || ' - ' ||  g.num_documento as comp_numero_comprobante,
-	g.fecha_traslado as comp_fecha_traslado,
-	null as empr_imagen,
-	null as empr_pdf_marca_agua,
-	g.direccionpartida,
-    g.costominimo,
-    g.comprobante,
-    g.razonsocial,
-    g.direccionllegada,
-    g.ruccliente || g.dni_cliente as ruccliente,
-    g.transporte,
-    g.ructrasnporte,
-    g.vehiculo,
-    g.placa,
-    g.inscripcion,
-    g.chofer,
-    g.licencia,
-    g.dni_cliente,
-    g.fecha_hora,
-    g.nombre_representante,
-    g.dist_partida,
-    g.prov_partida,
-    g.dpto_partida,
-    g.dist_llegada,
-    g.prov_llegada,
-    g.dpto_llegada,
-    g.desde_venta,
-    g.flete,
-    g.imprevistos,
-    g.con_venta,
-    g.fecha_traslado,
-    g.direccion_referencia,
-    g.dist_referencia,
-    g.prov_referencia,
-    g.dpto_referencia,
-	g.tipo_guia,
-g.num_bultos,
-
-e.ruc || ' | ' || td.codigo_sunat || ' | ' || g.num_serie  || ' | ' ||  g.num_documento || ' | ' || to_char(g.fecha_hora,'dd/MM/yyyy') || ' | 6' || ' | ' || trim(g.ruccliente) as comp_cadena_qr,
-
-dg.cantidad,dg.descripcion,p.codigo_prod_proveedor,p.precio_compra,um.abreviatura,dg.codigo_producto,dg.observaciones,dg.monto,
-tg.descripcion as tipo_guia_descripcion,g.peso,
-
-	coalesce((select valor from comercial.parametros WHERE id_parametros = 133),'NO') as mostrar_codigo_proveedor,
-	coalesce((select valor from comercial.parametros WHERE id_parametros = 134),'NO') as mostrar_observacion_item
-
-
-from comercial.guia g
-inner join comercial.empresa e on g.id_empresa = e.id_empresa
-inner join comercial.tipodocumento td on g.id_tipo_documento_guia = td.id_tipodocumento
-inner join comercial.detalle_guia dg on g.id_guia = dg.id_guia
-inner join comercial.producto p on dg.codigo_producto = p.codigo_producto
-inner join comercial.unidadmedida um on dg.cod_unidad_medida = um.codigo_unidad_m
-left join comercial.tipo_guia tg on g.id_tipo_guia = tg.id_tipo_guia
-where g.id_guia = $P{guiaId}
-order by dg.id_detalle_guia]]>
-    </queryString>
+    <queryString><![CDATA[]]></queryString>
     <field name="empr_ruc" class="java.lang.String"/>
     <field name="empr_nombre_comercial" class="java.lang.String"/>
     <field name="empr_razon_social" class="java.lang.String"/>

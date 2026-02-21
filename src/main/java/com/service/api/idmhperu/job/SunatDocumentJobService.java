@@ -4,12 +4,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.service.api.idmhperu.dto.entity.CreditDebitNote;
 import com.service.api.idmhperu.dto.entity.CreditDebitNoteItem;
 import com.service.api.idmhperu.dto.entity.Document;
+import com.service.api.idmhperu.dto.entity.RemissionGuide;
+import com.service.api.idmhperu.dto.entity.RemissionGuideDriver;
+import com.service.api.idmhperu.dto.entity.RemissionGuideItem;
 import com.service.api.idmhperu.dto.entity.Sale;
 import com.service.api.idmhperu.dto.entity.SaleItem;
 import com.service.api.idmhperu.dto.external.*;
 import com.service.api.idmhperu.repository.CreditDebitNoteItemRepository;
 import com.service.api.idmhperu.repository.CreditDebitNoteRepository;
 import com.service.api.idmhperu.repository.DocumentRepository;
+import com.service.api.idmhperu.repository.RemissionGuideDriverRepository;
+import com.service.api.idmhperu.repository.RemissionGuideItemRepository;
+import com.service.api.idmhperu.repository.RemissionGuideRepository;
 import com.service.api.idmhperu.repository.SaleItemRepository;
 import com.service.api.idmhperu.service.ConfigurationService;
 import com.service.api.idmhperu.service.GoogleDriveService;
@@ -35,6 +41,9 @@ public class SunatDocumentJobService {
   private final SaleItemRepository saleItemRepository;
   private final CreditDebitNoteRepository creditDebitNoteRepository;
   private final CreditDebitNoteItemRepository creditDebitNoteItemRepository;
+  private final RemissionGuideRepository remissionGuideRepository;
+  private final RemissionGuideItemRepository remissionGuideItemRepository;
+  private final RemissionGuideDriverRepository remissionGuideDriverRepository;
   private final ConfigurationService configurationService;
   private final GoogleDriveService googleDriveService;
 
@@ -113,6 +122,7 @@ public class SunatDocumentJobService {
     log.info("Proceso SUNAT finalizado.");
 
     sendPendingCreditDebitNotes();
+    sendPendingRemissionGuides();
   }
 
   // =====================================================
@@ -320,6 +330,237 @@ public class SunatDocumentJobService {
       note.setStatus("ERROR");
       note.setSunatMessage("HTTP Error: " + response.getStatusCode());
     }
+  }
+
+  // =====================================================
+  // GUÍAS DE REMISIÓN
+  // =====================================================
+
+  private void sendPendingRemissionGuides() {
+
+    log.info("Iniciando proceso de guías de remisión...");
+
+    List<RemissionGuide> pendientes =
+        remissionGuideRepository.findByStatusAndDeletedAtIsNull("PENDIENTE");
+
+    log.info("Guías pendientes encontradas: {}", pendientes.size());
+
+    for (RemissionGuide guide : pendientes) {
+
+      try {
+
+        List<RemissionGuideItem> items =
+            remissionGuideItemRepository
+                .findByRemissionGuideIdAndDeletedAtIsNull(guide.getId());
+
+        List<RemissionGuideDriver> drivers =
+            remissionGuideDriverRepository
+                .findByRemissionGuideIdAndDeletedAtIsNull(guide.getId());
+
+        SunatSendRequest request = buildGuideRequest(guide, items, drivers);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<SunatSendRequest> entity = new HttpEntity<>(request, headers);
+
+        try {
+          ObjectMapper mapper = new ObjectMapper();
+          mapper.findAndRegisterModules();
+          String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(request);
+          log.info("====== JSON GUÍA ENVIADO A SUNAT ======\n{}", json);
+        } catch (Exception e) {
+          log.error("Error serializando JSON de guía", e);
+        }
+
+        ResponseEntity<FacturacionResponse> response =
+            restTemplate.exchange(sunatUrl, HttpMethod.POST, entity, FacturacionResponse.class);
+
+        processGuideResponse(guide, response);
+
+      } catch (Exception e) {
+        guide.setStatus("ERROR");
+        guide.setSunatMessage("Error enviando: " + e.getMessage());
+        log.error("Error enviando guía {}", guide.getId(), e);
+      }
+
+      guide.setUpdatedBy("job-system");
+      remissionGuideRepository.save(guide);
+    }
+
+    log.info("Proceso guías SUNAT finalizado.");
+  }
+
+  private SunatSendRequest buildGuideRequest(
+      RemissionGuide guide,
+      List<RemissionGuideItem> items,
+      List<RemissionGuideDriver> drivers) {
+
+    Map<String, String> config = configurationService.getGroup("empresa_emisora");
+
+    // EMPRESA (con credenciales de guía)
+    CompanySendRequest empresa = new CompanySendRequest();
+    empresa.setEmprRuc(config.get("emprRuc"));
+    empresa.setEmprRazonSocial(config.get("emprRazonSocial"));
+    empresa.setEmprDireccionFiscal(config.get("emprDireccionFiscal"));
+    empresa.setEmprCodigoEstablecimientoSunat(config.get("emprCodigoEstablecimientoSunat"));
+    empresa.setEmprLeyAmazonia(Boolean.parseBoolean(config.get("emprLeyAmazonia")));
+    empresa.setEmprProduccion(Boolean.parseBoolean(config.get("emprProduccion")));
+    empresa.setEmprCertificadoLLavePublica(config.get("emprCertificadoLlavePublica"));
+    empresa.setEmprCertificadoLLavePrivada(config.get("emprCertificadoLlavePrivada"));
+    empresa.setEmprUsuarioSecundario(config.get("emprUsuarioSecundario"));
+    empresa.setEmprClaveUsuarioSecundario(config.get("emprClaveUsuarioSecundario"));
+    empresa.setEmprGuiaId(config.get("emprGuiaId"));
+    empresa.setEmprGuiaClave(config.get("emprGuiaClave"));
+
+    UbigeoSendRequest ubigeo = new UbigeoSendRequest();
+    ubigeo.setUbigUbigeo(config.get("ubigUbigeo"));
+    ubigeo.setUbigDepartamento(config.get("ubigDepartamento"));
+    ubigeo.setUbigProvincia(config.get("ubigProvincia"));
+    ubigeo.setUbigDistrito(config.get("ubigDistrito"));
+    empresa.setUbigeo(ubigeo);
+
+    // DESTINATARIO (como cliente del comprobante)
+    ClientSendRequest destinatario = new ClientSendRequest();
+    destinatario.setClieNumeroDocumento(guide.getRecipientDocNumber());
+    destinatario.setClieRazonSocial(guide.getRecipientName());
+    destinatario.setClieDireccion(guide.getRecipientAddress());
+    destinatario.setTipoDocumentoIdentidad(
+        resolveDocIdentidad(guide.getRecipientDocType()));
+
+    // ITEMS (bienes a transportar)
+    List<ItemSendRequest> itemDtos = new ArrayList<>();
+    for (RemissionGuideItem item : items) {
+      BigDecimal unitPrice = item.getUnitPrice() != null ? item.getUnitPrice() : BigDecimal.ZERO;
+      BigDecimal subtotal  = item.getSubtotalAmount() != null ? item.getSubtotalAmount() : BigDecimal.ZERO;
+      BigDecimal igv       = item.getTaxAmount() != null ? item.getTaxAmount() : BigDecimal.ZERO;
+      BigDecimal total     = item.getTotalAmount() != null ? item.getTotalAmount() : BigDecimal.ZERO;
+      BigDecimal valorUnitario = unitPrice.compareTo(BigDecimal.ZERO) > 0
+          ? unitPrice.divide(new BigDecimal("1.18"), 6, RoundingMode.HALF_UP)
+          : BigDecimal.ZERO;
+
+      ItemSendRequest dto = new ItemSendRequest();
+      dto.setItcoUnidadMedida(item.getUnitMeasureSunat());
+      dto.setItcoDescripcion(item.getDescription());
+      dto.setItcoCantidad(item.getQuantity());
+      dto.setItcoValorUnitario(valorUnitario.setScale(2, RoundingMode.HALF_UP));
+      dto.setItcoPrecioUnitario(unitPrice.setScale(2, RoundingMode.HALF_UP));
+      dto.setItcoSubTotal(subtotal);
+      dto.setItcoIgv(igv);
+      dto.setItcoTotal(total);
+      dto.setTipoAfectacionIgv("GRAVADO");
+      itemDtos.add(dto);
+    }
+
+    // GUÍA
+    GuiaSendRequest guia = new GuiaSendRequest();
+    guia.setGuiaPesoBruto(guide.getGrossWeight());
+    guia.setGuiaNumeroBultos(guide.getPackageCount());
+    guia.setGuiaUnidadMedidaPeso(guide.getWeightUnit());
+    guia.setGuiaFechaTraslado(guide.getTransferDate().toString());
+    guia.setGuiaPuntoPartidaDireccion(guide.getOriginAddress());
+    guia.setGuiaUbigeoPartida(guide.getOriginUbigeo());
+    guia.setGuiaCodigoLocalPartida(guide.getOriginLocalCode());
+    guia.setGuiaPuntoLlegadaDireccion(guide.getDestinationAddress());
+    guia.setGuiaUbigeoLlegada(guide.getDestinationUbigeo());
+    guia.setGuiaCodigoLocalLlegada(guide.getDestinationLocalCode());
+    guia.setMotivoTraslado(guide.getTransferReason());
+    guia.setGuiaMotivoTrasladoDescripcion(guide.getTransferReasonDescription());
+    guia.setTipoTransporte(guide.getTransportMode());
+    guia.setGuiaTrasladoVehiculoMenores(guide.getMinorVehicleTransfer());
+
+    if ("TRANSPORTE_PUBLICO".equals(guide.getTransportMode())) {
+      ClientSendRequest transportista = new ClientSendRequest();
+      transportista.setClieNumeroDocumento(guide.getCarrierDocNumber());
+      transportista.setClieRazonSocial(guide.getCarrierName());
+      transportista.setTipoDocumentoIdentidad(
+          resolveDocIdentidad(guide.getCarrierDocType()));
+      guia.setTransportista(transportista);
+    }
+
+    if ("TRANSPORTE_PRIVADO".equals(guide.getTransportMode()) && !drivers.isEmpty()) {
+      List<GuiaTransporteSendRequest> transporteDtos = new ArrayList<>();
+      for (RemissionGuideDriver driver : drivers) {
+        GuiaTransporteSendRequest dto = new GuiaTransporteSendRequest();
+        dto.setConductorTipoDocumento(driver.getDriverDocType());
+        dto.setConductorNumeroDocumento(driver.getDriverDocNumber());
+        dto.setConductorNombres(driver.getDriverFirstName());
+        dto.setConductorApellidos(driver.getDriverLastName());
+        dto.setConductorNumeroLicencia(driver.getDriverLicenseNumber());
+        dto.setVehiculoPlaca(driver.getVehiclePlate());
+        transporteDtos.add(dto);
+      }
+      guia.setLsGuiaTransporte(transporteDtos);
+    }
+
+    // COMPROBANTE
+    DocumentSendRequest comprobante = new DocumentSendRequest();
+    comprobante.setCompSerie(guide.getSeries());
+    comprobante.setCompNumero(Integer.parseInt(guide.getSequence()));
+    comprobante.setCompFechaEmision(LocalDate.now().toString());
+    comprobante.setCompPorcentajeIgv(new BigDecimal("18"));
+    comprobante.setCompCondicionPago("CONTADO");
+    comprobante.setCompMedioPago("EFECTIVO");
+    comprobante.setMoneda("PEN");
+    comprobante.setTipoDocumento("GUIA_REMISION_REMITENTE");
+    comprobante.setTipoOperacion("VENTA_INTERNA");
+    comprobante.setCliente(destinatario);
+    comprobante.setLsItemComprobante(itemDtos);
+    comprobante.setGuia(guia);
+
+    SunatSendRequest request = new SunatSendRequest();
+    request.setEmpresa(empresa);
+    request.setComprobante(comprobante);
+
+    return request;
+  }
+
+  private void processGuideResponse(RemissionGuide guide,
+      ResponseEntity<FacturacionResponse> response) {
+
+    FacturacionResponse body = response.getBody();
+
+    if (response.getStatusCode().is2xxSuccessful() && body != null && body.isSuccess()) {
+
+      var data = body.getData();
+
+      if ("ACEPTADO".equalsIgnoreCase(data.getDeclarationResultType())) {
+        guide.setStatus("ACEPTADO");
+      } else {
+        guide.setStatus("RECHAZADO");
+      }
+
+      guide.setSunatResponseCode(data.getResponseCode());
+      guide.setSunatMessage(data.getMessage());
+      guide.setHashCode(data.getHashCode());
+      guide.setXmlBase64(data.getXmlBase64());
+      guide.setCdrBase64(data.getCdrBase64());
+
+      if ("ACEPTADO".equals(guide.getStatus())
+          && data.getXmlBase64() != null
+          && data.getCdrBase64() != null) {
+        String[] urls = uploadXmlAndCdr(
+            "09", guide.getSeries(), guide.getSequence(),
+            data.getXmlBase64(), data.getCdrBase64());
+        guide.setXmlUrl(urls[0]);
+        guide.setCdrUrl(urls[1]);
+      }
+
+    } else {
+      guide.setStatus("ERROR");
+      guide.setSunatMessage("HTTP Error: " + response.getStatusCode());
+    }
+  }
+
+  /** Resuelve el nombre del tipo de documento de identidad para el facturador. */
+  private String resolveDocIdentidad(String tipoDoc) {
+    if (tipoDoc == null) return "RUC";
+    return switch (tipoDoc.toUpperCase()) {
+      case "DNI", "1" -> "DNI";
+      case "RUC", "6" -> "RUC";
+      case "CE", "4" -> "CARNET_EXTRANJERIA";
+      case "PASAPORTE", "7" -> "PASAPORTE";
+      default -> tipoDoc;
+    };
   }
 
   /**

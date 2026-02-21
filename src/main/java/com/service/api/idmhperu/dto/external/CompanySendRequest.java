@@ -15,4 +15,8 @@ public class CompanySendRequest {
   private String emprUsuarioSecundario;
   private String emprClaveUsuarioSecundario;
   private UbigeoSendRequest ubigeo;
+
+  // Credenciales adicionales para guías de remisión
+  private String emprGuiaId;
+  private String emprGuiaClave;
 }

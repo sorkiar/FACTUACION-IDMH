@@ -18,4 +18,5 @@ public class DocumentSendRequest {
   private ClientSendRequest cliente;
   private List<ItemSendRequest> lsItemComprobante;
   private NotaSendRequest nota;
+  private GuiaSendRequest guia;
 }

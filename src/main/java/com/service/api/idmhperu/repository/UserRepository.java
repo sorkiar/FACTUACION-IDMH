@@ -16,9 +16,5 @@ public interface UserRepository
   })
   Optional<User> findByUsername(String username);
 
-  @EntityGraph(attributePaths = {
-      "documentType",
-      "profile",
-  })
   boolean existsByUsername(String username);
 }

@@ -57,4 +57,10 @@ public interface CreditDebitNoteRepository
   })
   List<CreditDebitNote> findByStatusAndDocumentTypeSunat_CodeAndDeletedAtIsNull(
       String status, String code);
+
+  @EntityGraph(attributePaths = {"documentTypeSunat", "creditDebitNoteType", "originalDocument"})
+  List<CreditDebitNote> findByDeletedAtIsNullOrderByIssueDateDesc();
+
+  @EntityGraph(attributePaths = {"documentTypeSunat", "creditDebitNoteType", "originalDocument"})
+  List<CreditDebitNote> findByStatusAndDeletedAtIsNullOrderByIssueDateDesc(String status);
 }

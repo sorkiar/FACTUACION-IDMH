@@ -2,11 +2,14 @@ package com.service.api.idmhperu.service.impl;
 
 import com.service.api.idmhperu.dto.entity.CreditDebitNote;
 import com.service.api.idmhperu.dto.entity.Document;
+import com.service.api.idmhperu.dto.entity.RemissionGuide;
 import com.service.api.idmhperu.dto.response.ApiResponse;
 import com.service.api.idmhperu.exception.BusinessValidationException;
 import com.service.api.idmhperu.exception.ResourceNotFoundException;
+import com.service.api.idmhperu.job.SunatDocumentJobService;
 import com.service.api.idmhperu.repository.CreditDebitNoteRepository;
 import com.service.api.idmhperu.repository.DocumentRepository;
+import com.service.api.idmhperu.repository.RemissionGuideRepository;
 import com.service.api.idmhperu.service.DocumentResendService;
 import jakarta.transaction.Transactional;
 import java.util.Set;
@@ -17,10 +20,12 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class DocumentResendServiceImpl implements DocumentResendService {
 
-  private static final Set<String> NO_RESEND_STATUSES = Set.of("ACEPTADO", "PENDIENTE");
+  private static final Set<String> NO_RESEND_STATUSES = Set.of("ACEPTADO");
 
   private final DocumentRepository documentRepository;
   private final CreditDebitNoteRepository creditDebitNoteRepository;
+  private final RemissionGuideRepository remissionGuideRepository;
+  private final SunatDocumentJobService jobService;
 
   @Override
   @Transactional
@@ -35,13 +40,12 @@ public class DocumentResendServiceImpl implements DocumentResendService {
               + "Solo se permite reenviar documentos en estado ERROR o RECHAZADO.");
     }
 
-    doc.setStatus("PENDIENTE");
-    doc.setUpdatedBy("manual-resend");
-    documentRepository.save(doc);
+    jobService.sendDocumentNow(doc);
 
     return new ApiResponse<>("Documento "
         + doc.getSeries() + "-" + doc.getSequence()
-        + " marcado como PENDIENTE. Será procesado en el próximo ciclo de envío.", null);
+        + " enviado a SUNAT. Estado: " + doc.getStatus()
+        + (doc.getSunatMessage() != null ? " — " + doc.getSunatMessage() : ""), null);
   }
 
   @Override
@@ -57,12 +61,32 @@ public class DocumentResendServiceImpl implements DocumentResendService {
               + "Solo se permite reenviar notas en estado ERROR o RECHAZADO.");
     }
 
-    note.setStatus("PENDIENTE");
-    note.setUpdatedBy("manual-resend");
-    creditDebitNoteRepository.save(note);
+    jobService.sendCreditDebitNoteNow(note);
 
     return new ApiResponse<>("Nota "
         + note.getSeries() + "-" + note.getSequence()
-        + " marcada como PENDIENTE. Será procesada en el próximo ciclo de envío.", null);
+        + " enviada a SUNAT. Estado: " + note.getStatus()
+        + (note.getSunatMessage() != null ? " — " + note.getSunatMessage() : ""), null);
+  }
+
+  @Override
+  @Transactional
+  public ApiResponse<String> resendRemissionGuide(Long id) {
+
+    RemissionGuide guide = remissionGuideRepository.findByIdAndDeletedAtIsNull(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Guía de remisión no encontrada con id: " + id));
+
+    if (NO_RESEND_STATUSES.contains(guide.getStatus())) {
+      throw new BusinessValidationException(
+          "No se puede reenviar una guía en estado '" + guide.getStatus() + "'. "
+              + "Solo se permite reenviar guías en estado ERROR o RECHAZADO.");
+    }
+
+    jobService.sendRemissionGuideNow(guide);
+
+    return new ApiResponse<>("Guía "
+        + guide.getSeries() + "-" + guide.getSequence()
+        + " enviada a SUNAT. Estado: " + guide.getStatus()
+        + (guide.getSunatMessage() != null ? " — " + guide.getSunatMessage() : ""), null);
   }
 }

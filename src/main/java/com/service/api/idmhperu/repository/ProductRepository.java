@@ -10,10 +10,6 @@ public interface ProductRepository
     extends JpaRepository<Product, Long>,
     JpaSpecificationExecutor<Product> {
 
-  @EntityGraph(attributePaths = {
-      "category",
-      "unitMeasure",
-  })
   boolean existsBySku(String sku);
 
   @EntityGraph(attributePaths = {

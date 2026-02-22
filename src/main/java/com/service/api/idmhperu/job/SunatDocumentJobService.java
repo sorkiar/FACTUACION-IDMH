@@ -52,6 +52,9 @@ public class SunatDocumentJobService {
   @Value("${sunat.url}")
   private String sunatUrl;
 
+  @Value("${sunat.url-guia}")
+  private String sunatGuiaUrl;
+
   private static final String DRIVE_FOLDER_ID = "1ysDbcKhd4ZikJ17k4330pzFWH2_Vycpz";
   private static final String COMPANY_RUC = "20602592457";
 
@@ -333,6 +336,76 @@ public class SunatDocumentJobService {
   }
 
   // =====================================================
+  // ENVÍO INMEDIATO (resend manual)
+  // =====================================================
+
+  @org.springframework.transaction.annotation.Transactional
+  public void sendDocumentNow(Document doc) {
+    try {
+      Sale sale = doc.getSale();
+      List<SaleItem> items =
+          saleItemRepository.findBySaleIdAndDeletedAtIsNull(sale.getId());
+      SunatSendRequest request = buildRequest(doc, sale, items);
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.APPLICATION_JSON);
+      ResponseEntity<FacturacionResponse> response = restTemplate.exchange(
+          sunatUrl, HttpMethod.POST, new HttpEntity<>(request, headers),
+          FacturacionResponse.class);
+      processResponse(doc, response);
+    } catch (Exception e) {
+      doc.setStatus("ERROR");
+      doc.setSunatMessage("Error enviando: " + e.getMessage());
+      log.error("Error enviando documento {} de forma manual", doc.getId(), e);
+    }
+    doc.setUpdatedBy("manual-resend");
+    documentRepository.save(doc);
+  }
+
+  @org.springframework.transaction.annotation.Transactional
+  public void sendCreditDebitNoteNow(CreditDebitNote note) {
+    try {
+      List<CreditDebitNoteItem> items =
+          creditDebitNoteItemRepository.findByCreditDebitNoteIdAndDeletedAtIsNull(note.getId());
+      SunatSendRequest request = buildNoteRequest(note, items);
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.APPLICATION_JSON);
+      ResponseEntity<FacturacionResponse> response = restTemplate.exchange(
+          sunatUrl, HttpMethod.POST, new HttpEntity<>(request, headers),
+          FacturacionResponse.class);
+      processNoteResponse(note, response);
+    } catch (Exception e) {
+      note.setStatus("ERROR");
+      note.setSunatMessage("Error enviando: " + e.getMessage());
+      log.error("Error enviando nota {} de forma manual", note.getId(), e);
+    }
+    note.setUpdatedBy("manual-resend");
+    creditDebitNoteRepository.save(note);
+  }
+
+  @org.springframework.transaction.annotation.Transactional
+  public void sendRemissionGuideNow(RemissionGuide guide) {
+    try {
+      List<RemissionGuideItem> items =
+          remissionGuideItemRepository.findByRemissionGuideIdAndDeletedAtIsNull(guide.getId());
+      List<RemissionGuideDriver> drivers =
+          remissionGuideDriverRepository.findByRemissionGuideIdAndDeletedAtIsNull(guide.getId());
+      SunatSendRequest request = buildGuideRequest(guide, items, drivers);
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.APPLICATION_JSON);
+      ResponseEntity<FacturacionResponse> response = restTemplate.exchange(
+          sunatGuiaUrl, HttpMethod.POST, new HttpEntity<>(request, headers),
+          FacturacionResponse.class);
+      processGuideResponse(guide, response);
+    } catch (Exception e) {
+      guide.setStatus("ERROR");
+      guide.setSunatMessage("Error enviando: " + e.getMessage());
+      log.error("Error enviando guía {} de forma manual", guide.getId(), e);
+    }
+    guide.setUpdatedBy("manual-resend");
+    remissionGuideRepository.save(guide);
+  }
+
+  // =====================================================
   // GUÍAS DE REMISIÓN
   // =====================================================
 
@@ -373,7 +446,7 @@ public class SunatDocumentJobService {
         }
 
         ResponseEntity<FacturacionResponse> response =
-            restTemplate.exchange(sunatUrl, HttpMethod.POST, entity, FacturacionResponse.class);
+            restTemplate.exchange(sunatGuiaUrl, HttpMethod.POST, entity, FacturacionResponse.class);
 
         processGuideResponse(guide, response);
 
@@ -481,12 +554,12 @@ public class SunatDocumentJobService {
       List<GuiaTransporteSendRequest> transporteDtos = new ArrayList<>();
       for (RemissionGuideDriver driver : drivers) {
         GuiaTransporteSendRequest dto = new GuiaTransporteSendRequest();
-        dto.setConductorTipoDocumento(driver.getDriverDocType());
-        dto.setConductorNumeroDocumento(driver.getDriverDocNumber());
-        dto.setConductorNombres(driver.getDriverFirstName());
-        dto.setConductorApellidos(driver.getDriverLastName());
-        dto.setConductorNumeroLicencia(driver.getDriverLicenseNumber());
-        dto.setVehiculoPlaca(driver.getVehiclePlate());
+        dto.setGutrConductorTipoDocumento(driver.getDriverDocType());
+        dto.setGutrConductorNumeroDocumento(driver.getDriverDocNumber());
+        dto.setGutrConductorNombres(driver.getDriverFirstName());
+        dto.setGutrConductorApellidos(driver.getDriverLastName());
+        dto.setGutrConductorNumeroLicencia(driver.getDriverLicenseNumber());
+        dto.setGutrVehiculoPlaca(driver.getVehiclePlate());
         transporteDtos.add(dto);
       }
       guia.setLsGuiaTransporte(transporteDtos);

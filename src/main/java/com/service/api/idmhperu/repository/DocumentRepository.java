@@ -30,4 +30,10 @@ public interface DocumentRepository
       "documentSeries.documentTypeSunat",
   })
   Optional<Document> findBySaleId(Long saleId);
+
+  @EntityGraph(attributePaths = {"documentTypeSunat"})
+  List<Document> findByDeletedAtIsNullOrderByIssueDateDesc();
+
+  @EntityGraph(attributePaths = {"documentTypeSunat"})
+  List<Document> findByStatusAndDeletedAtIsNullOrderByIssueDateDesc(String status);
 }

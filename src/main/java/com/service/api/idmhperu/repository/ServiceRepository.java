@@ -10,10 +10,6 @@ public interface ServiceRepository
     extends JpaRepository<Service, Long>,
     JpaSpecificationExecutor<Service> {
 
-  @EntityGraph(attributePaths = {
-      "serviceCategory",
-      "chargeUnit",
-  })
   boolean existsBySku(String sku);
 
   @EntityGraph(attributePaths = {

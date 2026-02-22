@@ -11,6 +11,7 @@ import com.google.api.services.drive.model.FileList;
 import com.google.api.services.drive.model.Permission;
 import com.service.api.idmhperu.service.GoogleDriveService;
 import com.service.api.idmhperu.util.GoogleDriveOAuthUtils;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -60,6 +61,13 @@ public class GoogleDriveServiceImpl implements GoogleDriveService {
   public String uploadLoginBackgroundImage(java.io.File file, String folderId)
       throws IOException {
     return uploadImageOptimized(file, folderId);
+  }
+
+  @Override
+  public byte[] downloadFileById(String fileId) throws IOException {
+    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    driveService.files().get(fileId).executeMediaAndDownloadTo(outputStream);
+    return outputStream.toByteArray();
   }
 
   // =====================================================================================

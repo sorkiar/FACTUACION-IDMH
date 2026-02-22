@@ -10,18 +10,16 @@ import org.springframework.data.jpa.repository.Query;
 public interface SaleItemRepository extends JpaRepository<SaleItem, Long> {
 
   @EntityGraph(attributePaths = {
-      "sale",
-      "sale.client",
       "product",
       "service",
+      "unitMeasure",
   })
   List<SaleItem> findBySaleIdAndDeletedAtIsNull(Long saleId);
 
   @EntityGraph(attributePaths = {
-      "sale",
-      "sale.client",
       "product",
       "service",
+      "unitMeasure",
   })
   List<SaleItem> findBySaleId(Long saleId);
 

@@ -9,15 +9,11 @@ import lombok.Data;
 @Data
 public class GuiaTransporteSendRequest {
 
-  /**
-   * Nombre del enum {@code Catalog06TipoDocIdentidad} del facturador.
-   * Ej: "DNI"
-   */
-  private String conductorTipoDocumento;
-
-  private String conductorNumeroDocumento;
-  private String conductorNombres;
-  private String conductorApellidos;
-  private String conductorNumeroLicencia;
-  private String vehiculoPlaca;
+  private String gutrConductorTipoDocumento;
+  private String gutrConductorNumeroDocumento;
+  private String gutrConductorNombres;
+  private String gutrConductorApellidos;
+  private String gutrConductorNumeroLicencia;
+  private String gutrVehiculoPlaca;
+  private String gutrVehiculoTipo;
 }

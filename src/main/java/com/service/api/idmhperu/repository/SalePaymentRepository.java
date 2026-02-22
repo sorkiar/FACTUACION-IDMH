@@ -10,7 +10,6 @@ import org.springframework.data.jpa.repository.Query;
 public interface SalePaymentRepository extends JpaRepository<SalePayment, Long> {
 
   @EntityGraph(attributePaths = {
-      "sale",
       "paymentMethod",
   })
   List<SalePayment> findBySaleIdAndDeletedAtIsNull(Long saleId);

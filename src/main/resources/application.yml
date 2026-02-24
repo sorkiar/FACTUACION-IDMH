@@ -3,7 +3,7 @@ spring:
     name: idmhperu
 
   datasource:
-    url: jdbc:mysql://31.97.133.166:3306/idmhperu_test
+    url: jdbc:mysql://31.97.133.166:3306/idmh_peru
     username: user-idmhperu
     password: Secretoidmh2026.
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -12,7 +12,7 @@ spring:
     database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
       ddl-auto: none
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
       #format_sql: true
@@ -27,7 +27,7 @@ spring:
       max-request-size: 20MB
 
 server:
-  port: 8090
+  port: 8091
 
 jwt:
   secret:
@@ -35,7 +35,7 @@ jwt:
 
 custom:
   server:
-    hostname: https://api-test.facturacion-idmhperu.website
+    hostname: https://api.facturacion-idmhperu.website
 
 sunat:
   url: https://e-fact.facturacion-idmhperu.website/facturador/sunat/comprobante/sent

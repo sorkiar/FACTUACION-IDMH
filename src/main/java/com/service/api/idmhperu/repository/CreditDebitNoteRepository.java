@@ -1,6 +1,8 @@
 package com.service.api.idmhperu.repository;
 
 import com.service.api.idmhperu.dto.entity.CreditDebitNote;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.jspecify.annotations.NullMarked;
@@ -8,6 +10,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface CreditDebitNoteRepository
     extends JpaRepository<CreditDebitNote, Long>,
@@ -63,4 +67,24 @@ public interface CreditDebitNoteRepository
 
   @EntityGraph(attributePaths = {"documentTypeSunat", "creditDebitNoteType", "originalDocument"})
   List<CreditDebitNote> findByStatusAndDeletedAtIsNullOrderByIssueDateDesc(String status);
+
+  @Query("SELECT COALESCE(SUM(n.totalAmount), 0) FROM CreditDebitNote n " +
+      "WHERE n.issueDate BETWEEN :start AND :end " +
+      "AND n.creditDebitNoteType.noteCategory = :noteCategory " +
+      "AND n.status = 'ACEPTADO' " +
+      "AND n.deletedAt IS NULL")
+  BigDecimal sumTotalAmountByIssueDateBetweenAndNoteCategory(
+      @Param("start") LocalDateTime start,
+      @Param("end") LocalDateTime end,
+      @Param("noteCategory") String noteCategory);
+
+  @Query("SELECT FUNCTION('DAY', n.issueDate), COALESCE(SUM(n.totalAmount), 0) FROM CreditDebitNote n " +
+      "WHERE n.issueDate BETWEEN :start AND :end " +
+      "AND n.creditDebitNoteType.noteCategory = :noteCategory " +
+      "AND n.status = 'ACEPTADO' AND n.deletedAt IS NULL " +
+      "GROUP BY FUNCTION('DAY', n.issueDate)")
+  List<Object[]> sumTotalAmountGroupedByDayAndNoteCategory(
+      @Param("start") LocalDateTime start,
+      @Param("end") LocalDateTime end,
+      @Param("noteCategory") String noteCategory);
 }

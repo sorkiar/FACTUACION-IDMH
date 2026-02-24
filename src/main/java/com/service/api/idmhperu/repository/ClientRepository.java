@@ -1,6 +1,7 @@
 package com.service.api.idmhperu.repository;
 
 import com.service.api.idmhperu.dto.entity.Client;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.data.jpa.domain.Specification;
@@ -19,4 +20,8 @@ public interface ClientRepository
   })
   @NullMarked
   List<Client> findAll(Specification<Client> spec);
+
+  long countByDeletedAtIsNull();
+
+  long countByCreatedAtBetweenAndDeletedAtIsNull(LocalDateTime start, LocalDateTime end);
 }

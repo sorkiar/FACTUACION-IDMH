@@ -39,10 +39,11 @@ public class SecurityConfig {
   );
   private final List<String> allowedOrigins = List.of(
       "http://localhost:4200",
-      "http://31.97.133.166:8090/",
       "http://localhost:8090",
       "https://api-test.facturacion-idmhperu.website",
-      "https://dev.facturacion-idmhperu.website"
+      "https://api.facturacion-idmhperu.website",
+      "https://dev.facturacion-idmhperu.website",
+      "https://facturacion-idmhperu.website"
   );
 
   @Bean

@@ -134,13 +134,13 @@
         <variableExpression>
             <![CDATA[($F{itco_tipo_igv}==8||$F{itco_tipo_igv}==9)?($F{itco_cantidad}*$F{itco_precio_unitario}):0.0]]></variableExpression>
     </variable>
-    <variable name="afecto" class="java.lang.Double" calculation="Sum">
+    <variable name="afecto" class="java.lang.Double">
         <variableExpression>
-            <![CDATA[($F{itco_cantidad}*$F{itco_precio_unitario}) - (($F{itco_cantidad}*$F{itco_precio_unitario})*0.18)]]></variableExpression>
+            <![CDATA[$V{valor_venta} / 1.18]]></variableExpression>
     </variable>
-    <variable name="totaligv" class="java.lang.Double" calculation="Sum">
+    <variable name="totaligv" class="java.lang.Double">
         <variableExpression>
-            <![CDATA[($F{itco_cantidad}*$F{itco_precio_unitario})*0.18]]></variableExpression>
+            <![CDATA[$V{valor_venta} - ($V{valor_venta} / 1.18)]]></variableExpression>
     </variable>
     <variable name="otros" class="java.lang.Double" calculation="Sum">
         <variableExpression><![CDATA[$F{otros_tributos}]]></variableExpression>
@@ -535,6 +535,21 @@
                     <pen lineWidth="0.5"/>
                 </graphicElement>
             </line>
+            <line direction="BottomUp">
+                <reportElement style="DefaultLine" x="350" y="0" width="15" height="14"
+                               forecolor="#093697" uuid="aa11bb22-cc33-dd44-ee55-ff6677889900"/>
+                <graphicElement>
+                    <pen lineWidth="0.5"/>
+                </graphicElement>
+            </line>
+            <staticText>
+                <reportElement x="352" y="0" width="36" height="13" forecolor="#093697"
+                               uuid="bb22cc33-dd44-ee55-ff66-778899001122"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial" size="8" isBold="true"/>
+                </textElement>
+                <text><![CDATA[Dcto (%)]]></text>
+            </staticText>
         </band>
     </columnHeader>
     <detail>
@@ -656,6 +671,17 @@
                     <paragraph lineSpacing="Single"/>
                 </textElement>
                 <textFieldExpression><![CDATA[$F{comp_simbolo_moneda}]]></textFieldExpression>
+            </textField>
+            <textField isBlankWhenNull="false">
+                <reportElement style="ColorIntercalado" mode="Transparent" x="350" y="1" width="40"
+                               height="12" forecolor="#000000" backcolor="#FFFFFF"
+                               uuid="cc33dd44-ee55-ff66-7788-990011223344"/>
+                <box bottomPadding="1"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"
+                             markup="none">
+                    <font fontName="Arial" size="7" isBold="false"/>
+                </textElement>
+                <textFieldExpression><![CDATA[($F{itco_descuento} == null || $F{itco_descuento}.compareTo(java.math.BigDecimal.ZERO) == 0) ? "0%" : (Math.round($F{itco_descuento}.doubleValue() / ($F{itco_cantidad}.doubleValue() * $F{itco_precio_unitario}.doubleValue()) * 100) + "%")]]></textFieldExpression>
             </textField>
             <line>
                 <reportElement style="ColorIntercalado" stretchType="RelativeToBandHeight" x="554"

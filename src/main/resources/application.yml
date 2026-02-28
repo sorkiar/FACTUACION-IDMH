@@ -40,3 +40,15 @@ custom:
 sunat:
   url: https://e-fact.facturacion-idmhperu.website/facturador/sunat/comprobante/sent
   url-guia: https://e-fact.facturacion-idmhperu.website/facturador/sunat/guia/sent
+
+drive:
+  folder-id:
+    boletas: 12-tPZ-j4uxeEKfn23NnAzjmI1YK1hJmc
+    facturas: 1_sFiHA6vWLWC_734WYpZHwrQIs6gxTBV
+    notas: 1XIVR71JlNibikBsWa17QUvxkJwLVmriL
+    guias: 1g0RoJy7bOZHm2QZNDR0Aj2PCNC_uLrWF
+    pagos: 1WxoimdgoNpLv8RzVBp7dw1FiRmw1If7Q
+    productos-imagenes: 1pLY9IhKMW9PVafZdF36R25OFvnYm8NfV
+    productos-fichas: 1Olt13aygYgHD6n1dmgcDtDPppHv7yNe4
+    servicios-imagenes: 14JrSq9-pLKvs632b3rP6zUY2BBDGgKMTY
+    servicios-fichas: 18d3DUwI6fc-ptJYUKJXToOe5FbMzGTJM

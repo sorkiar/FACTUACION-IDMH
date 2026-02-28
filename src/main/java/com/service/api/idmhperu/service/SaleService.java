@@ -16,4 +16,6 @@ public interface SaleService {
 
   ApiResponse<SaleResponse> updateDraft(Long id, SaleRequest request, MultiValueMap<String, MultipartFile> paymentProofs);
 
+  byte[] generateQuotation(SaleRequest request);
+
 }

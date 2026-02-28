@@ -10,6 +10,9 @@ import com.service.api.idmhperu.service.ServiceService;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -75,5 +78,14 @@ public class ServiceController {
       @Valid @RequestBody ServiceStatusRequest request
   ) {
     return service.updateStatus(id, request);
+  }
+
+  @GetMapping("/{id}/pdf")
+  public ResponseEntity<byte[]> generatePdf(@PathVariable Long id) {
+    byte[] pdf = service.generatePdf(id);
+    return ResponseEntity.ok()
+        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"servicio_" + id + ".pdf\"")
+        .contentType(MediaType.APPLICATION_PDF)
+        .body(pdf);
   }
 }

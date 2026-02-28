@@ -51,7 +51,7 @@ public class ProductController {
   @PostMapping(consumes = "multipart/form-data")
   public ApiResponse<ProductResponse> create(
       @RequestPart("data") String data,
-      @RequestPart("mainImage") MultipartFile mainImage,
+      @RequestPart(value = "mainImage", required = false) MultipartFile mainImage,
       @RequestPart(value = "technicalSheet", required = false) MultipartFile technicalSheet
   ) throws Exception {
     ProductRequest request = new ObjectMapper().readValue(data, ProductRequest.class);

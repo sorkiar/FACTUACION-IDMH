@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import net.sf.jasperreports.engine.JasperCompileManager;
 import net.sf.jasperreports.engine.JasperExportManager;
 import net.sf.jasperreports.engine.JasperFillManager;
@@ -40,7 +41,9 @@ public class CreditDebitNotePdfServiceImpl implements CreditDebitNotePdfService 
   private final GoogleDriveService googleDriveService;
   private final ConfigurationService configurationService;
 
-  private static final String DRIVE_FOLDER_ID = "1ysDbcKhd4ZikJ17k4330pzFWH2_Vycpz";
+  @Value("${drive.folder-id.notas}")
+  private String notasFolderId;
+
   private static final String COMPANY_RUC = "20602592457";
 
   @Override
@@ -174,7 +177,7 @@ public class CreditDebitNotePdfServiceImpl implements CreditDebitNotePdfService 
       JasperExportManager.exportReportToPdfFile(jasperPrint, tempFile.getAbsolutePath());
 
       // Subir a Drive
-      String fileId = googleDriveService.uploadPdf(tempFile, DRIVE_FOLDER_ID);
+      String fileId = googleDriveService.uploadPdf(tempFile, notasFolderId);
       String driveUrl = "https://drive.google.com/file/d/" + fileId + "/view";
 
       note.setPdfUrl(driveUrl);

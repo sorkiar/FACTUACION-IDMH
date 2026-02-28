@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -35,9 +36,11 @@ public class ProductServiceImpl implements ProductService {
   private final GoogleDriveService googleDriveService;
   private final SkuSequenceService skuSequenceService;
 
-  // IDs reales de carpetas en Drive
-  private static final String PRODUCT_IMAGE_FOLDER_ID = "1vrVeXcPjUJyuj7ge2LBELuOVmH6FJefP";
-  private static final String PRODUCT_TECH_SHEET_FOLDER_ID = "1CsUe2qaZKXsBcReW8McCeR7wG8_IBmt6";
+  @Value("${drive.folder-id.productos-imagenes}")
+  private String PRODUCT_IMAGE_FOLDER_ID;
+
+  @Value("${drive.folder-id.productos-fichas}")
+  private String PRODUCT_TECH_SHEET_FOLDER_ID;
 
   @Override
   public ApiResponse<List<ProductResponse>> findAll(ProductFilter filter) {
@@ -54,14 +57,6 @@ public class ProductServiceImpl implements ProductService {
       MultipartFile mainImage,
       MultipartFile technicalSheet
   ) {
-    if (mainImage == null || mainImage.isEmpty()) {
-      throw new BusinessValidationException("La imagen principal es obligatoria");
-    }
-
-    System.out.println("MAIN IMAGE: " + mainImage.getOriginalFilename());
-    System.out.println("SIZE: " + mainImage.getSize());
-    System.out.println("CONTENT TYPE: " + mainImage.getContentType());
-
     String sku = skuSequenceService.registerSku("PRD");
 
     if (repository.existsBySku(sku)) {
@@ -69,15 +64,12 @@ public class ProductServiceImpl implements ProductService {
     }
 
     try {
-      File imageFile = convertMultipartToFile(
-          mainImage,
-          sku + "_image"
-      );
+      String imageUrl = null;
 
-      String imageUrl = googleDriveService.uploadFileWithPublicAccess(
-          imageFile,
-          PRODUCT_IMAGE_FOLDER_ID
-      );
+      if (mainImage != null && !mainImage.isEmpty()) {
+        File imageFile = convertMultipartToFile(mainImage, sku + "_image");
+        imageUrl = googleDriveService.uploadFileWithPublicAccess(imageFile, PRODUCT_IMAGE_FOLDER_ID);
+      }
 
       String technicalSheetUrl = null;
 

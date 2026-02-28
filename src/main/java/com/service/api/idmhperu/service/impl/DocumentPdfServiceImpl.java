@@ -22,6 +22,7 @@ import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import java.io.File;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -42,8 +44,11 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
   private final GoogleDriveService googleDriveService;
   private final ConfigurationService configurationService;
 
-  private static final String DRIVE_FOLDER_ID =
-      "1ysDbcKhd4ZikJ17k4330pzFWH2_Vycpz";
+  @Value("${drive.folder-id.boletas}")
+  private String boletasFolderId;
+
+  @Value("${drive.folder-id.facturas}")
+  private String facturasFolderId;
 
   private static final String COMPANY_RUC = "20602592457";
 
@@ -146,7 +151,13 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
 
         row.put("itco_unidad_medida", unidad);
         row.put("itco_precio_unitario", item.getUnitPrice());
-        row.put("itco_descuento", BigDecimal.ZERO);
+        BigDecimal discountPct = item.getDiscountPercentage() != null
+            ? item.getDiscountPercentage() : BigDecimal.ZERO;
+        BigDecimal grossTotal = item.getQuantity().multiply(item.getUnitPrice())
+            .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal discountAmount = grossTotal.multiply(discountPct)
+            .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+        row.put("itco_descuento", discountAmount);
         row.put("itco_tipo_igv", 10);
         row.put("itco_igv", item.getTaxAmount());
 
@@ -212,8 +223,10 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
       // Subir a Drive
       // ================================
 
+      String folderId = "01".equals(document.getDocumentTypeSunat().getCode())
+          ? facturasFolderId : boletasFolderId;
       String fileId =
-          googleDriveService.uploadPdf(tempFile, DRIVE_FOLDER_ID);
+          googleDriveService.uploadPdf(tempFile, folderId);
 
       String driveUrl =
           "https://drive.google.com/file/d/" + fileId + "/view";

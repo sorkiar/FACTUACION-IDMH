@@ -14,15 +14,28 @@ import com.service.api.idmhperu.repository.ChargeUnitRepository;
 import com.service.api.idmhperu.repository.ServiceCategoryRepository;
 import com.service.api.idmhperu.repository.ServiceRepository;
 import com.service.api.idmhperu.repository.spec.ServiceSpecification;
+import com.service.api.idmhperu.service.ConfigurationService;
 import com.service.api.idmhperu.service.GoogleDriveService;
 import com.service.api.idmhperu.service.ServiceService;
 import com.service.api.idmhperu.service.SkuSequenceService;
 import com.service.api.idmhperu.util.JwtUtils;
 import jakarta.transaction.Transactional;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import net.sf.jasperreports.engine.JasperCompileManager;
+import net.sf.jasperreports.engine.JasperExportManager;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperReport;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -35,10 +48,13 @@ public class ServiceServiceImpl implements ServiceService {
   private final ServiceMapper mapper;
   private final GoogleDriveService googleDriveService;
   private final SkuSequenceService skuSequenceService;
+  private final ConfigurationService configurationService;
 
-  // IDs reales de carpetas en Drive
-  private static final String SERVICE_IMAGE_FOLDER_ID = "1-tBwykk9Wcm-43CtV0M_q8gF7aBs2VQ_";
-  private static final String SERVICE_TECH_SHEET_FOLDER_ID = "1GFwVCReV9K4wKwJQ9T95egcO0wqNFpaW";
+  @Value("${drive.folder-id.servicios-imagenes}")
+  private String SERVICE_IMAGE_FOLDER_ID;
+
+  @Value("${drive.folder-id.servicios-fichas}")
+  private String SERVICE_TECH_SHEET_FOLDER_ID;
 
   @Override
   public ApiResponse<List<ServiceResponse>> findAll(ServiceFilter filter) {
@@ -223,13 +239,64 @@ public class ServiceServiceImpl implements ServiceService {
     return new ApiResponse<>("Estado actualizado correctamente", null);
   }
 
+  @Override
+  public byte[] generatePdf(Long id) {
+    com.service.api.idmhperu.dto.entity.Service service =
+        repository.findByIdAndStatusNot(id, 2)
+            .orElseThrow(() -> new ResourceNotFoundException("Servicio no encontrado"));
+
+    try {
+      Map<String, String> config = configurationService.getGroup("empresa_emisora");
+
+      Map<String, Object> row = new HashMap<>();
+      row.put("empr_ruc", config.get("emprRuc"));
+      row.put("empr_razon_social", config.get("emprRazonSocial"));
+      row.put("empr_nombre_comercial", config.get("emprNombreComercial"));
+      row.put("empr_direccion_fiscal", config.get("emprDireccionFiscal"));
+      row.put("sku", service.getSku());
+      row.put("name", service.getName());
+      row.put("category", service.getServiceCategory() != null ? service.getServiceCategory().getName() : "");
+      row.put("charge_unit", service.getChargeUnit() != null ? service.getChargeUnit().getName() : "");
+      row.put("price", service.getPrice() != null ? service.getPrice().toPlainString() : "-");
+      row.put("estimated_time", service.getEstimatedTime());
+      row.put("expected_delivery", service.getExpectedDelivery());
+      row.put("requires_materials", Boolean.TRUE.equals(service.getRequiresMaterials()) ? "Sí" : "No");
+      row.put("requires_specification", Boolean.TRUE.equals(service.getRequiresSpecification()) ? "Sí" : "No");
+      row.put("short_description", service.getShortDescription());
+      row.put("detailed_description", service.getDetailedDescription());
+      row.put("includes_description", service.getIncludesDescription());
+      row.put("excludes_description", service.getExcludesDescription());
+      row.put("conditions", service.getConditions());
+      row.put("image_url", service.getImageUrl());
+      row.put("technical_sheet_url", service.getTechnicalSheetUrl());
+
+      JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(List.of(row));
+
+      InputStream inputStream = getClass().getResourceAsStream("/jasper/ServicioFichaA4.jrxml");
+      JasperReport jasperReport = JasperCompileManager.compileReport(inputStream);
+
+      Map<String, Object> parameters = new HashMap<>();
+      parameters.put("urlImagen",
+          Objects.requireNonNull(getClass().getResource("/img/logo.png")).toString());
+
+      JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, dataSource);
+
+      ByteArrayOutputStream out = new ByteArrayOutputStream();
+      JasperExportManager.exportReportToPdfStream(jasperPrint, out);
+      return out.toByteArray();
+
+    } catch (Exception e) {
+      e.printStackTrace();
+      throw new BusinessValidationException("Error al generar PDF del servicio: " + e.getMessage());
+    }
+  }
+
   private File convertMultipartToFile(
       MultipartFile multipart,
       String prefix
   ) throws IOException {
 
     File file = File.createTempFile(prefix, "");
-    // File file = File.createTempFile(prefix, "_" + multipart.getOriginalFilename());
     multipart.transferTo(file);
     return file;
   }

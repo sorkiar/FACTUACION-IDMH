@@ -16,4 +16,6 @@ public interface ServiceService {
   ApiResponse<ServiceResponse> update(Long id, ServiceRequest request, MultipartFile image, MultipartFile technicalSheet);
 
   ApiResponse<Void> updateStatus(Long id, ServiceStatusRequest request);
+
+  byte[] generatePdf(Long id);
 }

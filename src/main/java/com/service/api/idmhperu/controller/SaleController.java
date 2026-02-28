@@ -6,16 +6,21 @@ import com.service.api.idmhperu.dto.request.SaleRequest;
 import com.service.api.idmhperu.dto.response.ApiResponse;
 import com.service.api.idmhperu.dto.response.SaleResponse;
 import com.service.api.idmhperu.service.SaleService;
+import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -70,5 +75,16 @@ public class SaleController {
   ) throws Exception {
     SaleRequest request = new ObjectMapper().readValue(data, SaleRequest.class);
     return service.updateDraft(id, request, paymentProofs);
+  }
+
+  @PostMapping("/quotation")
+  public ResponseEntity<byte[]> generateQuotation(
+      @Valid @RequestBody SaleRequest request
+  ) {
+    byte[] pdf = service.generateQuotation(request);
+    return ResponseEntity.ok()
+        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"cotizacion.pdf\"")
+        .contentType(MediaType.APPLICATION_PDF)
+        .body(pdf);
   }
 }

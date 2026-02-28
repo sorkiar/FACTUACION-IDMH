@@ -27,18 +27,36 @@ import com.service.api.idmhperu.repository.SalePaymentRepository;
 import com.service.api.idmhperu.repository.SaleRepository;
 import com.service.api.idmhperu.repository.ServiceRepository;
 import com.service.api.idmhperu.repository.spec.SaleSpecification;
+import com.service.api.idmhperu.job.SunatDocumentJobService;
+import com.service.api.idmhperu.service.ConfigurationService;
 import com.service.api.idmhperu.service.DocumentPdfService;
 import com.service.api.idmhperu.service.GoogleDriveService;
 import com.service.api.idmhperu.service.SaleService;
 import com.service.api.idmhperu.util.JwtUtils;
 import jakarta.transaction.Transactional;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import net.sf.jasperreports.engine.JasperCompileManager;
+import net.sf.jasperreports.engine.JasperExportManager;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperReport;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.multipart.MultipartFile;
@@ -59,8 +77,11 @@ public class SaleServiceImpl implements SaleService {
   private final SaleMapper mapper;
   private final DocumentPdfService documentPdfService;
   private final GoogleDriveService googleDriveService;
+  private final ConfigurationService configurationService;
+  private final SunatDocumentJobService sunatDocumentJobService;
 
-  private static final String PAYMENT_PROOF_FOLDER_ID = "1muzPel7B0zlx4WHEPCiIDfoqKryxHIbn";
+  @Value("${drive.folder-id.pagos}")
+  private String PAYMENT_PROOF_FOLDER_ID;
 
   @Override
   public ApiResponse<List<SaleResponse>> findAll(SaleFilter filter) {
@@ -114,7 +135,8 @@ public class SaleServiceImpl implements SaleService {
 
     // Finalización real
     processPayments(sale, request, paymentProofs, username);
-    generateDocument(sale, request.getDocumentSeriesId(), username);
+    Document document = generateDocument(sale, request.getDocumentSeriesId(), username);
+    sunatDocumentJobService.sendDocumentNow(document);
 
     Sale saleWithRelations = saleRepository
         .findByIdAndDeletedAtIsNull(sale.getId())
@@ -160,7 +182,8 @@ public class SaleServiceImpl implements SaleService {
 
     //  Finalizar borrador
     processPayments(sale, request, paymentProofs, username);
-    generateDocument(sale, request.getDocumentSeriesId(), username);
+    Document document = generateDocument(sale, request.getDocumentSeriesId(), username);
+    sunatDocumentJobService.sendDocumentNow(document);
 
     sale.setSaleStatus("CANCELADO");
     saleRepository.save(sale);
@@ -192,10 +215,20 @@ public class SaleServiceImpl implements SaleService {
 
     for (SaleItemRequest itemReq : items) {
 
-      BigDecimal itemTotal =
+      BigDecimal discountPct = itemReq.getDiscountPercentage() != null
+          ? itemReq.getDiscountPercentage()
+          : BigDecimal.ZERO;
+
+      BigDecimal grossTotal =
           itemReq.getQuantity()
               .multiply(itemReq.getUnitPrice())
               .setScale(2, RoundingMode.HALF_UP);
+
+      BigDecimal discountAmount =
+          grossTotal.multiply(discountPct)
+              .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+
+      BigDecimal itemTotal = grossTotal.subtract(discountAmount);
 
       BigDecimal itemBase =
           itemTotal.divide(divisor, 10, RoundingMode.HALF_UP);
@@ -231,6 +264,7 @@ public class SaleServiceImpl implements SaleService {
       item.setDescription(itemReq.getDescription());
       item.setQuantity(itemReq.getQuantity());
       item.setUnitPrice(itemReq.getUnitPrice());
+      item.setDiscountPercentage(discountPct);
       item.setSubtotalAmount(itemBase);
       item.setTaxAmount(itemTax);
       item.setTotalAmount(itemTotal);
@@ -286,14 +320,6 @@ public class SaleServiceImpl implements SaleService {
             "El método CASH no debe tener comprobante");
       }
 
-      // Si requiere comprobante
-      if (method.getRequiresProof()
-          && (proofFile == null || proofFile.isEmpty())) {
-
-        throw new BusinessValidationException(
-            "El método " + method.getName() + " requiere comprobante");
-      }
-
       String proofUrl = null;
 
       if (proofFile != null && !proofFile.isEmpty()) {
@@ -340,7 +366,7 @@ public class SaleServiceImpl implements SaleService {
     }
   }
 
-  private void generateDocument(
+  private Document generateDocument(
       Sale sale,
       Long documentSeriesId,
       String username
@@ -374,6 +400,8 @@ public class SaleServiceImpl implements SaleService {
     documentRepository.save(document);
 
     documentPdfService.generatePdf(sale.getId());
+
+    return document;
   }
 
   private String uploadPaymentProofToDrive(
@@ -404,6 +432,134 @@ public class SaleServiceImpl implements SaleService {
           "Error al subir comprobante de pago: " + e.getMessage()
       );
     }
+  }
+
+  @Override
+  public byte[] generateQuotation(SaleRequest request) {
+    Client client = clientRepository.findById(request.getClientId())
+        .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
+
+    Map<String, String> config = configurationService.getGroup("empresa_emisora");
+
+    List<Map<String, Object>> dataList = new ArrayList<>();
+    BigDecimal taxRate = new BigDecimal("0.18");
+    BigDecimal divisor = BigDecimal.ONE.add(taxRate);
+
+    String cotRef = "COT-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+
+    String clientName = buildClientName(client);
+
+    for (SaleItemRequest itemReq : request.getItems()) {
+      Map<String, Object> row = new HashMap<>();
+
+      // Empresa
+      row.put("empr_ruc", config.get("emprRuc"));
+      row.put("empr_razon_social", config.get("emprRazonSocial"));
+      row.put("empr_nombre_comercial", config.get("emprNombreComercial"));
+      row.put("empr_direccion_fiscal", config.get("emprDireccionFiscal"));
+      row.put("empr_telefono", config.get("emprTelefono"));
+      row.put("empr_pagina_web", config.get("emprPaginaWeb"));
+      row.put("empr_direccion_sucursal", null);
+      row.put("empr_pdf_marca_agua", null);
+      row.put("empr_pdf_texto_inferior", null);
+      row.put("empr_pdf_eslogan", null);
+
+      // Documento
+      row.put("tico_descripcion", "COTIZACIÓN");
+      row.put("comp_numero_comprobante", cotRef);
+      row.put("comp_fecha_emicion", Timestamp.valueOf(LocalDateTime.now()));
+      row.put("comp_estado", "ACTIVO");
+      row.put("comp_descuento_global", 0);
+      row.put("comp_condicion_pago", "-");
+      row.put("observaciones", null);
+      row.put("priorizar_despacho", false);
+      row.put("comp_codigo_hash", "");
+      row.put("comp_cadena_qr", "");
+
+      // Cliente
+      row.put("comp_descripcion_cliente", clientName);
+      row.put("clie_numero_documento", client.getDocumentNumber());
+      row.put("comp_direccion_cliente", client.getAddress());
+
+      // Moneda
+      row.put("comp_descripcion_moneda", "SOLES");
+      row.put("comp_simbolo_moneda", "S/");
+
+      // Item
+      String sku = "CUST0000";
+      String unidad = "NIU";
+      if ("PRODUCTO".equals(itemReq.getItemType()) && itemReq.getProductId() != null) {
+        Product p = productRepository.findById(itemReq.getProductId()).orElse(null);
+        if (p != null) {
+          sku = p.getSku();
+          unidad = p.getUnitMeasure().getCodeSunat();
+        }
+      } else if ("SERVICIO".equals(itemReq.getItemType()) && itemReq.getServiceId() != null) {
+        com.service.api.idmhperu.dto.entity.Service s =
+            serviceRepository.findById(itemReq.getServiceId()).orElse(null);
+        if (s != null) {
+          sku = s.getSku();
+        }
+      }
+
+      BigDecimal itemTotal = itemReq.getQuantity()
+          .multiply(itemReq.getUnitPrice())
+          .setScale(2, RoundingMode.HALF_UP);
+      BigDecimal itemBase = itemTotal.divide(divisor, 10, RoundingMode.HALF_UP);
+      BigDecimal itemTax = itemTotal.subtract(itemBase).setScale(2, RoundingMode.HALF_UP);
+
+      row.put("itco_codigo_interno", sku);
+      row.put("itco_descripcion_completa", itemReq.getDescription());
+      row.put("itco_cantidad", itemReq.getQuantity().doubleValue());
+      row.put("itco_unidad_medida", unidad);
+      row.put("itco_precio_unitario", itemReq.getUnitPrice().doubleValue());
+      BigDecimal discountPct = itemReq.getDiscountPercentage() != null ? itemReq.getDiscountPercentage() : BigDecimal.ZERO;
+      BigDecimal discountAmount = itemTotal.multiply(discountPct).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+      row.put("itco_descuento", discountAmount);
+      row.put("itco_tipo_igv", 10);
+      row.put("itco_igv", itemTax);
+      row.put("otros_tributos", 0.0);
+      row.put("icbper", 0.0);
+
+      // Campos adicionales que requiere el template
+      row.put("numero_placa", null);
+      row.put("marc_descripcion", null);
+      row.put("exonerado_igv", null);
+      row.put("comp_vendedor", null);
+      row.put("comp_id", null);
+
+      dataList.add(row);
+    }
+
+    try {
+      InputStream inputStream = getClass().getResourceAsStream("/jasper/CotizacionA4.jrxml");
+      JasperReport jasperReport = JasperCompileManager.compileReport(inputStream);
+      JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(dataList);
+
+      Map<String, Object> parameters = new HashMap<>();
+      parameters.put("urlImagen",
+          Objects.requireNonNull(getClass().getResource("/img/logo.png")).toString());
+
+      JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, dataSource);
+
+      ByteArrayOutputStream out = new ByteArrayOutputStream();
+      JasperExportManager.exportReportToPdfStream(jasperPrint, out);
+      return out.toByteArray();
+
+    } catch (Exception e) {
+      e.printStackTrace();
+      throw new BusinessValidationException("Error al generar PDF de cotización: " + e.getMessage());
+    }
+  }
+
+  private String buildClientName(Client client) {
+    if (client.getBusinessName() != null && !client.getBusinessName().isBlank()) {
+      return client.getBusinessName();
+    }
+    String fullName =
+        (client.getFirstName() != null ? client.getFirstName() : "") + " " +
+            (client.getLastName() != null ? client.getLastName() : "");
+    return fullName.trim();
   }
 
   private File convertMultipartToFile(MultipartFile multipart, String prefix) throws IOException {

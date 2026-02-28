@@ -32,6 +32,5 @@ public class ClientRequest {
   private String email1;
   private String email2;
 
-  @NotBlank(message = "La dirección es obligatoria")
   private String address;
 }

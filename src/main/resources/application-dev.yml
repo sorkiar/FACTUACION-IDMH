@@ -42,3 +42,15 @@ sunat:
   url-guia: https://e-fact.facturacion-idmhperu.website/facturador/sunat/guia/sent
   #url: http://localhost:8889/facturador/sunat/comprobante/sent
   #url-guia: http://localhost:8889/facturador/sunat/guia/sent
+
+drive:
+  folder-id:
+    boletas: 1syslu2o7g8nBGDbdFGnUQjaEua8UNNZC
+    facturas: 1BjvGWv2KJ1CmPpDkq-FpJh1D2Kf9KIbB
+    notas: 1t6L6Pls-JT_LqD1BefdPIh-qBK9UhUNC
+    guias: 1aK6-b1oMI1vE7z7mVGfTp9mps54cmdUM
+    pagos: 1muzPel7B0zlx4WHEPCiIDfoqKryxHIbn
+    productos-imagenes: 1vrVeXcPjUJyuj7ge2LBELuOVmH6FJefP
+    productos-fichas: 1CsUe2qaZKXsBcReW8McCeR7wG8_IBmt6
+    servicios-imagenes: 1-tBwykk9Wcm-43CtV0M_q8gF7aBs2VQ_
+    servicios-fichas: 1GFwVCReV9K4wKwJQ9T95egcO0wqNFpaW

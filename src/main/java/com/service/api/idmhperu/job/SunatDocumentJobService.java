@@ -23,6 +23,7 @@ import java.io.File;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,7 +56,18 @@ public class SunatDocumentJobService {
   @Value("${sunat.url-guia}")
   private String sunatGuiaUrl;
 
-  private static final String DRIVE_FOLDER_ID = "1ysDbcKhd4ZikJ17k4330pzFWH2_Vycpz";
+  @Value("${drive.folder-id.boletas}")
+  private String boletasFolderId;
+
+  @Value("${drive.folder-id.facturas}")
+  private String facturasFolderId;
+
+  @Value("${drive.folder-id.notas}")
+  private String notasFolderId;
+
+  @Value("${drive.folder-id.guias}")
+  private String guiasFolderId;
+
   private static final String COMPANY_RUC = "20602592457";
 
   @Scheduled(fixedRate = 1800000)
@@ -278,7 +290,7 @@ public class SunatDocumentJobService {
     DocumentSendRequest comprobante = new DocumentSendRequest();
     comprobante.setCompSerie(note.getSeries());
     comprobante.setCompNumero(Integer.parseInt(note.getSequence()));
-    comprobante.setCompFechaEmision(LocalDate.now().toString());
+    comprobante.setCompFechaEmision(note.getIssueDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
     comprobante.setCompPorcentajeIgv(new BigDecimal("18"));
     comprobante.setCompCondicionPago("CONTADO");
     comprobante.setCompMedioPago("EFECTIVO");
@@ -297,7 +309,7 @@ public class SunatDocumentJobService {
   }
 
   private void processNoteResponse(CreditDebitNote note,
-      ResponseEntity<FacturacionResponse> response) {
+                                   ResponseEntity<FacturacionResponse> response) {
 
     FacturacionResponse body = response.getBody();
 
@@ -324,7 +336,7 @@ public class SunatDocumentJobService {
         String[] urls = uploadXmlAndCdr(
             note.getDocumentTypeSunat().getCode(),
             note.getSeries(), note.getSequence(),
-            data.getXmlBase64(), data.getCdrBase64());
+            data.getXmlBase64(), data.getCdrBase64(), notasFolderId);
         note.setXmlUrl(urls[0]);
         note.setCdrUrl(urls[1]);
       }
@@ -346,6 +358,16 @@ public class SunatDocumentJobService {
       List<SaleItem> items =
           saleItemRepository.findBySaleIdAndDeletedAtIsNull(sale.getId());
       SunatSendRequest request = buildRequest(doc, sale, items);
+
+      try {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.findAndRegisterModules();
+        String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(request);
+        log.info("====== JSON ENVIADO A SUNAT ======\n{}", json);
+      } catch (Exception ex) {
+        log.error("Error serializando JSON", ex);
+      }
+
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
       ResponseEntity<FacturacionResponse> response = restTemplate.exchange(
@@ -504,9 +526,9 @@ public class SunatDocumentJobService {
     List<ItemSendRequest> itemDtos = new ArrayList<>();
     for (RemissionGuideItem item : items) {
       BigDecimal unitPrice = item.getUnitPrice() != null ? item.getUnitPrice() : BigDecimal.ZERO;
-      BigDecimal subtotal  = item.getSubtotalAmount() != null ? item.getSubtotalAmount() : BigDecimal.ZERO;
-      BigDecimal igv       = item.getTaxAmount() != null ? item.getTaxAmount() : BigDecimal.ZERO;
-      BigDecimal total     = item.getTotalAmount() != null ? item.getTotalAmount() : BigDecimal.ZERO;
+      BigDecimal subtotal = item.getSubtotalAmount() != null ? item.getSubtotalAmount() : BigDecimal.ZERO;
+      BigDecimal igv = item.getTaxAmount() != null ? item.getTaxAmount() : BigDecimal.ZERO;
+      BigDecimal total = item.getTotalAmount() != null ? item.getTotalAmount() : BigDecimal.ZERO;
       BigDecimal valorUnitario = unitPrice.compareTo(BigDecimal.ZERO) > 0
           ? unitPrice.divide(new BigDecimal("1.18"), 6, RoundingMode.HALF_UP)
           : BigDecimal.ZERO;
@@ -569,7 +591,7 @@ public class SunatDocumentJobService {
     DocumentSendRequest comprobante = new DocumentSendRequest();
     comprobante.setCompSerie(guide.getSeries());
     comprobante.setCompNumero(Integer.parseInt(guide.getSequence()));
-    comprobante.setCompFechaEmision(LocalDate.now().toString());
+    comprobante.setCompFechaEmision(guide.getIssueDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
     comprobante.setCompPorcentajeIgv(new BigDecimal("18"));
     comprobante.setCompCondicionPago("CONTADO");
     comprobante.setCompMedioPago("EFECTIVO");
@@ -588,7 +610,7 @@ public class SunatDocumentJobService {
   }
 
   private void processGuideResponse(RemissionGuide guide,
-      ResponseEntity<FacturacionResponse> response) {
+                                    ResponseEntity<FacturacionResponse> response) {
 
     FacturacionResponse body = response.getBody();
 
@@ -613,7 +635,7 @@ public class SunatDocumentJobService {
           && data.getCdrBase64() != null) {
         String[] urls = uploadXmlAndCdr(
             "09", guide.getSeries(), guide.getSequence(),
-            data.getXmlBase64(), data.getCdrBase64());
+            data.getXmlBase64(), data.getCdrBase64(), guiasFolderId);
         guide.setXmlUrl(urls[0]);
         guide.setCdrUrl(urls[1]);
       }
@@ -746,39 +768,32 @@ public class SunatDocumentJobService {
       BigDecimal cantidad = item.getQuantity();
       BigDecimal precioConIgv = item.getUnitPrice();
 
+      // Precio unitario sin IGV (bruto, antes del descuento)
       BigDecimal valorUnitario =
-          precioConIgv.divide(new BigDecimal("1.18"),
-              6, RoundingMode.HALF_UP);
+          precioConIgv.divide(new BigDecimal("1.18"), 6, RoundingMode.HALF_UP);
 
-      BigDecimal subtotal =
-          valorUnitario.multiply(cantidad);
-
-      BigDecimal igv =
-          subtotal.multiply(new BigDecimal("0.18"));
-
-      BigDecimal total =
-          subtotal.add(igv);
+      // Descuento = total bruto - total neto ya almacenado
+      BigDecimal grossTotal = cantidad.multiply(precioConIgv)
+          .setScale(2, RoundingMode.HALF_UP);
+      BigDecimal descuentoAfecta = grossTotal
+          .subtract(item.getTotalAmount())
+          .setScale(2, RoundingMode.HALF_UP);
 
       ItemSendRequest dto = new ItemSendRequest();
       String unidad = "NIU";
       if (item.getUnitMeasure() != null &&
           item.getUnitMeasure().getCodeSunat() != null) {
-
         unidad = item.getUnitMeasure().getCodeSunat();
       }
       dto.setItcoUnidadMedida(unidad);
       dto.setItcoDescripcion(item.getDescription());
       dto.setItcoCantidad(cantidad);
-      dto.setItcoValorUnitario(
-          valorUnitario.setScale(2, RoundingMode.HALF_UP));
-      dto.setItcoPrecioUnitario(
-          precioConIgv.setScale(2, RoundingMode.HALF_UP));
-      dto.setItcoSubTotal(
-          subtotal.setScale(2, RoundingMode.HALF_UP));
-      dto.setItcoIgv(
-          igv.setScale(2, RoundingMode.HALF_UP));
-      dto.setItcoTotal(
-          total.setScale(2, RoundingMode.HALF_UP));
+      dto.setItcoValorUnitario(valorUnitario.setScale(2, RoundingMode.HALF_UP));
+      dto.setItcoPrecioUnitario(precioConIgv.setScale(2, RoundingMode.HALF_UP));
+      dto.setItcoDescuentoAfecta(descuentoAfecta);
+      dto.setItcoSubTotal(item.getSubtotalAmount());
+      dto.setItcoIgv(item.getTaxAmount());
+      dto.setItcoTotal(item.getTotalAmount());
       dto.setTipoAfectacionIgv("GRAVADO");
 
       itemDtos.add(dto);
@@ -791,7 +806,7 @@ public class SunatDocumentJobService {
     comprobante.setCompSerie(doc.getSeries());
     comprobante.setCompNumero(
         Integer.parseInt(doc.getSequence()));
-    comprobante.setCompFechaEmision(LocalDate.now().toString());
+    comprobante.setCompFechaEmision(doc.getIssueDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
     comprobante.setCompPorcentajeIgv(
         new BigDecimal("18"));
     comprobante.setCompCondicionPago("CONTADO");
@@ -848,10 +863,12 @@ public class SunatDocumentJobService {
       if ("ACEPTADO".equals(doc.getStatus())
           && data.getXmlBase64() != null
           && data.getCdrBase64() != null) {
+        String docFolderId = "01".equals(doc.getDocumentTypeSunat().getCode())
+            ? facturasFolderId : boletasFolderId;
         String[] urls = uploadXmlAndCdr(
             doc.getDocumentTypeSunat().getCode(),
             doc.getSeries(), doc.getSequence(),
-            data.getXmlBase64(), data.getCdrBase64());
+            data.getXmlBase64(), data.getCdrBase64(), docFolderId);
         doc.setXmlUrl(urls[0]);
         doc.setCdrUrl(urls[1]);
       }
@@ -865,7 +882,8 @@ public class SunatDocumentJobService {
   }
 
   private String[] uploadXmlAndCdr(String typeCode, String series,
-      String sequence, String xmlBase64, String cdrBase64) {
+                                   String sequence, String xmlBase64, String cdrBase64,
+                                   String folderId) {
     try {
       String xmlFileName = "XML-" + COMPANY_RUC + "-" + typeCode + "-"
           + series + "-" + sequence + ".xml";
@@ -882,10 +900,8 @@ public class SunatDocumentJobService {
       java.nio.file.Files.write(cdrFile.toPath(),
           java.util.Base64.getDecoder().decode(cdrBase64));
 
-      String xmlUrl = googleDriveService.uploadFileWithPublicAccess(
-          xmlFile, DRIVE_FOLDER_ID);
-      String cdrUrl = googleDriveService.uploadFileWithPublicAccess(
-          cdrFile, DRIVE_FOLDER_ID);
+      String xmlUrl = googleDriveService.uploadFileWithPublicAccess(xmlFile, folderId);
+      String cdrUrl = googleDriveService.uploadFileWithPublicAccess(cdrFile, folderId);
 
       xmlFile.delete();
       cdrFile.delete();

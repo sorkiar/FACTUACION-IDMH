@@ -251,9 +251,13 @@ public class SunatDocumentJobService {
       BigDecimal precioConIgv = item.getUnitPrice();
       BigDecimal valorUnitario = precioConIgv.divide(
           new BigDecimal("1.18"), 6, RoundingMode.HALF_UP);
-      BigDecimal subtotal = valorUnitario.multiply(cantidad);
-      BigDecimal igv = subtotal.multiply(new BigDecimal("0.18"));
-      BigDecimal total = subtotal.add(igv);
+
+      // Descuento: diferencia entre precio bruto y total neto almacenado
+      BigDecimal grossTotal = cantidad.multiply(precioConIgv)
+          .setScale(2, RoundingMode.HALF_UP);
+      BigDecimal descuentoAfecta = grossTotal
+          .subtract(item.getTotalAmount())
+          .setScale(2, RoundingMode.HALF_UP);
 
       ItemSendRequest dto = new ItemSendRequest();
       String unidad = "NIU";
@@ -265,9 +269,10 @@ public class SunatDocumentJobService {
       dto.setItcoCantidad(cantidad);
       dto.setItcoValorUnitario(valorUnitario.setScale(2, RoundingMode.HALF_UP));
       dto.setItcoPrecioUnitario(precioConIgv.setScale(2, RoundingMode.HALF_UP));
-      dto.setItcoSubTotal(subtotal.setScale(2, RoundingMode.HALF_UP));
-      dto.setItcoIgv(igv.setScale(2, RoundingMode.HALF_UP));
-      dto.setItcoTotal(total.setScale(2, RoundingMode.HALF_UP));
+      dto.setItcoDescuentoAfecta(descuentoAfecta);
+      dto.setItcoSubTotal(item.getSubtotalAmount());
+      dto.setItcoIgv(item.getTaxAmount());
+      dto.setItcoTotal(item.getTotalAmount());
       dto.setTipoAfectacionIgv("GRAVADO");
       itemDtos.add(dto);
     }
@@ -389,6 +394,16 @@ public class SunatDocumentJobService {
       List<CreditDebitNoteItem> items =
           creditDebitNoteItemRepository.findByCreditDebitNoteIdAndDeletedAtIsNull(note.getId());
       SunatSendRequest request = buildNoteRequest(note, items);
+
+      try {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.findAndRegisterModules();
+        String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(request);
+        log.info("====== JSON NOTA ENVIADO A SUNAT ======\n{}", json);
+      } catch (Exception ex) {
+        log.error("Error serializando JSON de nota", ex);
+      }
+
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
       ResponseEntity<FacturacionResponse> response = restTemplate.exchange(
@@ -400,7 +415,7 @@ public class SunatDocumentJobService {
       note.setSunatMessage("Error enviando: " + e.getMessage());
       log.error("Error enviando nota {} de forma manual", note.getId(), e);
     }
-    note.setUpdatedBy("manual-resend");
+    note.setUpdatedBy("job-system");
     creditDebitNoteRepository.save(note);
   }
 
@@ -412,6 +427,16 @@ public class SunatDocumentJobService {
       List<RemissionGuideDriver> drivers =
           remissionGuideDriverRepository.findByRemissionGuideIdAndDeletedAtIsNull(guide.getId());
       SunatSendRequest request = buildGuideRequest(guide, items, drivers);
+
+      try {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.findAndRegisterModules();
+        String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(request);
+        log.info("====== JSON GUÍA ENVIADO A SUNAT ======\n{}", json);
+      } catch (Exception ex) {
+        log.error("Error serializando JSON de guía", ex);
+      }
+
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
       ResponseEntity<FacturacionResponse> response = restTemplate.exchange(
@@ -423,7 +448,7 @@ public class SunatDocumentJobService {
       guide.setSunatMessage("Error enviando: " + e.getMessage());
       log.error("Error enviando guía {} de forma manual", guide.getId(), e);
     }
-    guide.setUpdatedBy("manual-resend");
+    guide.setUpdatedBy("job-system");
     remissionGuideRepository.save(guide);
   }
 

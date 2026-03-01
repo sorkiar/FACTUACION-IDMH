@@ -3,6 +3,7 @@ package com.service.api.idmhperu.repository;
 import com.service.api.idmhperu.dto.entity.CreditDebitNote;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.jspecify.annotations.NullMarked;
@@ -67,6 +68,9 @@ public interface CreditDebitNoteRepository
 
   @EntityGraph(attributePaths = {"documentTypeSunat", "creditDebitNoteType", "originalDocument"})
   List<CreditDebitNote> findByStatusAndDeletedAtIsNullOrderByIssueDateDesc(String status);
+
+  boolean existsBySale_IdAndCreditDebitNoteType_CodeAndStatusInAndDeletedAtIsNull(
+      Long saleId, String code, Collection<String> statuses);
 
   @Query("SELECT COALESCE(SUM(n.totalAmount), 0) FROM CreditDebitNote n " +
       "WHERE n.issueDate BETWEEN :start AND :end " +

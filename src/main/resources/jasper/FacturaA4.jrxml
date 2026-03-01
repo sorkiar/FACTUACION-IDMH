@@ -109,6 +109,8 @@
     <field name="itco_descuento" class="java.math.BigDecimal"/>
     <field name="itco_tipo_igv" class="java.lang.Integer"/>
     <field name="itco_igv" class="java.math.BigDecimal"/>
+    <field name="itco_base" class="java.math.BigDecimal"/>
+    <field name="itco_importe" class="java.math.BigDecimal"/>
     <field name="numero_placa" class="java.lang.String"/>
     <field name="marc_descripcion" class="java.lang.String"/>
     <field name="empr_direccion_sucursal" class="java.lang.String"/>
@@ -127,20 +129,18 @@
         <variableExpression>
             <![CDATA[$V{descuento}+$F{comp_descuento_global}]]></variableExpression>
     </variable>
-    <variable name="valor_venta" class="java.lang.Double">
-        <variableExpression><![CDATA[$V{subtotal}-$V{descuento_total}]]></variableExpression>
-    </variable>
     <variable name="inafecto" class="java.lang.Double" calculation="Sum">
         <variableExpression>
             <![CDATA[($F{itco_tipo_igv}==8||$F{itco_tipo_igv}==9)?($F{itco_cantidad}*$F{itco_precio_unitario}):0.0]]></variableExpression>
     </variable>
-    <variable name="afecto" class="java.lang.Double">
-        <variableExpression>
-            <![CDATA[$V{valor_venta} / 1.18]]></variableExpression>
+    <variable name="afecto" class="java.math.BigDecimal" calculation="Sum">
+        <variableExpression><![CDATA[$F{itco_base}]]></variableExpression>
     </variable>
-    <variable name="totaligv" class="java.lang.Double">
-        <variableExpression>
-            <![CDATA[$V{valor_venta} - ($V{valor_venta} / 1.18)]]></variableExpression>
+    <variable name="totaligv" class="java.math.BigDecimal" calculation="Sum">
+        <variableExpression><![CDATA[$F{itco_igv}]]></variableExpression>
+    </variable>
+    <variable name="valor_venta" class="java.math.BigDecimal">
+        <variableExpression><![CDATA[$V{afecto}.add($V{totaligv})]]></variableExpression>
     </variable>
     <variable name="otros" class="java.lang.Double" calculation="Sum">
         <variableExpression><![CDATA[$F{otros_tributos}]]></variableExpression>
@@ -655,8 +655,7 @@
                           isPdfEmbedded="false"/>
                     <paragraph lineSpacing="Single"/>
                 </textElement>
-                <textFieldExpression>
-                    <![CDATA[$F{itco_cantidad}*$F{itco_precio_unitario}]]></textFieldExpression>
+                <textFieldExpression><![CDATA[$F{itco_importe}]]></textFieldExpression>
             </textField>
             <textField pattern="" isBlankWhenNull="false">
                 <reportElement style="ColorIntercalado" mode="Transparent" x="391" y="1" width="13"

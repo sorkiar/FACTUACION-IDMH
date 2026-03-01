@@ -26,6 +26,7 @@ import com.service.api.idmhperu.repository.ProductRepository;
 import com.service.api.idmhperu.repository.SaleRepository;
 import com.service.api.idmhperu.repository.ServiceRepository;
 import com.service.api.idmhperu.repository.spec.CreditDebitNoteSpecification;
+import com.service.api.idmhperu.job.SunatDocumentJobService;
 import com.service.api.idmhperu.service.CreditDebitNotePdfService;
 import com.service.api.idmhperu.service.CreditDebitNoteService;
 import com.service.api.idmhperu.util.JwtUtils;
@@ -52,6 +53,7 @@ public class CreditDebitNoteServiceImpl implements CreditDebitNoteService {
   private final ServiceRepository serviceRepository;
   private final CreditDebitNoteMapper mapper;
   private final CreditDebitNotePdfService creditDebitNotePdfService;
+  private final SunatDocumentJobService sunatDocumentJobService;
 
   @Override
   public ApiResponse<List<CreditDebitNoteResponse>> findAll(CreditDebitNoteFilter filter) {
@@ -86,6 +88,16 @@ public class CreditDebitNoteServiceImpl implements CreditDebitNoteService {
     // 3. Obtener la venta original
     Sale sale = saleRepository.findByIdAndDeletedAtIsNull(request.getSaleId())
         .orElseThrow(() -> new ResourceNotFoundException("Venta no encontrada"));
+
+    // 3.1. Verificar que la venta no tenga una NC de anulación (C01) vigente
+    boolean yaAnulada = noteRepository
+        .existsBySale_IdAndCreditDebitNoteType_CodeAndStatusInAndDeletedAtIsNull(
+            sale.getId(), "C01", List.of("PENDIENTE", "ACEPTADO"));
+    if (yaAnulada) {
+      throw new BusinessValidationException(
+          "La venta ya tiene una nota de crédito de anulación (C01) aplicada. "
+              + "No se puede emitir más notas sobre esta venta.");
+    }
 
     // 4. Obtener y validar el documento original (factura o boleta)
     Document originalDocument = documentRepository.findById(request.getOriginalDocumentId())
@@ -156,9 +168,19 @@ public class CreditDebitNoteServiceImpl implements CreditDebitNoteService {
 
     for (CreditDebitNoteItemRequest itemReq : request.getItems()) {
 
-      BigDecimal itemTotal = itemReq.getQuantity()
+      BigDecimal discountPct = itemReq.getDiscountPercentage() != null
+          ? itemReq.getDiscountPercentage()
+          : BigDecimal.ZERO;
+
+      BigDecimal grossTotal = itemReq.getQuantity()
           .multiply(itemReq.getUnitPrice())
           .setScale(2, RoundingMode.HALF_UP);
+
+      BigDecimal discountAmount = grossTotal
+          .multiply(discountPct)
+          .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+
+      BigDecimal itemTotal = grossTotal.subtract(discountAmount);
 
       BigDecimal itemBase = itemTotal.divide(divisor, 10, RoundingMode.HALF_UP);
       BigDecimal itemTax = itemTotal.subtract(itemBase);
@@ -172,6 +194,7 @@ public class CreditDebitNoteServiceImpl implements CreditDebitNoteService {
       item.setDescription(itemReq.getDescription());
       item.setQuantity(itemReq.getQuantity());
       item.setUnitPrice(itemReq.getUnitPrice());
+      item.setDiscountPercentage(discountPct);
       item.setSubtotalAmount(itemBase);
       item.setTaxAmount(itemTax);
       item.setTotalAmount(itemTotal);
@@ -209,6 +232,8 @@ public class CreditDebitNoteServiceImpl implements CreditDebitNoteService {
     noteRepository.save(note);
 
     creditDebitNotePdfService.generatePdf(note.getId());
+
+    sunatDocumentJobService.sendCreditDebitNoteNow(note);
 
     CreditDebitNote saved = noteRepository.findByIdAndDeletedAtIsNull(note.getId())
         .orElseThrow(() -> new ResourceNotFoundException("Nota no encontrada"));

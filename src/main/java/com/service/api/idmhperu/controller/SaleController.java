@@ -42,7 +42,8 @@ public class SaleController {
       @RequestParam(required = false) String saleStatus,
       @RequestParam(required = false) String paymentStatus,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+      @RequestParam(required = false) Boolean excludeAnnulled
   ) {
 
     SaleFilter filter = new SaleFilter();
@@ -52,6 +53,7 @@ public class SaleController {
     filter.setPaymentStatus(paymentStatus);
     filter.setStartDate(startDate);
     filter.setEndDate(endDate);
+    filter.setExcludeAnnulled(excludeAnnulled);
 
     return service.findAll(filter);
   }

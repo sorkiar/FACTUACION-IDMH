@@ -1,8 +1,11 @@
 package com.service.api.idmhperu.repository.spec;
 
+import com.service.api.idmhperu.dto.entity.CreditDebitNote;
 import com.service.api.idmhperu.dto.entity.Sale;
 import com.service.api.idmhperu.dto.filter.SaleFilter;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +50,18 @@ public class SaleSpecification {
             root.get("saleDate"),
             start,
             end));
+      }
+
+      if (Boolean.TRUE.equals(filter.getExcludeAnnulled())) {
+        Subquery<Long> annulledSales = query.subquery(Long.class);
+        Root<CreditDebitNote> noteRoot = annulledSales.from(CreditDebitNote.class);
+        annulledSales.select(noteRoot.get("sale").get("id"))
+            .where(
+                cb.equal(noteRoot.get("creditDebitNoteType").get("code"), "C01"),
+                noteRoot.get("status").in("PENDIENTE", "ACEPTADO"),
+                cb.isNull(noteRoot.get("deletedAt"))
+            );
+        predicates.add(cb.not(root.get("id").in(annulledSales)));
       }
 
       query.orderBy(cb.desc(root.get("saleDate")));

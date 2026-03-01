@@ -15,6 +15,7 @@ import jakarta.transaction.Transactional;
 import java.io.File;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -138,9 +139,19 @@ public class CreditDebitNotePdfServiceImpl implements CreditDebitNotePdfService 
         }
         row.put("itco_unidad_medida", unidad);
         row.put("itco_precio_unitario", item.getUnitPrice());
-        row.put("itco_descuento", BigDecimal.ZERO);
+        BigDecimal discountPct = item.getDiscountPercentage() != null
+            ? item.getDiscountPercentage() : BigDecimal.ZERO;
+        BigDecimal grossItemTotal = item.getQuantity()
+            .multiply(item.getUnitPrice())
+            .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal discountAmount = grossItemTotal
+            .multiply(discountPct)
+            .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+        row.put("itco_descuento", discountAmount);
         row.put("itco_tipo_igv", 10);
         row.put("itco_igv", item.getTaxAmount());
+        row.put("itco_base", item.getSubtotalAmount());
+        row.put("itco_importe", item.getTotalAmount());
 
         // ================= TRIBUTOS =================
         row.put("otros_tributos", 0.0);

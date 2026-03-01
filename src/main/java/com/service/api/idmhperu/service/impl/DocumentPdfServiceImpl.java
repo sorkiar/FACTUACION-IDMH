@@ -160,6 +160,8 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
         row.put("itco_descuento", discountAmount);
         row.put("itco_tipo_igv", 10);
         row.put("itco_igv", item.getTaxAmount());
+        row.put("itco_base", item.getSubtotalAmount());
+        row.put("itco_importe", item.getTotalAmount());
 
         // ================= TRIBUTOS =================
         row.put("otros_tributos", 0.0);

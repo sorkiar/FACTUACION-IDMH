@@ -11,4 +11,5 @@ public class SaleFilter {
   private String paymentStatus;
   private LocalDate startDate;
   private LocalDate endDate;
+  private Boolean excludeAnnulled;
 }

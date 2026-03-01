@@ -19,6 +19,7 @@ import com.service.api.idmhperu.repository.RemissionGuideDriverRepository;
 import com.service.api.idmhperu.repository.RemissionGuideItemRepository;
 import com.service.api.idmhperu.repository.RemissionGuideRepository;
 import com.service.api.idmhperu.repository.spec.RemissionGuideSpecification;
+import com.service.api.idmhperu.job.SunatDocumentJobService;
 import com.service.api.idmhperu.service.RemissionGuidePdfService;
 import com.service.api.idmhperu.service.RemissionGuideService;
 import com.service.api.idmhperu.util.JwtUtils;
@@ -41,6 +42,7 @@ public class RemissionGuideServiceImpl implements RemissionGuideService {
   private final ProductRepository productRepository;
   private final RemissionGuideMapper mapper;
   private final RemissionGuidePdfService pdfService;
+  private final SunatDocumentJobService sunatDocumentJobService;
 
   @Override
   public ApiResponse<List<RemissionGuideResponse>> findAll(RemissionGuideFilter filter) {
@@ -183,6 +185,9 @@ public class RemissionGuideServiceImpl implements RemissionGuideService {
 
     // 6. Generar PDF
     pdfService.generatePdf(guide.getId());
+
+    // 7. Enviar a SUNAT de forma inmediata
+    sunatDocumentJobService.sendRemissionGuideNow(guide);
 
     RemissionGuide saved = guideRepository.findByIdAndDeletedAtIsNull(guide.getId())
         .orElseThrow(() -> new ResourceNotFoundException("Guía de remisión no encontrada"));

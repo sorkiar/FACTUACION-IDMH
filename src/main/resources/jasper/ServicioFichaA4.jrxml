@@ -62,7 +62,7 @@
     <field name="image_url" class="java.lang.String"/>
     <field name="technical_sheet_url" class="java.lang.String"/>
     <detail>
-        <band height="710" splitType="Stretch">
+        <band height="558" splitType="Stretch">
             <image scaleImage="RetainShape" hAlign="Left" vAlign="Middle">
                 <reportElement x="0" y="0" width="150" height="36"/>
                 <imageExpression><![CDATA[$P{urlImagen}]]></imageExpression>
@@ -313,7 +313,7 @@
                 <textFieldExpression><![CDATA[$F{detailed_description}]]></textFieldExpression>
             </textField>
             <!-- ALCANCE DEL SERVICIO -->
-            <rectangle>
+            <!--<rectangle>
                 <reportElement x="0" y="242" width="555" height="14" forecolor="#BFE1FF" backcolor="#BFE1FF"/>
                 <graphicElement>
                     <pen lineWidth="0.5" lineColor="#2282C7"/>
@@ -375,15 +375,16 @@
                 </textElement>
                 <textFieldExpression><![CDATA[$F{conditions}]]></textFieldExpression>
             </textField>
+            -->
             <!-- RECURSOS DIGITALES -->
             <rectangle>
-                <reportElement x="0" y="394" width="555" height="14" forecolor="#BFE1FF" backcolor="#BFE1FF"/>
+                <reportElement x="0" y="242" width="555" height="14" forecolor="#BFE1FF" backcolor="#BFE1FF"/>
                 <graphicElement>
                     <pen lineWidth="0.5" lineColor="#2282C7"/>
                 </graphicElement>
             </rectangle>
             <staticText>
-                <reportElement x="0" y="394" width="555" height="14" forecolor="#093697"/>
+                <reportElement x="0" y="242" width="555" height="14" forecolor="#093697"/>
                 <box leftPadding="4"/>
                 <textElement verticalAlignment="Middle">
                     <font fontName="Arial" size="8" isBold="true"/>
@@ -391,7 +392,7 @@
                 <text><![CDATA[RECURSOS DIGITALES]]></text>
             </staticText>
             <staticText>
-                <reportElement x="0" y="408" width="90" height="14" forecolor="#093697"/>
+                <reportElement x="0" y="256" width="90" height="14" forecolor="#093697"/>
                 <box rightPadding="4"/>
                 <textElement textAlignment="Right" verticalAlignment="Middle">
                     <font fontName="Arial" size="8" isBold="true"/>
@@ -399,7 +400,7 @@
                 <text><![CDATA[Imagen :]]></text>
             </staticText>
             <textField>
-                <reportElement x="90" y="408" width="465" height="14" forecolor="#0563C1"/>
+                <reportElement x="90" y="256" width="465" height="14" forecolor="#0563C1"/>
                 <box leftPadding="4"/>
                 <textElement verticalAlignment="Middle">
                     <font fontName="Arial" size="7" isUnderline="true"/>
@@ -407,7 +408,7 @@
                 <textFieldExpression><![CDATA[$F{image_url} != null ? $F{image_url} : "Sin imagen"]]></textFieldExpression>
             </textField>
             <staticText>
-                <reportElement x="0" y="422" width="90" height="14" forecolor="#093697"/>
+                <reportElement x="0" y="270" width="90" height="14" forecolor="#093697"/>
                 <box rightPadding="4"/>
                 <textElement textAlignment="Right" verticalAlignment="Middle">
                     <font fontName="Arial" size="8" isBold="true"/>
@@ -415,7 +416,7 @@
                 <text><![CDATA[Ficha técnica :]]></text>
             </staticText>
             <textField>
-                <reportElement x="90" y="422" width="465" height="14" forecolor="#0563C1"/>
+                <reportElement x="90" y="270" width="465" height="14" forecolor="#0563C1"/>
                 <box leftPadding="4"/>
                 <textElement verticalAlignment="Middle">
                     <font fontName="Arial" size="7" isUnderline="true"/>
@@ -423,10 +424,10 @@
                 <textFieldExpression><![CDATA[$F{technical_sheet_url} != null ? $F{technical_sheet_url} : "Sin ficha técnica"]]></textFieldExpression>
             </textField>
             <line>
-                <reportElement x="0" y="442" width="555" height="1" forecolor="#093697"/>
+                <reportElement x="0" y="290" width="555" height="1" forecolor="#093697"/>
             </line>
             <staticText>
-                <reportElement x="0" y="445" width="555" height="12" forecolor="#666666"/>
+                <reportElement x="0" y="293" width="555" height="12" forecolor="#666666"/>
                 <textElement textAlignment="Center" verticalAlignment="Middle">
                     <font fontName="Arial" size="7" isItalic="true"/>
                 </textElement>

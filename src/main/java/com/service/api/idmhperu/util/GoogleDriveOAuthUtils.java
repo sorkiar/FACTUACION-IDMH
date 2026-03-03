@@ -50,15 +50,6 @@ public final class GoogleDriveOAuthUtils {
     );
   }
 
-  public static Credential getAllAccessCredentials(NetHttpTransport httpTransport) throws Exception {
-    return getCredentials(
-        httpTransport,
-        "/credenciales.json",
-        "tokens-all",
-        8888
-    );
-  }
-
   // =====================================================================================
   // CORE OAUTH
   // =====================================================================================

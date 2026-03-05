@@ -267,7 +267,7 @@ public class SunatDocumentJobService {
       dto.setItcoUnidadMedida(unidad);
       dto.setItcoDescripcion(item.getDescription());
       dto.setItcoCantidad(cantidad);
-      dto.setItcoValorUnitario(valorUnitario.setScale(2, RoundingMode.HALF_UP));
+      dto.setItcoValorUnitario(valorUnitario); // 6 dec — evita desfase con itcoSubTotal al multiplicar por cantidad
       dto.setItcoPrecioUnitario(precioConIgv.setScale(2, RoundingMode.HALF_UP));
       dto.setItcoDescuentoAfecta(descuentoAfecta);
       dto.setItcoSubTotal(item.getSubtotalAmount());
@@ -562,7 +562,7 @@ public class SunatDocumentJobService {
       dto.setItcoUnidadMedida(item.getUnitMeasureSunat());
       dto.setItcoDescripcion(item.getDescription());
       dto.setItcoCantidad(item.getQuantity());
-      dto.setItcoValorUnitario(valorUnitario.setScale(2, RoundingMode.HALF_UP));
+      dto.setItcoValorUnitario(valorUnitario); // 6 dec — evita desfase con itcoSubTotal al multiplicar por cantidad
       dto.setItcoPrecioUnitario(unitPrice.setScale(2, RoundingMode.HALF_UP));
       dto.setItcoSubTotal(subtotal);
       dto.setItcoIgv(igv);
@@ -797,12 +797,13 @@ public class SunatDocumentJobService {
       BigDecimal valorUnitario =
           precioConIgv.divide(new BigDecimal("1.18"), 6, RoundingMode.HALF_UP);
 
-      // Descuento = total bruto - total neto ya almacenado
+      // Descuento sin IGV: (bruto con IGV - neto con IGV) / 1.18
+      // Garantiza: valorUnitario * cantidad - descuentoAfecta == itcoSubTotal
       BigDecimal grossTotal = cantidad.multiply(precioConIgv)
           .setScale(2, RoundingMode.HALF_UP);
       BigDecimal descuentoAfecta = grossTotal
           .subtract(item.getTotalAmount())
-          .setScale(2, RoundingMode.HALF_UP);
+          .divide(new BigDecimal("1.18"), 2, RoundingMode.HALF_UP);
 
       ItemSendRequest dto = new ItemSendRequest();
       String unidad = "NIU";
@@ -813,7 +814,7 @@ public class SunatDocumentJobService {
       dto.setItcoUnidadMedida(unidad);
       dto.setItcoDescripcion(item.getDescription());
       dto.setItcoCantidad(cantidad);
-      dto.setItcoValorUnitario(valorUnitario.setScale(2, RoundingMode.HALF_UP));
+      dto.setItcoValorUnitario(valorUnitario);
       dto.setItcoPrecioUnitario(precioConIgv.setScale(2, RoundingMode.HALF_UP));
       dto.setItcoDescuentoAfecta(descuentoAfecta);
       dto.setItcoSubTotal(item.getSubtotalAmount());

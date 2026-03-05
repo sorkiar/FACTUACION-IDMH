@@ -12,6 +12,7 @@ public interface ServiceMapper {
   @Mapping(source = "serviceCategory.name", target = "serviceCategoryName")
   @Mapping(source = "chargeUnit.id", target = "chargeUnitId")
   @Mapping(source = "chargeUnit.name", target = "chargeUnitName")
+  @Mapping(source = "createdAt", target = "registrationDate")
   ServiceResponse toResponse(Service entity);
   List<ServiceResponse> toResponseList(List<Service> entities);
 }

@@ -1,6 +1,7 @@
 package com.service.api.idmhperu.dto.response;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import lombok.Data;
 
 @Data
@@ -25,4 +26,5 @@ public class ServiceResponse {
   private String imageUrl;
   private String technicalSheetUrl;
   private Integer status;
+  private LocalDateTime registrationDate;
 }

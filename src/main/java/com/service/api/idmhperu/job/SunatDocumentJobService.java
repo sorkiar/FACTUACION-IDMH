@@ -9,7 +9,17 @@ import com.service.api.idmhperu.dto.entity.RemissionGuideDriver;
 import com.service.api.idmhperu.dto.entity.RemissionGuideItem;
 import com.service.api.idmhperu.dto.entity.Sale;
 import com.service.api.idmhperu.dto.entity.SaleItem;
-import com.service.api.idmhperu.dto.external.*;
+import com.service.api.idmhperu.dto.entity.SunatRequestLog;
+import com.service.api.idmhperu.dto.external.ClientSendRequest;
+import com.service.api.idmhperu.dto.external.CompanySendRequest;
+import com.service.api.idmhperu.dto.external.DocumentSendRequest;
+import com.service.api.idmhperu.dto.external.FacturacionResponse;
+import com.service.api.idmhperu.dto.external.GuiaSendRequest;
+import com.service.api.idmhperu.dto.external.GuiaTransporteSendRequest;
+import com.service.api.idmhperu.dto.external.ItemSendRequest;
+import com.service.api.idmhperu.dto.external.NotaSendRequest;
+import com.service.api.idmhperu.dto.external.SunatSendRequest;
+import com.service.api.idmhperu.dto.external.UbigeoSendRequest;
 import com.service.api.idmhperu.repository.CreditDebitNoteItemRepository;
 import com.service.api.idmhperu.repository.CreditDebitNoteRepository;
 import com.service.api.idmhperu.repository.DocumentRepository;
@@ -17,18 +27,25 @@ import com.service.api.idmhperu.repository.RemissionGuideDriverRepository;
 import com.service.api.idmhperu.repository.RemissionGuideItemRepository;
 import com.service.api.idmhperu.repository.RemissionGuideRepository;
 import com.service.api.idmhperu.repository.SaleItemRepository;
+import com.service.api.idmhperu.repository.SunatRequestLogRepository;
 import com.service.api.idmhperu.service.ConfigurationService;
 import com.service.api.idmhperu.service.GoogleDriveService;
 import java.io.File;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -45,6 +62,7 @@ public class SunatDocumentJobService {
   private final RemissionGuideRepository remissionGuideRepository;
   private final RemissionGuideItemRepository remissionGuideItemRepository;
   private final RemissionGuideDriverRepository remissionGuideDriverRepository;
+  private final SunatRequestLogRepository sunatRequestLogRepository;
   private final ConfigurationService configurationService;
   private final GoogleDriveService googleDriveService;
 
@@ -97,34 +115,23 @@ public class SunatDocumentJobService {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<SunatSendRequest> entity = new HttpEntity<>(request, headers);
 
-        HttpEntity<SunatSendRequest> entity =
-            new HttpEntity<>(request, headers);
+        String requestJson = serializeJson(request);
+        log.info("====== JSON ENVIADO A SUNAT ======\n{}", requestJson);
 
-        try {
-          ObjectMapper mapper = new ObjectMapper();
-          mapper.findAndRegisterModules();
-          String json = mapper
-              .writerWithDefaultPrettyPrinter()
-              .writeValueAsString(request);
-
-          log.info("====== JSON ENVIADO A SUNAT ======\n{}", json);
-
-        } catch (Exception e) {
-          log.error("Error serializando JSON", e);
-        }
-
+        LocalDateTime sentAt = LocalDateTime.now();
         ResponseEntity<FacturacionResponse> response =
-            restTemplate.exchange(
-                sunatUrl,
-                HttpMethod.POST,
-                entity,
-                FacturacionResponse.class);
+            restTemplate.exchange(sunatUrl, HttpMethod.POST, entity, FacturacionResponse.class);
 
         processResponse(doc, response);
+        saveLog("job-system", doc.getDocumentTypeSunat().getCode(),
+            doc.getSeries(), doc.getSequence(),
+            requestJson, serializeJson(response.getBody()),
+            response.getStatusCode().value(), response.getStatusCode().is2xxSuccessful()
+                && response.getBody() != null && response.getBody().isSuccess(), sentAt);
 
       } catch (Exception e) {
-
         doc.setStatus("ERROR");
         doc.setSunatMessage("Error enviando: " + e.getMessage());
         log.error("Error enviando documento {}", doc.getId(), e);
@@ -172,19 +179,19 @@ public class SunatDocumentJobService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<SunatSendRequest> entity = new HttpEntity<>(request, headers);
 
-        try {
-          ObjectMapper mapper = new ObjectMapper();
-          mapper.findAndRegisterModules();
-          String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(request);
-          log.info("====== JSON NOTA ENVIADO A SUNAT ======\n{}", json);
-        } catch (Exception e) {
-          log.error("Error serializando JSON de nota", e);
-        }
+        String requestJson = serializeJson(request);
+        log.info("====== JSON NOTA ENVIADO A SUNAT ======\n{}", requestJson);
 
+        LocalDateTime sentAt = LocalDateTime.now();
         ResponseEntity<FacturacionResponse> response =
             restTemplate.exchange(sunatUrl, HttpMethod.POST, entity, FacturacionResponse.class);
 
         processNoteResponse(note, response);
+        saveLog("job-system", note.getDocumentTypeSunat().getCode(),
+            note.getSeries(), note.getSequence(),
+            requestJson, serializeJson(response.getBody()),
+            response.getStatusCode().value(), response.getStatusCode().is2xxSuccessful()
+                && response.getBody() != null && response.getBody().isSuccess(), sentAt);
 
       } catch (Exception e) {
         note.setStatus("ERROR");
@@ -364,21 +371,21 @@ public class SunatDocumentJobService {
           saleItemRepository.findBySaleIdAndDeletedAtIsNull(sale.getId());
       SunatSendRequest request = buildRequest(doc, sale, items);
 
-      try {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.findAndRegisterModules();
-        String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(request);
-        log.info("====== JSON ENVIADO A SUNAT ======\n{}", json);
-      } catch (Exception ex) {
-        log.error("Error serializando JSON", ex);
-      }
+      String requestJson = serializeJson(request);
+      log.info("====== JSON ENVIADO A SUNAT ======\n{}", requestJson);
 
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
+      LocalDateTime sentAt = LocalDateTime.now();
       ResponseEntity<FacturacionResponse> response = restTemplate.exchange(
           sunatUrl, HttpMethod.POST, new HttpEntity<>(request, headers),
           FacturacionResponse.class);
       processResponse(doc, response);
+      saveLog("manual-resend", doc.getDocumentTypeSunat().getCode(),
+          doc.getSeries(), doc.getSequence(),
+          requestJson, serializeJson(response.getBody()),
+          response.getStatusCode().value(), response.getStatusCode().is2xxSuccessful()
+              && response.getBody() != null && response.getBody().isSuccess(), sentAt);
     } catch (Exception e) {
       doc.setStatus("ERROR");
       doc.setSunatMessage("Error enviando: " + e.getMessage());
@@ -395,27 +402,27 @@ public class SunatDocumentJobService {
           creditDebitNoteItemRepository.findByCreditDebitNoteIdAndDeletedAtIsNull(note.getId());
       SunatSendRequest request = buildNoteRequest(note, items);
 
-      try {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.findAndRegisterModules();
-        String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(request);
-        log.info("====== JSON NOTA ENVIADO A SUNAT ======\n{}", json);
-      } catch (Exception ex) {
-        log.error("Error serializando JSON de nota", ex);
-      }
+      String requestJson = serializeJson(request);
+      log.info("====== JSON NOTA ENVIADO A SUNAT ======\n{}", requestJson);
 
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
+      LocalDateTime sentAt = LocalDateTime.now();
       ResponseEntity<FacturacionResponse> response = restTemplate.exchange(
           sunatUrl, HttpMethod.POST, new HttpEntity<>(request, headers),
           FacturacionResponse.class);
       processNoteResponse(note, response);
+      saveLog("manual-resend", note.getDocumentTypeSunat().getCode(),
+          note.getSeries(), note.getSequence(),
+          requestJson, serializeJson(response.getBody()),
+          response.getStatusCode().value(), response.getStatusCode().is2xxSuccessful()
+              && response.getBody() != null && response.getBody().isSuccess(), sentAt);
     } catch (Exception e) {
       note.setStatus("ERROR");
       note.setSunatMessage("Error enviando: " + e.getMessage());
       log.error("Error enviando nota {} de forma manual", note.getId(), e);
     }
-    note.setUpdatedBy("job-system");
+    note.setUpdatedBy("manual-resend");
     creditDebitNoteRepository.save(note);
   }
 
@@ -428,27 +435,27 @@ public class SunatDocumentJobService {
           remissionGuideDriverRepository.findByRemissionGuideIdAndDeletedAtIsNull(guide.getId());
       SunatSendRequest request = buildGuideRequest(guide, items, drivers);
 
-      try {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.findAndRegisterModules();
-        String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(request);
-        log.info("====== JSON GUÍA ENVIADO A SUNAT ======\n{}", json);
-      } catch (Exception ex) {
-        log.error("Error serializando JSON de guía", ex);
-      }
+      String requestJson = serializeJson(request);
+      log.info("====== JSON GUÍA ENVIADO A SUNAT ======\n{}", requestJson);
 
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
+      LocalDateTime sentAt = LocalDateTime.now();
       ResponseEntity<FacturacionResponse> response = restTemplate.exchange(
           sunatGuiaUrl, HttpMethod.POST, new HttpEntity<>(request, headers),
           FacturacionResponse.class);
       processGuideResponse(guide, response);
+      saveLog("manual-resend", "09",
+          guide.getSeries(), guide.getSequence(),
+          requestJson, serializeJson(response.getBody()),
+          response.getStatusCode().value(), response.getStatusCode().is2xxSuccessful()
+              && response.getBody() != null && response.getBody().isSuccess(), sentAt);
     } catch (Exception e) {
       guide.setStatus("ERROR");
       guide.setSunatMessage("Error enviando: " + e.getMessage());
       log.error("Error enviando guía {} de forma manual", guide.getId(), e);
     }
-    guide.setUpdatedBy("job-system");
+    guide.setUpdatedBy("manual-resend");
     remissionGuideRepository.save(guide);
   }
 
@@ -483,19 +490,19 @@ public class SunatDocumentJobService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<SunatSendRequest> entity = new HttpEntity<>(request, headers);
 
-        try {
-          ObjectMapper mapper = new ObjectMapper();
-          mapper.findAndRegisterModules();
-          String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(request);
-          log.info("====== JSON GUÍA ENVIADO A SUNAT ======\n{}", json);
-        } catch (Exception e) {
-          log.error("Error serializando JSON de guía", e);
-        }
+        String requestJson = serializeJson(request);
+        log.info("====== JSON GUÍA ENVIADO A SUNAT ======\n{}", requestJson);
 
+        LocalDateTime sentAt = LocalDateTime.now();
         ResponseEntity<FacturacionResponse> response =
             restTemplate.exchange(sunatGuiaUrl, HttpMethod.POST, entity, FacturacionResponse.class);
 
         processGuideResponse(guide, response);
+        saveLog("job-system", "09",
+            guide.getSeries(), guide.getSequence(),
+            requestJson, serializeJson(response.getBody()),
+            response.getStatusCode().value(), response.getStatusCode().is2xxSuccessful()
+                && response.getBody() != null && response.getBody().isSuccess(), sentAt);
 
       } catch (Exception e) {
         guide.setStatus("ERROR");
@@ -601,7 +608,7 @@ public class SunatDocumentJobService {
       List<GuiaTransporteSendRequest> transporteDtos = new ArrayList<>();
       for (RemissionGuideDriver driver : drivers) {
         GuiaTransporteSendRequest dto = new GuiaTransporteSendRequest();
-        dto.setGutrConductorTipoDocumento(driver.getDriverDocType());
+        dto.setGutrConductorTipoDocumento(resolveDocIdentidadCat06(driver.getDriverDocType()));
         dto.setGutrConductorNumeroDocumento(driver.getDriverDocNumber());
         dto.setGutrConductorNombres(driver.getDriverFirstName());
         dto.setGutrConductorApellidos(driver.getDriverLastName());
@@ -679,6 +686,59 @@ public class SunatDocumentJobService {
       case "RUC", "6" -> "RUC";
       case "CE", "4" -> "CARNET_EXTRANJERIA";
       case "PASAPORTE", "7" -> "PASAPORTE";
+      default -> tipoDoc;
+    };
+  }
+
+  // =====================================================
+  // LOG HELPERS
+  // =====================================================
+
+  private String serializeJson(Object obj) {
+    if (obj == null) return null;
+    try {
+      ObjectMapper mapper = new ObjectMapper();
+      mapper.findAndRegisterModules();
+      return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
+    } catch (Exception e) {
+      log.warn("No se pudo serializar objeto a JSON: {}", e.getMessage());
+      return obj.toString();
+    }
+  }
+
+  private void saveLog(String triggeredBy, String documentType, String series, String sequence,
+                       String requestJson, String responseJson, int httpStatus,
+                       boolean success, LocalDateTime sentAt) {
+    try {
+      SunatRequestLog entry = new SunatRequestLog();
+      entry.setTriggeredBy(triggeredBy);
+      entry.setDocumentType(documentType);
+      entry.setSeries(series);
+      entry.setSequence(sequence);
+      entry.setRequestJson(requestJson);
+      entry.setResponseJson(responseJson);
+      entry.setHttpStatus(httpStatus);
+      entry.setSuccess(success);
+      entry.setSentAt(sentAt);
+      sunatRequestLogRepository.save(entry);
+    } catch (Exception e) {
+      log.error("Error guardando SunatRequestLog: {}", e.getMessage(), e);
+    }
+  }
+
+  /**
+   * Resuelve el código del Catálogo 06 (SUNAT) para gutrConductorTipoDocumento.
+   * Referencia: Tabla 2 - Código de tipo de documento de identidad (Catálogo 06).
+   */
+  private String resolveDocIdentidadCat06(String tipoDoc) {
+    if (tipoDoc == null) return "1";
+    return switch (tipoDoc.toUpperCase()) {
+      case "DNI", "1" -> "1";
+      case "CE", "4" -> "4";
+      case "RUC", "6" -> "6";
+      case "PASAPORTE", "7" -> "7";
+      case "CDIP", "A" -> "A";
+      case "B" -> "B";
       default -> tipoDoc;
     };
   }

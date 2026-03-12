@@ -43,6 +43,7 @@ public class RemissionGuideServiceImpl implements RemissionGuideService {
   private final RemissionGuideMapper mapper;
   private final RemissionGuidePdfService pdfService;
   private final SunatDocumentJobService sunatDocumentJobService;
+  private final com.service.api.idmhperu.service.SunatSendConfigService sunatSendConfigService;
 
   @Override
   public ApiResponse<List<RemissionGuideResponse>> findAll(RemissionGuideFilter filter) {
@@ -186,8 +187,10 @@ public class RemissionGuideServiceImpl implements RemissionGuideService {
     // 6. Generar PDF
     pdfService.generatePdf(guide.getId());
 
-    // 7. Enviar a SUNAT de forma inmediata
-    sunatDocumentJobService.sendRemissionGuideNow(guide);
+    // 7. Enviar a SUNAT solo si está en modo ONLINE
+    if (sunatSendConfigService.isOnlineMode("guia_remision")) {
+      sunatDocumentJobService.sendRemissionGuideNow(guide);
+    }
 
     RemissionGuide saved = guideRepository.findByIdAndDeletedAtIsNull(guide.getId())
         .orElseThrow(() -> new ResourceNotFoundException("Guía de remisión no encontrada"));

@@ -139,7 +139,7 @@ public class DocumentResendController {
    */
   @PostMapping("/admin/trigger-sunat-job")
   public ApiResponse<String> triggerSunatJob() {
-    jobService.sendPendingDocuments();
+    jobService.scheduledTick();
     return new ApiResponse<>("Job de envío a SUNAT ejecutado correctamente.", null);
   }
 

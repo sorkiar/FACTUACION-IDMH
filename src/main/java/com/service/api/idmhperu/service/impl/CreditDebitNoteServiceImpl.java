@@ -54,6 +54,7 @@ public class CreditDebitNoteServiceImpl implements CreditDebitNoteService {
   private final CreditDebitNoteMapper mapper;
   private final CreditDebitNotePdfService creditDebitNotePdfService;
   private final SunatDocumentJobService sunatDocumentJobService;
+  private final com.service.api.idmhperu.service.SunatSendConfigService sunatSendConfigService;
 
   @Override
   public ApiResponse<List<CreditDebitNoteResponse>> findAll(CreditDebitNoteFilter filter) {
@@ -233,7 +234,11 @@ public class CreditDebitNoteServiceImpl implements CreditDebitNoteService {
 
     creditDebitNotePdfService.generatePdf(note.getId());
 
-    sunatDocumentJobService.sendCreditDebitNoteNow(note);
+    // Envío inmediato solo si el tipo está en modo ONLINE
+    String modoKey = "07".equals(documentTypeCode) ? "nota_credito" : "nota_debito";
+    if (sunatSendConfigService.isOnlineMode(modoKey)) {
+      sunatDocumentJobService.sendCreditDebitNoteNow(note);
+    }
 
     CreditDebitNote saved = noteRepository.findByIdAndDeletedAtIsNull(note.getId())
         .orElseThrow(() -> new ResourceNotFoundException("Nota no encontrada"));

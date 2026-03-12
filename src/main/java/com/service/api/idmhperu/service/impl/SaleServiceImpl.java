@@ -79,6 +79,7 @@ public class SaleServiceImpl implements SaleService {
   private final GoogleDriveService googleDriveService;
   private final ConfigurationService configurationService;
   private final SunatDocumentJobService sunatDocumentJobService;
+  private final com.service.api.idmhperu.service.SunatSendConfigService sunatSendConfigService;
 
   @Value("${drive.folder-id.pagos}")
   private String PAYMENT_PROOF_FOLDER_ID;
@@ -136,7 +137,13 @@ public class SaleServiceImpl implements SaleService {
     // Finalización real
     processPayments(sale, request, paymentProofs, username);
     Document document = generateDocument(sale, request.getDocumentSeriesId(), username);
-    sunatDocumentJobService.sendDocumentNow(document);
+
+    // Envío inmediato solo si el tipo está en modo ONLINE
+    String docTypeCode = document.getDocumentTypeSunat().getCode();
+    String modoKey = "01".equals(docTypeCode) ? "factura" : "boleta";
+    if (sunatSendConfigService.isOnlineMode(modoKey)) {
+      sunatDocumentJobService.sendDocumentNow(document);
+    }
 
     Sale saleWithRelations = saleRepository
         .findByIdAndDeletedAtIsNull(sale.getId())
@@ -183,7 +190,12 @@ public class SaleServiceImpl implements SaleService {
     //  Finalizar borrador
     processPayments(sale, request, paymentProofs, username);
     Document document = generateDocument(sale, request.getDocumentSeriesId(), username);
-    sunatDocumentJobService.sendDocumentNow(document);
+
+    String docTypeCode = document.getDocumentTypeSunat().getCode();
+    String modoKey = "01".equals(docTypeCode) ? "factura" : "boleta";
+    if (sunatSendConfigService.isOnlineMode(modoKey)) {
+      sunatDocumentJobService.sendDocumentNow(document);
+    }
 
     sale.setSaleStatus("CANCELADO");
     saleRepository.save(sale);

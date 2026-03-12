@@ -30,14 +30,17 @@ import com.service.api.idmhperu.repository.SaleItemRepository;
 import com.service.api.idmhperu.repository.SunatRequestLogRepository;
 import com.service.api.idmhperu.service.ConfigurationService;
 import com.service.api.idmhperu.service.GoogleDriveService;
+import com.service.api.idmhperu.service.SunatSendConfigService;
 import java.io.File;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -65,6 +68,10 @@ public class SunatDocumentJobService {
   private final SunatRequestLogRepository sunatRequestLogRepository;
   private final ConfigurationService configurationService;
   private final GoogleDriveService googleDriveService;
+  private final SunatSendConfigService sunatSendConfigService;
+
+  /** Registra el instante de la última ejecución del job por tipo de comprobante. */
+  private final Map<String, LocalDateTime> lastRun = new ConcurrentHashMap<>();
 
   private final RestTemplate restTemplate = new RestTemplate();
 
@@ -88,25 +95,49 @@ public class SunatDocumentJobService {
 
   private static final String COMPANY_RUC = "20602592457";
 
-  @Scheduled(fixedRate = 1800000)
-  public void sendPendingDocuments() {
+  /**
+   * Tick base: se ejecuta cada minuto y procesa cada tipo de comprobante
+   * según su modo de envío y el intervalo configurado en BD.
+   *
+   * <ul>
+   *   <li>ONLINE  → el job no procesa ese tipo (el envío se realiza al instante en la creación).</li>
+   *   <li>OFFLINE → el job procesa los comprobantes PENDIENTE cuando ha transcurrido el
+   *                 intervalo configurado desde la última ejecución.</li>
+   * </ul>
+   */
+  @Scheduled(fixedRate = 60000)
+  public void scheduledTick() {
+    processIfApplicable("factura", () -> sendPendingDocsByType("01"));
+    processIfApplicable("boleta", () -> sendPendingDocsByType("03"));
+    processIfApplicable("nota_credito", () -> sendPendingNotesByType("07"));
+    processIfApplicable("nota_debito", () -> sendPendingNotesByType("08"));
+    processIfApplicable("guia_remision", this::sendPendingRemissionGuides);
+  }
 
-    log.info("Iniciando proceso de envío a SUNAT...");
+  private void processIfApplicable(String docTypeKey, Runnable processor) {
+    if (sunatSendConfigService.isOnlineMode(docTypeKey)) {
+      return; // ONLINE: el envío se hace al instante en la creación
+    }
+    int intervalMinutes = sunatSendConfigService.getIntervalMinutes(docTypeKey);
+    LocalDateTime last = lastRun.get(docTypeKey);
+    if (last != null && ChronoUnit.MINUTES.between(last, LocalDateTime.now()) < intervalMinutes) {
+      return; // Intervalo aún no transcurrido
+    }
+    lastRun.put(docTypeKey, LocalDateTime.now());
+    processor.run();
+  }
 
-    List<Document> pendientes = new ArrayList<>();
-    pendientes.addAll(
-        documentRepository
-            .findByStatusAndDocumentTypeSunat_CodeAndDeletedAtIsNull("PENDIENTE", "01"));
-    pendientes.addAll(
-        documentRepository
-            .findByStatusAndDocumentTypeSunat_CodeAndDeletedAtIsNull("PENDIENTE", "03"));
+  private void sendPendingDocsByType(String sunatCode) {
+    log.info("Iniciando proceso de envío a SUNAT (tipo {})...", sunatCode);
 
-    log.info("Documentos pendientes encontrados: {}", pendientes.size());
+    List<Document> pendientes =
+        documentRepository.findByStatusAndDocumentTypeSunat_CodeAndDeletedAtIsNull(
+            "PENDIENTE", sunatCode);
+
+    log.info("Documentos tipo {} pendientes: {}", sunatCode, pendientes.size());
 
     for (Document doc : pendientes) {
-
       try {
-
         Sale sale = doc.getSale();
         List<SaleItem> items =
             saleItemRepository.findBySaleIdAndDeletedAtIsNull(sale.getId());
@@ -141,34 +172,20 @@ public class SunatDocumentJobService {
       documentRepository.save(doc);
     }
 
-    log.info("Proceso SUNAT finalizado.");
-
-    sendPendingCreditDebitNotes();
-    sendPendingRemissionGuides();
+    log.info("Proceso SUNAT tipo {} finalizado.", sunatCode);
   }
 
-  // =====================================================
-  // NOTAS DE CRÉDITO Y DÉBITO
-  // =====================================================
+  private void sendPendingNotesByType(String sunatCode) {
+    log.info("Iniciando proceso de notas tipo {}...", sunatCode);
 
-  private void sendPendingCreditDebitNotes() {
-
-    log.info("Iniciando proceso de notas de crédito/débito...");
-
-    List<CreditDebitNote> pendientes = new ArrayList<>();
-    pendientes.addAll(
+    List<CreditDebitNote> pendientes =
         creditDebitNoteRepository
-            .findByStatusAndDocumentTypeSunat_CodeAndDeletedAtIsNull("PENDIENTE", "07"));
-    pendientes.addAll(
-        creditDebitNoteRepository
-            .findByStatusAndDocumentTypeSunat_CodeAndDeletedAtIsNull("PENDIENTE", "08"));
+            .findByStatusAndDocumentTypeSunat_CodeAndDeletedAtIsNull("PENDIENTE", sunatCode);
 
-    log.info("Notas pendientes encontradas: {}", pendientes.size());
+    log.info("Notas tipo {} pendientes: {}", sunatCode, pendientes.size());
 
     for (CreditDebitNote note : pendientes) {
-
       try {
-
         List<CreditDebitNoteItem> items =
             creditDebitNoteItemRepository
                 .findByCreditDebitNoteIdAndDeletedAtIsNull(note.getId());
@@ -203,8 +220,12 @@ public class SunatDocumentJobService {
       creditDebitNoteRepository.save(note);
     }
 
-    log.info("Proceso notas SUNAT finalizado.");
+    log.info("Proceso notas tipo {} finalizado.", sunatCode);
   }
+
+  // =====================================================
+  // NOTAS DE CRÉDITO Y DÉBITO
+  // =====================================================
 
   private SunatSendRequest buildNoteRequest(
       CreditDebitNote note,

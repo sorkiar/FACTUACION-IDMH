@@ -11,7 +11,15 @@
       "Bash(powershell -Command:*)",
       "Bash(\"D:/Proyectos Java/idmhperu/src/main/java/com/service/api/idmhperu/service/ReportService.java\":*)",
       "Bash(\"D:/Proyectos Java/idmhperu/src/main/java/com/service/api/idmhperu/service/impl/ReportServiceImpl.java\":*)",
-      "Bash(\"D:/Proyectos Java/idmhperu/src/main/java/com/service/api/idmhperu/controller/ReportController.java\":*)"
+      "Bash(\"D:/Proyectos Java/idmhperu/src/main/java/com/service/api/idmhperu/controller/ReportController.java\":*)",
+      "Bash(python:*)",
+      "Bash(py:*)",
+      "Bash(where:*)",
+      "Bash(/c/Users/USER/AppData/Local/Microsoft/WindowsApps/python3.exe:*)",
+      "Bash(\"/c/Users/USER/OneDrive/Proyectos Python/hosting_django/venv/Scripts/python.exe\" --version)",
+      "Bash(winget --version:*)",
+      "Bash(node --version:*)",
+      "Bash(node -e:*)"
     ]
   }
 }

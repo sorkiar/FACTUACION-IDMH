@@ -39,7 +39,8 @@ public class ServiceController {
       @RequestParam(required = false) Integer status,
       @RequestParam(required = false) Long serviceCategoryId,
       @RequestParam(required = false) String sku,
-      @RequestParam(required = false) String name
+      @RequestParam(required = false) String name,
+      @RequestParam(required = false) String currency
   ) {
     ServiceFilter filter = new ServiceFilter();
     filter.setId(id);
@@ -47,6 +48,7 @@ public class ServiceController {
     filter.setServiceCategoryId(serviceCategoryId);
     filter.setSku(sku);
     filter.setName(name);
+    filter.setCurrencyCode(currency);
 
     return service.findAll(filter);
   }

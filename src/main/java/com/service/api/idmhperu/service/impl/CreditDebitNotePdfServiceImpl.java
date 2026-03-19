@@ -116,8 +116,8 @@ public class CreditDebitNotePdfServiceImpl implements CreditDebitNotePdfService 
         row.put("observaciones", note.getReason());
 
         // ================= MONEDA =================
-        row.put("comp_descripcion_moneda", "SOLES");
-        row.put("comp_simbolo_moneda", "S/");
+        row.put("comp_descripcion_moneda", note.getCurrencyCode().equalsIgnoreCase("PEN") ? "SOLES" : "DÓLARES");
+        row.put("comp_simbolo_moneda", note.getCurrencyCode().equalsIgnoreCase("PEN") ? "S/" : "$");
 
         // ================= ITEM =================
         String sku;

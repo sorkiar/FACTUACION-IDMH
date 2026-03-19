@@ -57,6 +57,25 @@ public class DocumentResendController {
   }
 
   // ========================================================================================
+  // REGENERAR PDF
+  // ========================================================================================
+
+  @PostMapping("/documents/{id}/regenerate-pdf")
+  public ApiResponse<String> regenerateDocumentPdf(@PathVariable Long id) {
+    return resendService.regenerateDocumentPdf(id);
+  }
+
+  @PostMapping("/credit-debit-notes/{id}/regenerate-pdf")
+  public ApiResponse<String> regenerateCreditDebitNotePdf(@PathVariable Long id) {
+    return resendService.regenerateCreditDebitNotePdf(id);
+  }
+
+  @PostMapping("/remission-guides/{id}/regenerate-pdf")
+  public ApiResponse<String> regenerateRemissionGuidePdf(@PathVariable Long id) {
+    return resendService.regenerateRemissionGuidePdf(id);
+  }
+
+  // ========================================================================================
   // LISTADO UNIFICADO SUNAT
   // ========================================================================================
 

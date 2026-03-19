@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -62,6 +63,12 @@ public class Sale {
   @Column(name = "sale_date", nullable = false)
   private LocalDateTime saleDate;
 
+  @Column(name = "payment_type", length = 10, nullable = false)
+  private String paymentType = "CONTADO";
+
+  @Column(name = "purchase_order", length = 50)
+  private String purchaseOrder;
+
   @Column(columnDefinition = "TEXT")
   private String observations;
 
@@ -79,6 +86,17 @@ public class Sale {
   @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true)
   @JsonManagedReference
   private Set<SalePayment> payments = new HashSet<>();
+
+  @BatchSize(size = 30)
+  @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true)
+  @OrderBy("installmentNumber ASC")
+  @JsonManagedReference
+  private Set<SaleInstallment> installments = new HashSet<>();
+
+  @BatchSize(size = 20)
+  @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true)
+  @JsonManagedReference
+  private Set<SaleRelatedGuide> relatedGuides = new HashSet<>();
 
   // Audit
   @CreationTimestamp

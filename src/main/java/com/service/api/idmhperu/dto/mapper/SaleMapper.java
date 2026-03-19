@@ -4,23 +4,28 @@ import com.service.api.idmhperu.dto.entity.Client;
 import com.service.api.idmhperu.dto.entity.Document;
 import com.service.api.idmhperu.dto.entity.PaymentMethod;
 import com.service.api.idmhperu.dto.entity.Sale;
+import com.service.api.idmhperu.dto.entity.SaleInstallment;
 import com.service.api.idmhperu.dto.entity.SaleItem;
 import com.service.api.idmhperu.dto.entity.SalePayment;
+import com.service.api.idmhperu.dto.entity.SaleRelatedGuide;
 import com.service.api.idmhperu.dto.response.ClientResponse;
 import com.service.api.idmhperu.dto.response.DocumentResponse;
 import com.service.api.idmhperu.dto.response.PaymentMethodResponse;
+import com.service.api.idmhperu.dto.response.SaleInstallmentResponse;
 import com.service.api.idmhperu.dto.response.SaleItemResponse;
 import com.service.api.idmhperu.dto.response.SalePaymentResponse;
 import com.service.api.idmhperu.dto.response.SaleResponse;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface SaleMapper {
   @Mapping(target = "document", expression = "java(mapLastDocument(entity.getDocuments()))")
+  @Mapping(target = "relatedGuides", expression = "java(mapRelatedGuides(entity.getRelatedGuides()))")
   SaleResponse toResponse(Sale entity);
 
   List<SaleResponse> toResponseList(List<Sale> entities);
@@ -46,6 +51,18 @@ public interface SaleMapper {
   SalePaymentResponse toPaymentResponse(SalePayment entity);
 
   List<SalePaymentResponse> toPaymentResponseList(List<SalePayment> entities);
+
+  @Mapping(target = "dueDate", source = "dueDate", dateFormat = "yyyy-MM-dd")
+  SaleInstallmentResponse toInstallmentResponse(SaleInstallment entity);
+
+  List<SaleInstallmentResponse> toInstallmentResponseList(List<SaleInstallment> entities);
+
+  default List<String> mapRelatedGuides(Set<SaleRelatedGuide> guides) {
+    if (guides == null || guides.isEmpty()) return List.of();
+    return guides.stream()
+        .map(SaleRelatedGuide::getGuideNumber)
+        .collect(Collectors.toList());
+  }
 
   default DocumentResponse mapLastDocument(Set<Document> documents) {
     if (documents == null || documents.isEmpty()) {

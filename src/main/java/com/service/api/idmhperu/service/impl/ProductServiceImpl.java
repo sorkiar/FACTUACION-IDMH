@@ -20,6 +20,7 @@ import com.service.api.idmhperu.util.JwtUtils;
 import jakarta.transaction.Transactional;
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -89,14 +90,18 @@ public class ProductServiceImpl implements ProductService {
       }
 
       Product product = new Product();
+      validatePrices(request.getSalePricePen(), request.getSalePriceUsd());
+
       product.setSku(sku);
       product.setName(request.getName());
       product.setCategory(categoryRepository.findById(request.getCategoryId())
           .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada")));
       product.setUnitMeasure(unitMeasureRepository.findById(request.getUnitMeasureId())
           .orElseThrow(() -> new ResourceNotFoundException("Unidad de medida no encontrada")));
-      product.setSalePrice(request.getSalePrice());
-      product.setEstimatedCost(request.getEstimatedCost());
+      product.setSalePricePen(request.getSalePricePen());
+      product.setSalePriceUsd(request.getSalePriceUsd());
+      product.setEstimatedCostPen(request.getEstimatedCostPen());
+      product.setEstimatedCostUsd(request.getEstimatedCostUsd());
       product.setBrand(request.getBrand());
       product.setModel(request.getModel());
       product.setShortDescription(request.getShortDescription());
@@ -162,9 +167,13 @@ public class ProductServiceImpl implements ProductService {
         product.setTechnicalSheetUrl(technicalSheetUrl);
       }
 
+      validatePrices(request.getSalePricePen(), request.getSalePriceUsd());
+
       product.setName(request.getName());
-      product.setSalePrice(request.getSalePrice());
-      product.setEstimatedCost(request.getEstimatedCost());
+      product.setSalePricePen(request.getSalePricePen());
+      product.setSalePriceUsd(request.getSalePriceUsd());
+      product.setEstimatedCostPen(request.getEstimatedCostPen());
+      product.setEstimatedCostUsd(request.getEstimatedCostUsd());
       product.setBrand(request.getBrand());
       product.setModel(request.getModel());
       product.setShortDescription(request.getShortDescription());
@@ -196,6 +205,15 @@ public class ProductServiceImpl implements ProductService {
 
     repository.save(product);
     return new ApiResponse<>("Estado del producto actualizado", null);
+  }
+
+  private void validatePrices(BigDecimal pricePen, BigDecimal priceUsd) {
+    boolean penPositive = pricePen != null && pricePen.compareTo(BigDecimal.ZERO) > 0;
+    boolean usdPositive = priceUsd != null && priceUsd.compareTo(BigDecimal.ZERO) > 0;
+    if (!penPositive && !usdPositive) {
+      throw new BusinessValidationException(
+          "Debe registrar al menos un precio de venta mayor a 0 (soles o dólares)");
+    }
   }
 
   private File convertMultipartToFile(

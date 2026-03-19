@@ -50,9 +50,13 @@ public class Service {
   @JoinColumn(name = "charge_unit_id", nullable = false)
   private ChargeUnit chargeUnit;
 
-  // Precio
-  @Column(precision = 12, scale = 2)
-  private BigDecimal price;
+  // Precio en soles (PEN)
+  @Column(name = "price_pen", precision = 12, scale = 2)
+  private BigDecimal pricePen;
+
+  // Precio en dólares (USD)
+  @Column(name = "price_usd", precision = 12, scale = 2)
+  private BigDecimal priceUsd;
 
   // Tiempo / entrega
   @Column(name = "estimated_time", length = 50)

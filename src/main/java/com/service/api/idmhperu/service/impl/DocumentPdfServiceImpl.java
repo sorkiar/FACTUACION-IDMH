@@ -3,11 +3,15 @@ package com.service.api.idmhperu.service.impl;
 import com.service.api.idmhperu.dto.entity.Client;
 import com.service.api.idmhperu.dto.entity.Document;
 import com.service.api.idmhperu.dto.entity.Sale;
+import com.service.api.idmhperu.dto.entity.SaleInstallment;
 import com.service.api.idmhperu.dto.entity.SaleItem;
+import com.service.api.idmhperu.dto.entity.SaleRelatedGuide;
 import com.service.api.idmhperu.exception.BusinessValidationException;
 import com.service.api.idmhperu.exception.ResourceNotFoundException;
 import com.service.api.idmhperu.repository.DocumentRepository;
+import com.service.api.idmhperu.repository.SaleInstallmentRepository;
 import com.service.api.idmhperu.repository.SaleItemRepository;
+import com.service.api.idmhperu.repository.SaleRelatedGuideRepository;
 import com.service.api.idmhperu.repository.SaleRepository;
 import com.service.api.idmhperu.service.ConfigurationService;
 import com.service.api.idmhperu.service.DocumentPdfService;
@@ -25,11 +29,13 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -41,6 +47,8 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
   private final SaleRepository saleRepository;
   private final DocumentRepository documentRepository;
   private final SaleItemRepository saleItemRepository;
+  private final SaleInstallmentRepository saleInstallmentRepository;
+  private final SaleRelatedGuideRepository saleRelatedGuideRepository;
   private final GoogleDriveService googleDriveService;
   private final ConfigurationService configurationService;
 
@@ -118,14 +126,15 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
         row.put("comp_direccion_cliente",
             sale.getClient().getAddress());
 
-        row.put("comp_condicion_pago", "Contado");
+        row.put("comp_condicion_pago",
+            sale.getPaymentType() != null ? sale.getPaymentType() : "CONTADO");
 
         row.put("priorizar_despacho", false);
         row.put("observaciones", sale.getObservations());
 
         // ================= MONEDA =================
-        row.put("comp_descripcion_moneda", "SOLES");
-        row.put("comp_simbolo_moneda", "S/");
+        row.put("comp_descripcion_moneda", sale.getCurrencyCode().equalsIgnoreCase("PEN") ? "SOLES" : "DÓLARES");
+        row.put("comp_simbolo_moneda", sale.getCurrencyCode().equalsIgnoreCase("PEN") ? "S/" : "$");
 
         // ================= ITEM =================
         String sku;
@@ -191,10 +200,49 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
       JRBeanCollectionDataSource dataSource =
           new JRBeanCollectionDataSource(dataList);
 
+      // ================================
+      // Construir texto de cuotas (solo CREDITO)
+      // ================================
+
+      String cuotasTexto = null;
+      if ("CREDITO".equals(sale.getPaymentType())) {
+        List<SaleInstallment> installments =
+            saleInstallmentRepository
+                .findBySaleIdAndDeletedAtIsNullOrderByInstallmentNumberAsc(saleId);
+        if (!installments.isEmpty()) {
+          String symbol = "USD".equalsIgnoreCase(sale.getCurrencyCode()) ? "$" : "S/";
+          DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+          StringBuilder sb = new StringBuilder();
+          sb.append(String.format("%-4s  %-12s  %s%n", "N°", "Vencimiento", "Importe"));
+          for (SaleInstallment inst : installments) {
+            sb.append(String.format("%-4d  %-12s  %s %,.2f%n",
+                inst.getInstallmentNumber(),
+                inst.getDueDate().format(fmt),
+                symbol,
+                inst.getAmount()));
+          }
+          cuotasTexto = sb.toString().trim();
+        }
+      }
+
+      // ================================
+      // Construir parámetros: guías relacionadas y orden de compra
+      // ================================
+
+      List<SaleRelatedGuide> relatedGuides =
+          saleRelatedGuideRepository.findBySaleId(saleId);
+      String guiasTexto = relatedGuides.isEmpty() ? null :
+          relatedGuides.stream()
+              .map(SaleRelatedGuide::getGuideNumber)
+              .collect(Collectors.joining(", "));
+
       Map<String, Object> parameters = new HashMap<>();
 
       parameters.put("urlImagen",
           Objects.requireNonNull(getClass().getResource("/img/logo.png")).toString());
+      parameters.put("cuotas_texto", cuotasTexto);
+      parameters.put("guias_relacionadas", guiasTexto);
+      parameters.put("orden_compra", sale.getPurchaseOrder());
 
       JasperPrint jasperPrint =
           JasperFillManager.fillReport(

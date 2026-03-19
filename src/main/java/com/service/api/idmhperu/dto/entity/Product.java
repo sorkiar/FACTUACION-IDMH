@@ -50,12 +50,19 @@ public class Product {
   @JoinColumn(name = "unit_measure_id", nullable = false)
   private UnitMeasure unitMeasure;
 
-  // Comercial
-  @Column(name = "sale_price", precision = 12, scale = 2, nullable = false)
-  private BigDecimal salePrice;
+  // Comercial — precios en soles (PEN)
+  @Column(name = "sale_price_pen", precision = 12, scale = 2)
+  private BigDecimal salePricePen;
 
-  @Column(name = "estimated_cost", precision = 12, scale = 2)
-  private BigDecimal estimatedCost;
+  @Column(name = "estimated_cost_pen", precision = 12, scale = 2)
+  private BigDecimal estimatedCostPen;
+
+  // Comercial — precios en dólares (USD)
+  @Column(name = "sale_price_usd", precision = 12, scale = 2)
+  private BigDecimal salePriceUsd;
+
+  @Column(name = "estimated_cost_usd", precision = 12, scale = 2)
+  private BigDecimal estimatedCostUsd;
 
   // Marca / modelo
   @Column(length = 100)

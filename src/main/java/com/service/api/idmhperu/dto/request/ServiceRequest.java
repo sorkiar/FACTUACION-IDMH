@@ -18,8 +18,9 @@ public class ServiceRequest {
   @NotNull(message = "La unidad de cobro es obligatoria")
   private Long chargeUnitId;
 
-  // Precio
-  private BigDecimal price;
+  // Al menos uno de los dos precios debe ser > 0 (validado en el servicio)
+  private BigDecimal pricePen;
+  private BigDecimal priceUsd;
 
   // Tiempo / entrega
   private String estimatedTime;

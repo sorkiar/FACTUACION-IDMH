@@ -17,12 +17,18 @@ public class ProductRequest {
   @NotNull(message = "La unidad de medida es obligatoria")
   private Long unitMeasureId;
 
-  @NotNull(message = "El precio de venta es obligatorio")
-  @DecimalMin(value = "0.01", message = "El precio debe ser mayor a 0")
-  private BigDecimal salePrice;
+  // Al menos uno de los dos precios de venta debe ser > 0 (validado en el servicio)
+  @DecimalMin(value = "0.00", message = "El precio en soles no puede ser negativo")
+  private BigDecimal salePricePen;
 
-  @DecimalMin(value = "0.00", message = "El costo no puede ser negativo")
-  private BigDecimal estimatedCost;
+  @DecimalMin(value = "0.00", message = "El precio en dólares no puede ser negativo")
+  private BigDecimal salePriceUsd;
+
+  @DecimalMin(value = "0.00", message = "El costo en soles no puede ser negativo")
+  private BigDecimal estimatedCostPen;
+
+  @DecimalMin(value = "0.00", message = "El costo en dólares no puede ser negativo")
+  private BigDecimal estimatedCostUsd;
 
   private String brand;
   private String model;

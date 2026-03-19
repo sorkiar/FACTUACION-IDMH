@@ -20,9 +20,6 @@ public class ClientValidator {
     if ("Persona Jurídica".equalsIgnoreCase(personType.getName())) {
       if (!StringUtils.hasText(request.getBusinessName()))
         throw new BusinessValidationException("La razón social es obligatoria");
-
-      if (!StringUtils.hasText(request.getContactPersonName()))
-        throw new BusinessValidationException("El nombre del contacto es obligatorio");
     }
   }
 }

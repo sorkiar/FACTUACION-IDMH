@@ -6,10 +6,12 @@ import com.service.api.idmhperu.dto.entity.DocumentSeries;
 import com.service.api.idmhperu.dto.entity.PaymentMethod;
 import com.service.api.idmhperu.dto.entity.Product;
 import com.service.api.idmhperu.dto.entity.Sale;
+import com.service.api.idmhperu.dto.entity.SaleInstallment;
 import com.service.api.idmhperu.dto.entity.SaleItem;
 import com.service.api.idmhperu.dto.entity.SalePayment;
 import com.service.api.idmhperu.dto.filter.SaleFilter;
 import com.service.api.idmhperu.dto.mapper.SaleMapper;
+import com.service.api.idmhperu.dto.request.SaleInstallmentRequest;
 import com.service.api.idmhperu.dto.request.SaleItemRequest;
 import com.service.api.idmhperu.dto.request.SalePaymentRequest;
 import com.service.api.idmhperu.dto.request.SaleRequest;
@@ -17,23 +19,32 @@ import com.service.api.idmhperu.dto.response.ApiResponse;
 import com.service.api.idmhperu.dto.response.SaleResponse;
 import com.service.api.idmhperu.exception.BusinessValidationException;
 import com.service.api.idmhperu.exception.ResourceNotFoundException;
+import com.service.api.idmhperu.job.SunatDocumentJobService;
 import com.service.api.idmhperu.repository.ClientRepository;
 import com.service.api.idmhperu.repository.DocumentRepository;
 import com.service.api.idmhperu.repository.DocumentSeriesRepository;
 import com.service.api.idmhperu.repository.PaymentMethodRepository;
 import com.service.api.idmhperu.repository.ProductRepository;
+import com.service.api.idmhperu.dto.entity.SaleRelatedGuide;
+import com.service.api.idmhperu.repository.SaleInstallmentRepository;
 import com.service.api.idmhperu.repository.SaleItemRepository;
 import com.service.api.idmhperu.repository.SalePaymentRepository;
+import com.service.api.idmhperu.repository.SaleRelatedGuideRepository;
 import com.service.api.idmhperu.repository.SaleRepository;
 import com.service.api.idmhperu.repository.ServiceRepository;
 import com.service.api.idmhperu.repository.spec.SaleSpecification;
-import com.service.api.idmhperu.job.SunatDocumentJobService;
 import com.service.api.idmhperu.service.ConfigurationService;
 import com.service.api.idmhperu.service.DocumentPdfService;
 import com.service.api.idmhperu.service.GoogleDriveService;
 import com.service.api.idmhperu.service.SaleService;
 import com.service.api.idmhperu.util.JwtUtils;
 import jakarta.transaction.Transactional;
+import net.sf.jasperreports.engine.JasperCompileManager;
+import net.sf.jasperreports.engine.JasperExportManager;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperReport;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -51,12 +62,6 @@ import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import net.sf.jasperreports.engine.JasperCompileManager;
-import net.sf.jasperreports.engine.JasperExportManager;
-import net.sf.jasperreports.engine.JasperFillManager;
-import net.sf.jasperreports.engine.JasperPrint;
-import net.sf.jasperreports.engine.JasperReport;
-import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.multipart.MultipartFile;
@@ -67,6 +72,8 @@ public class SaleServiceImpl implements SaleService {
 
   private final SaleRepository saleRepository;
   private final SaleItemRepository saleItemRepository;
+  private final SaleInstallmentRepository saleInstallmentRepository;
+  private final SaleRelatedGuideRepository saleRelatedGuideRepository;
   private final ClientRepository clientRepository;
   private final ProductRepository productRepository;
   private final ServiceRepository serviceRepository;
@@ -104,10 +111,13 @@ public class SaleServiceImpl implements SaleService {
     String username = JwtUtils.extractUsernameFromContext();
 
     Sale sale = new Sale();
-    sale.setCurrencyCode("PEN");
+    sale.setCurrencyCode(resolveCurrencyCode(request.getCurrencyCode()));
     sale.setTaxPercentage(new BigDecimal("18"));
     sale.setCreatedBy(username);
     sale.setSaleDate(LocalDateTime.now());
+    sale.setPaymentType(resolvePaymentType(request.getPaymentType()));
+    sale.setPurchaseOrder(request.getPurchaseOrder());
+    sale.setObservations(request.getObservations());
 
     Client client = clientRepository.findById(request.getClientId())
         .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
@@ -128,14 +138,20 @@ public class SaleServiceImpl implements SaleService {
     sale.setTotalAmount(totals.total());
     sale = saleRepository.save(sale);
 
+    processRelatedGuides(sale, request.getRelatedGuides());
+
     //  Si es borrador → termina aquí
     if (Boolean.TRUE.equals(request.getDraft())) {
       return new ApiResponse<>("Venta guardada como borrador",
           mapper.toResponse(sale));
     }
 
-    // Finalización real
-    processPayments(sale, request, paymentProofs, username);
+    // Finalización real: pagos o cuotas según condición de pago
+    if ("CREDITO".equals(sale.getPaymentType())) {
+      processInstallments(sale, request, username);
+    } else {
+      processPayments(sale, request, paymentProofs, username);
+    }
     Document document = generateDocument(sale, request.getDocumentSeriesId(), username);
 
     // Envío inmediato solo si el tipo está en modo ONLINE
@@ -177,6 +193,11 @@ public class SaleServiceImpl implements SaleService {
       sale.setClient(client);
     }
 
+    sale.setCurrencyCode(resolveCurrencyCode(request.getCurrencyCode()));
+    sale.setPaymentType(resolvePaymentType(request.getPaymentType()));
+    sale.setPurchaseOrder(request.getPurchaseOrder());
+    sale.setObservations(request.getObservations());
+
     saleItemRepository.deleteBySaleId(sale.getId());
 
     Totals totals = rebuildItemsAndTotals(sale, request.getItems(), username);
@@ -187,8 +208,14 @@ public class SaleServiceImpl implements SaleService {
     sale.setUpdatedBy(username);
     sale = saleRepository.save(sale);
 
-    //  Finalizar borrador
-    processPayments(sale, request, paymentProofs, username);
+    processRelatedGuides(sale, request.getRelatedGuides());
+
+    //  Finalizar borrador: pagos o cuotas según condición de pago
+    if ("CREDITO".equals(sale.getPaymentType())) {
+      processInstallments(sale, request, username);
+    } else {
+      processPayments(sale, request, paymentProofs, username);
+    }
     Document document = generateDocument(sale, request.getDocumentSeriesId(), username);
 
     String docTypeCode = document.getDocumentTypeSunat().getCode();
@@ -494,8 +521,8 @@ public class SaleServiceImpl implements SaleService {
       row.put("comp_direccion_cliente", client.getAddress());
 
       // Moneda
-      row.put("comp_descripcion_moneda", "SOLES");
-      row.put("comp_simbolo_moneda", "S/");
+      row.put("comp_descripcion_moneda", request.getCurrencyCode().equalsIgnoreCase("PEN") ? "SOLES" : "DÓLARES");
+      row.put("comp_simbolo_moneda", request.getCurrencyCode().equalsIgnoreCase("PEN") ? "S/" : "$");
 
       // Item
       String sku = "CUST0000";
@@ -578,6 +605,71 @@ public class SaleServiceImpl implements SaleService {
     File file = File.createTempFile(prefix, "");
     multipart.transferTo(file);
     return file;
+  }
+
+  private void processInstallments(Sale sale, SaleRequest request, String username) {
+
+    if (request.getInstallments() == null || request.getInstallments().isEmpty()) {
+      throw new BusinessValidationException(
+          "Las cuotas son obligatorias para venta a crédito");
+    }
+
+    BigDecimal sumCuotas = request.getInstallments().stream()
+        .map(SaleInstallmentRequest::getAmount)
+        .reduce(BigDecimal.ZERO, BigDecimal::add)
+        .setScale(2, RoundingMode.HALF_UP);
+
+    if (sumCuotas.compareTo(sale.getTotalAmount()) != 0) {
+      throw new BusinessValidationException(
+          "La suma de las cuotas (" + sumCuotas + ") debe ser igual al total de la venta ("
+              + sale.getTotalAmount() + ")");
+    }
+
+    LocalDate saleDate = sale.getSaleDate().toLocalDate();
+    for (SaleInstallmentRequest installmentReq : request.getInstallments()) {
+      LocalDate dueDate = LocalDate.parse(installmentReq.getDueDate());
+      if (!dueDate.isAfter(saleDate)) {
+        throw new BusinessValidationException(
+            "La fecha de vencimiento de cada cuota debe ser posterior a la fecha de la venta");
+      }
+    }
+
+    saleInstallmentRepository.deleteBySaleId(sale.getId());
+
+    for (SaleInstallmentRequest installmentReq : request.getInstallments()) {
+      SaleInstallment installment = new SaleInstallment();
+      installment.setSale(sale);
+      installment.setInstallmentNumber(installmentReq.getInstallmentNumber());
+      installment.setDueDate(LocalDate.parse(installmentReq.getDueDate()));
+      installment.setAmount(installmentReq.getAmount());
+      installment.setCreatedBy(username);
+      saleInstallmentRepository.save(installment);
+    }
+  }
+
+  private String resolveCurrencyCode(String currencyCode) {
+    if ("USD".equalsIgnoreCase(currencyCode)) {
+      return "USD";
+    }
+    return "PEN";
+  }
+
+  private String resolvePaymentType(String paymentType) {
+    if ("CREDITO".equalsIgnoreCase(paymentType)) {
+      return "CREDITO";
+    }
+    return "CONTADO";
+  }
+
+  private void processRelatedGuides(Sale sale, List<String> guideNumbers) {
+    saleRelatedGuideRepository.deleteBySaleId(sale.getId());
+    if (guideNumbers == null || guideNumbers.isEmpty()) return;
+    for (String number : guideNumbers) {
+      SaleRelatedGuide guide = new SaleRelatedGuide();
+      guide.setSale(sale);
+      guide.setGuideNumber(number.trim());
+      saleRelatedGuideRepository.save(guide);
+    }
   }
 
   // Helper interno simple para retornos de totales

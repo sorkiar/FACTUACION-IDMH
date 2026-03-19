@@ -37,13 +37,15 @@ public class ProductController {
       @RequestParam(required = false) Long id,
       @RequestParam(required = false) Integer status,
       @RequestParam(required = false) Long categoryId,
-      @RequestParam(required = false) String sku
+      @RequestParam(required = false) String sku,
+      @RequestParam(required = false) String currency
   ) {
     ProductFilter filter = new ProductFilter();
     filter.setId(id);
     filter.setStatus(status);
     filter.setCategoryId(categoryId);
     filter.setSku(sku);
+    filter.setCurrencyCode(currency);
 
     return service.findAll(filter);
   }

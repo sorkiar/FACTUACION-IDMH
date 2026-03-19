@@ -15,8 +15,10 @@ public class ProductResponse {
   private Long unitMeasureId;
   private String unitMeasureCode;
 
-  private BigDecimal salePrice;
-  private BigDecimal estimatedCost;
+  private BigDecimal salePricePen;
+  private BigDecimal estimatedCostPen;
+  private BigDecimal salePriceUsd;
+  private BigDecimal estimatedCostUsd;
 
   private String brand;
   private String model;

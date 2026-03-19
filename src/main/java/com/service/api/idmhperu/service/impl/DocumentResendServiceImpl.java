@@ -10,7 +10,10 @@ import com.service.api.idmhperu.job.SunatDocumentJobService;
 import com.service.api.idmhperu.repository.CreditDebitNoteRepository;
 import com.service.api.idmhperu.repository.DocumentRepository;
 import com.service.api.idmhperu.repository.RemissionGuideRepository;
+import com.service.api.idmhperu.service.CreditDebitNotePdfService;
+import com.service.api.idmhperu.service.DocumentPdfService;
 import com.service.api.idmhperu.service.DocumentResendService;
+import com.service.api.idmhperu.service.RemissionGuidePdfService;
 import jakarta.transaction.Transactional;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +29,9 @@ public class DocumentResendServiceImpl implements DocumentResendService {
   private final CreditDebitNoteRepository creditDebitNoteRepository;
   private final RemissionGuideRepository remissionGuideRepository;
   private final SunatDocumentJobService jobService;
+  private final DocumentPdfService documentPdfService;
+  private final CreditDebitNotePdfService creditDebitNotePdfService;
+  private final RemissionGuidePdfService remissionGuidePdfService;
 
   @Override
   @Transactional
@@ -88,5 +94,47 @@ public class DocumentResendServiceImpl implements DocumentResendService {
         + guide.getSeries() + "-" + guide.getSequence()
         + " enviada a SUNAT. Estado: " + guide.getStatus()
         + (guide.getSunatMessage() != null ? " — " + guide.getSunatMessage() : ""), null);
+  }
+
+  @Override
+  @Transactional
+  public ApiResponse<String> regenerateDocumentPdf(Long id) {
+
+    Document doc = documentRepository.findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Documento no encontrado con id: " + id));
+
+    documentPdfService.generatePdf(doc.getSale().getId());
+
+    return new ApiResponse<>("PDF del documento "
+        + doc.getSeries() + "-" + doc.getSequence()
+        + " regenerado y actualizado correctamente.", null);
+  }
+
+  @Override
+  @Transactional
+  public ApiResponse<String> regenerateCreditDebitNotePdf(Long id) {
+
+    CreditDebitNote note = creditDebitNoteRepository.findByIdAndDeletedAtIsNull(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Nota no encontrada con id: " + id));
+
+    creditDebitNotePdfService.generatePdf(note.getId());
+
+    return new ApiResponse<>("PDF de la nota "
+        + note.getSeries() + "-" + note.getSequence()
+        + " regenerado y actualizado correctamente.", null);
+  }
+
+  @Override
+  @Transactional
+  public ApiResponse<String> regenerateRemissionGuidePdf(Long id) {
+
+    RemissionGuide guide = remissionGuideRepository.findByIdAndDeletedAtIsNull(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Guía de remisión no encontrada con id: " + id));
+
+    remissionGuidePdfService.generatePdf(guide.getId());
+
+    return new ApiResponse<>("PDF de la guía "
+        + guide.getSeries() + "-" + guide.getSequence()
+        + " regenerado y actualizado correctamente.", null);
   }
 }

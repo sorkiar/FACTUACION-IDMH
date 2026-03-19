@@ -10,12 +10,14 @@ import com.service.api.idmhperu.dto.entity.RemissionGuideItem;
 import com.service.api.idmhperu.dto.entity.Sale;
 import com.service.api.idmhperu.dto.entity.SaleItem;
 import com.service.api.idmhperu.dto.entity.SunatRequestLog;
+import com.service.api.idmhperu.dto.entity.SaleInstallment;
 import com.service.api.idmhperu.dto.external.ClientSendRequest;
 import com.service.api.idmhperu.dto.external.CompanySendRequest;
 import com.service.api.idmhperu.dto.external.DocumentSendRequest;
 import com.service.api.idmhperu.dto.external.FacturacionResponse;
 import com.service.api.idmhperu.dto.external.GuiaSendRequest;
 import com.service.api.idmhperu.dto.external.GuiaTransporteSendRequest;
+import com.service.api.idmhperu.dto.external.ItemCuotaSendRequest;
 import com.service.api.idmhperu.dto.external.ItemSendRequest;
 import com.service.api.idmhperu.dto.external.NotaSendRequest;
 import com.service.api.idmhperu.dto.external.SunatSendRequest;
@@ -26,6 +28,7 @@ import com.service.api.idmhperu.repository.DocumentRepository;
 import com.service.api.idmhperu.repository.RemissionGuideDriverRepository;
 import com.service.api.idmhperu.repository.RemissionGuideItemRepository;
 import com.service.api.idmhperu.repository.RemissionGuideRepository;
+import com.service.api.idmhperu.repository.SaleInstallmentRepository;
 import com.service.api.idmhperu.repository.SaleItemRepository;
 import com.service.api.idmhperu.repository.SunatRequestLogRepository;
 import com.service.api.idmhperu.service.ConfigurationService;
@@ -35,6 +38,7 @@ import java.io.File;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -60,6 +64,7 @@ public class SunatDocumentJobService {
 
   private final DocumentRepository documentRepository;
   private final SaleItemRepository saleItemRepository;
+  private final SaleInstallmentRepository saleInstallmentRepository;
   private final CreditDebitNoteRepository creditDebitNoteRepository;
   private final CreditDebitNoteItemRepository creditDebitNoteItemRepository;
   private final RemissionGuideRepository remissionGuideRepository;
@@ -909,6 +914,8 @@ public class SunatDocumentJobService {
     // ==========================
     // COMPROBANTE
     // ==========================
+    String condicionPago = sale.getPaymentType() != null ? sale.getPaymentType() : "CONTADO";
+
     DocumentSendRequest comprobante = new DocumentSendRequest();
     comprobante.setCompSerie(doc.getSeries());
     comprobante.setCompNumero(
@@ -916,7 +923,7 @@ public class SunatDocumentJobService {
     comprobante.setCompFechaEmision(doc.getIssueDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
     comprobante.setCompPorcentajeIgv(
         new BigDecimal("18"));
-    comprobante.setCompCondicionPago("CONTADO");
+    comprobante.setCompCondicionPago(condicionPago);
     comprobante.setCompMedioPago("EFECTIVO");
     comprobante.setMoneda(sale.getCurrencyCode());
     comprobante.setTipoDocumento(
@@ -927,6 +934,23 @@ public class SunatDocumentJobService {
     comprobante.setTipoOperacion("VENTA_INTERNA");
     comprobante.setCliente(cliente);
     comprobante.setLsItemComprobante(itemDtos);
+
+    // Cuotas: solo cuando la condición de pago es CREDITO
+    if ("CREDITO".equals(condicionPago)) {
+      List<SaleInstallment> installments =
+          saleInstallmentRepository
+              .findBySaleIdAndDeletedAtIsNullOrderByInstallmentNumberAsc(sale.getId());
+      List<ItemCuotaSendRequest> cuotas = new ArrayList<>();
+      for (SaleInstallment inst : installments) {
+        ItemCuotaSendRequest cuota = new ItemCuotaSendRequest();
+        cuota.setItcuCuota(inst.getInstallmentNumber());
+        cuota.setItcuFecha(
+            inst.getDueDate().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli());
+        cuota.setItcuMonto(inst.getAmount());
+        cuotas.add(cuota);
+      }
+      comprobante.setLsItemCuota(cuotas);
+    }
 
     // ==========================
     // WRAPPER

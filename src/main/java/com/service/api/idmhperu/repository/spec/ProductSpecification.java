@@ -3,6 +3,7 @@ package com.service.api.idmhperu.repository.spec;
 import com.service.api.idmhperu.dto.entity.Product;
 import com.service.api.idmhperu.dto.filter.ProductFilter;
 import jakarta.persistence.criteria.Predicate;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.data.jpa.domain.Specification;
@@ -27,6 +28,16 @@ public class ProductSpecification {
 
       if (filter.getSku() != null) {
         predicates.add(cb.like(root.get("sku"), "%" + filter.getSku() + "%"));
+      }
+
+      if ("PEN".equalsIgnoreCase(filter.getCurrencyCode())) {
+        predicates.add(cb.and(
+            cb.isNotNull(root.get("salePricePen")),
+            cb.greaterThan(root.get("salePricePen"), BigDecimal.ZERO)));
+      } else if ("USD".equalsIgnoreCase(filter.getCurrencyCode())) {
+        predicates.add(cb.and(
+            cb.isNotNull(root.get("salePriceUsd")),
+            cb.greaterThan(root.get("salePriceUsd"), BigDecimal.ZERO)));
       }
 
       return cb.and(predicates.toArray(new Predicate[0]));

@@ -13,7 +13,8 @@ public class ServiceResponse {
   private String serviceCategoryName;
   private Long chargeUnitId;
   private String chargeUnitName;
-  private BigDecimal price;
+  private BigDecimal pricePen;
+  private BigDecimal priceUsd;
   private String estimatedTime;
   private String expectedDelivery;
   private Boolean requiresMaterials;

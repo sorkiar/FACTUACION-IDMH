@@ -24,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -120,11 +121,14 @@ public class ServiceServiceImpl implements ServiceService {
       com.service.api.idmhperu.dto.entity.Service service =
           new com.service.api.idmhperu.dto.entity.Service();
 
+      validatePrices(request.getPricePen(), request.getPriceUsd());
+
       service.setSku(sku);
       service.setName(request.getName());
       service.setServiceCategory(category);
       service.setChargeUnit(chargeUnit);
-      service.setPrice(request.getPrice());
+      service.setPricePen(request.getPricePen());
+      service.setPriceUsd(request.getPriceUsd());
       service.setEstimatedTime(request.getEstimatedTime());
       service.setExpectedDelivery(request.getExpectedDelivery());
       service.setIncludesDescription(request.getIncludesDescription());
@@ -199,8 +203,11 @@ public class ServiceServiceImpl implements ServiceService {
         pdfFile.delete();
       }
 
+      validatePrices(request.getPricePen(), request.getPriceUsd());
+
       service.setName(request.getName());
-      service.setPrice(request.getPrice());
+      service.setPricePen(request.getPricePen());
+      service.setPriceUsd(request.getPriceUsd());
       service.setEstimatedTime(request.getEstimatedTime());
       service.setExpectedDelivery(request.getExpectedDelivery());
       service.setIncludesDescription(request.getIncludesDescription());
@@ -257,7 +264,8 @@ public class ServiceServiceImpl implements ServiceService {
       row.put("name", service.getName());
       row.put("category", service.getServiceCategory() != null ? service.getServiceCategory().getName() : "");
       row.put("charge_unit", service.getChargeUnit() != null ? service.getChargeUnit().getName() : "");
-      row.put("price", service.getPrice() != null ? service.getPrice().toPlainString() : "-");
+      row.put("price", service.getPricePen() != null ? service.getPricePen().toPlainString() : "-");
+      row.put("price_usd", service.getPriceUsd() != null ? service.getPriceUsd().toPlainString() : "-");
       row.put("estimated_time", service.getEstimatedTime());
       row.put("expected_delivery", service.getExpectedDelivery());
       row.put("requires_materials", Boolean.TRUE.equals(service.getRequiresMaterials()) ? "Sí" : "No");
@@ -288,6 +296,15 @@ public class ServiceServiceImpl implements ServiceService {
     } catch (Exception e) {
       e.printStackTrace();
       throw new BusinessValidationException("Error al generar PDF del servicio: " + e.getMessage());
+    }
+  }
+
+  private void validatePrices(BigDecimal pricePen, BigDecimal priceUsd) {
+    boolean penPositive = pricePen != null && pricePen.compareTo(BigDecimal.ZERO) > 0;
+    boolean usdPositive = priceUsd != null && priceUsd.compareTo(BigDecimal.ZERO) > 0;
+    if (!penPositive && !usdPositive) {
+      throw new BusinessValidationException(
+          "Debe registrar al menos un precio mayor a 0 (soles o dólares)");
     }
   }
 

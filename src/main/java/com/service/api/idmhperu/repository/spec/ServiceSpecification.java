@@ -3,6 +3,7 @@ package com.service.api.idmhperu.repository.spec;
 import com.service.api.idmhperu.dto.entity.Service;
 import com.service.api.idmhperu.dto.filter.ServiceFilter;
 import jakarta.persistence.criteria.Predicate;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.data.jpa.domain.Specification;
@@ -37,6 +38,12 @@ public class ServiceSpecification {
         predicates.add(cb.like(
             cb.lower(root.get("name")),
             "%" + filter.getName().toLowerCase() + "%"));
+      }
+
+      if ("PEN".equalsIgnoreCase(filter.getCurrencyCode())) {
+        predicates.add(cb.greaterThan(root.get("pricePen"), BigDecimal.ZERO));
+      } else if ("USD".equalsIgnoreCase(filter.getCurrencyCode())) {
+        predicates.add(cb.greaterThan(root.get("priceUsd"), BigDecimal.ZERO));
       }
 
       return cb.and(predicates.toArray(new Predicate[0]));

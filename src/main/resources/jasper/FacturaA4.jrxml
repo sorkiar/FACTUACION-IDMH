@@ -55,6 +55,9 @@
 	</style>
 	<parameter name="ventId" class="java.lang.Integer"/>
 	<parameter name="urlImagen" class="java.lang.String"/>
+	<parameter name="cuotas_texto" class="java.lang.String"/>
+	<parameter name="guias_relacionadas" class="java.lang.String"/>
+	<parameter name="orden_compra" class="java.lang.String"/>
 	<field name="empr_ruc" class="java.lang.String"/>
 	<field name="empr_nombre_comercial" class="java.lang.String"/>
 	<field name="empr_razon_social" class="java.lang.String"/>
@@ -146,7 +149,7 @@
 		</band>
 	</background>
 	<pageHeader>
-		<band height="207" splitType="Stretch">
+		<band height="221" splitType="Stretch">
 			<line>
 				<reportElement style="DefaultLine" x="0" y="142" width="555" height="1" forecolor="#999999" uuid="e7e7dd30-6d90-405e-87e2-efe5c59e110b"/>
 				<graphicElement>
@@ -291,6 +294,20 @@
 				</textElement>
 				<textFieldExpression><![CDATA[$F{comp_descripcion_moneda}]]></textFieldExpression>
 			</textField>
+			<staticText>
+				<reportElement x="432" y="146" width="54" height="12" forecolor="#000000" uuid="c3d3e3f3-a3b3-3333-cccc-333333333333"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Arial" size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Tipo venta:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="false">
+				<reportElement x="487" y="146" width="68" height="12" uuid="d4e4f4a4-b4c4-4444-dddd-444444444444"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{comp_condicion_pago}.equals("CREDITO") && $F{priorizar_despacho}.booleanValue()) ? "CONTADO" : $F{comp_condicion_pago}]]></textFieldExpression>
+			</textField>
 			<image scaleImage="RetainShape" hAlign="Left" vAlign="Middle">
 				<reportElement x="0" y="0" width="180" height="55" uuid="31426b11-d3a2-44b1-8dbf-a21f87da8165"/>
 				<imageExpression><![CDATA[$P{urlImagen}]]></imageExpression>
@@ -322,18 +339,18 @@
 				<textFieldExpression><![CDATA[$F{empr_direccion_sucursal}]]></textFieldExpression>
 			</textField>
 			<staticText>
-				<reportElement x="0" y="182" width="84" height="12" forecolor="#000000" uuid="500bd977-f01e-49cd-88e6-8221f8844b9e"/>
+				<reportElement x="0" y="196" width="84" height="12" forecolor="#000000" uuid="500bd977-f01e-49cd-88e6-8221f8844b9e"/>
 				<textElement textAlignment="Right" verticalAlignment="Top">
 					<font fontName="Arial" size="9" isBold="true"/>
 				</textElement>
 				<text><![CDATA[Observacion:]]></text>
 			</staticText>
 			<textField textAdjust="StretchHeight">
-				<reportElement x="88" y="182" width="463" height="24" uuid="1c0a8cd6-312a-40db-8146-8838a0edd5d2"/>
+				<reportElement x="88" y="196" width="463" height="24" uuid="1c0a8cd6-312a-40db-8146-8838a0edd5d2"/>
 				<textElement verticalAlignment="Top">
 					<font fontName="Arial" size="8"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$F{observaciones}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$F{observaciones} != null ? $F{observaciones} : "-"]]></textFieldExpression>
 			</textField>
 			<line>
 				<reportElement style="DefaultLine" x="0" y="179" width="555" height="1" forecolor="#999999" uuid="f99d87bd-bf58-4ea0-9649-5166e33fc9ff"/>
@@ -349,6 +366,41 @@
 				</textElement>
 				<textFieldExpression><![CDATA[$F{comp_numero_comprobante}.substring( 0, 1 ).equals("F")?"RUC :":"DNI :"]]></textFieldExpression>
 			</textField>
+			<!-- Guías relacionadas + Orden de compra -->
+			<staticText>
+				<reportElement x="0" y="181" width="84" height="12" forecolor="#000000" uuid="a2b3c4d5-e6f7-4a5b-8c9d-0e1f2a3b4c5d"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Arial" size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Guías rel.:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="false">
+				<reportElement x="88" y="181" width="340" height="12" uuid="b3c4d5e6-f7a8-4b5c-9d0e-1f2a3b4c5d6e"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{guias_relacionadas} != null ? $P{guias_relacionadas} : "-"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="432" y="181" width="54" height="12" forecolor="#000000" uuid="c4d5e6f7-a8b9-4c5d-0e1f-2a3b4c5d6e7f"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Arial" size="9" isBold="true"/>
+				</textElement>
+				<text><![CDATA[O. compra:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="false">
+				<reportElement x="487" y="181" width="68" height="12" uuid="d5e6f7a8-b9c0-4d5e-1f2a-3b4c5d6e7f8a"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{orden_compra} != null ? $P{orden_compra} : "-"]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement style="DefaultLine" x="0" y="193" width="555" height="1" forecolor="#999999" uuid="e6f7a8b9-c0d1-4e5f-2a3b-4c5d6e7f8a9b"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineStyle="Dashed"/>
+				</graphicElement>
+			</line>
 		</band>
 	</pageHeader>
 	<columnHeader>
@@ -702,27 +754,6 @@
 				</textElement>
 				<textFieldExpression><![CDATA["Representación impresa de la " + $F{tico_descripcion}.toLowerCase() + ". Puede verificarla utilizando su clave SOL o ingresando a la pagina web: " + $F{empr_pagina_web}]]></textFieldExpression>
 			</textField>
-			<line>
-				<reportElement style="DefaultLine" x="118" y="197" width="435" height="1" forecolor="#093697" uuid="3ea31d5d-87a2-4ae9-90be-4b99c325f65e"/>
-				<graphicElement>
-					<pen lineWidth="0.5"/>
-				</graphicElement>
-			</line>
-			<staticText>
-				<reportElement x="383" y="198" width="68" height="12" forecolor="#000000" uuid="fb7b2e77-2d16-4baf-ae73-b3427d9d0650"/>
-				<textElement textAlignment="Right" verticalAlignment="Middle">
-					<font fontName="Arial" size="8" isBold="true"/>
-				</textElement>
-				<text><![CDATA[Tipo de venta :]]></text>
-			</staticText>
-			<textField pattern="" isBlankWhenNull="false">
-				<reportElement mode="Transparent" x="454" y="198" width="96" height="12" forecolor="#000000" backcolor="#FFFFFF" uuid="f6f4875b-3c3f-4fae-96d7-cb24625a3a04"/>
-				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
-					<font fontName="Arial" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
-					<paragraph lineSpacing="Single"/>
-				</textElement>
-				<textFieldExpression><![CDATA[($F{comp_condicion_pago}.equals("CREDITO") && $F{priorizar_despacho}.booleanValue())?"CONTADO":$F{comp_condicion_pago}]]></textFieldExpression>
-			</textField>
 			<textField pattern="" isBlankWhenNull="false">
 				<reportElement mode="Transparent" x="447" y="62" width="14" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="823e6776-6809-4254-9e31-1ea80a0fad29"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None" markup="none">
@@ -794,6 +825,35 @@
     $F{comp_cadena_qr},
     com.google.zxing.BarcodeFormat.QR_CODE, 350, 350))]]></imageExpression>
 			</image>
+			<!-- CRONOGRAMA DE CUOTAS (solo visible en venta a credito) -->
+			<staticText>
+				<reportElement x="119" y="91" width="185" height="10" forecolor="#093697" uuid="e3f4a5b6-c7d8-9012-efab-234567890123">
+					<printWhenExpression><![CDATA[$F{comp_condicion_pago} != null && $F{comp_condicion_pago}.equals("CREDITO")]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.5" lineColor="#093697"/>
+					<topPen lineWidth="0.5" lineColor="#093697"/>
+					<leftPen lineWidth="0.25" lineColor="#2282C7"/>
+					<bottomPen lineWidth="0.25" lineColor="#2282C7"/>
+					<rightPen lineWidth="0.25" lineColor="#2282C7"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[INFORMACION DEL CRÉDITO]]></text>
+			</staticText>
+			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+				<reportElement x="119" y="101" width="185" height="96" uuid="f4a5b6c7-d8e9-0123-fabc-345678901234">
+					<printWhenExpression><![CDATA[$P{cuotas_texto} != null && $F{comp_condicion_pago} != null && $F{comp_condicion_pago}.equals("CREDITO")]]></printWhenExpression>
+				</reportElement>
+				<box leftPadding="3" topPadding="2">
+					<pen lineWidth="0.25" lineColor="#2282C7"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{cuotas_texto}]]></textFieldExpression>
+			</textField>
 			<textField pattern="" isBlankWhenNull="false">
 				<reportElement mode="Transparent" x="447" y="167" width="14" height="14" forecolor="#000000" backcolor="#FFFFFF" uuid="a0428851-e133-4850-8912-01a617fd05be"/>
 				<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None" markup="none">

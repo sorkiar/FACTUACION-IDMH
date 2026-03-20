@@ -153,7 +153,7 @@ public class CreditDebitNoteServiceImpl implements CreditDebitNoteService {
     note.setIssueDate(LocalDateTime.now());
     note.setCreditDebitNoteType(noteType);
     note.setReason(request.getReason());
-    note.setCurrencyCode(sale.getCurrencyCode());
+    note.setCurrencyCode(sale.getCurrencyCode() != null ? sale.getCurrencyCode() : "PEN");
     note.setTaxPercentage(sale.getTaxPercentage());
     note.setStatus("PENDIENTE");
     note.setCreatedBy(username);

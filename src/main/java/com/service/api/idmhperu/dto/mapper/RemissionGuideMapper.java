@@ -10,10 +10,11 @@ import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {RecipientMapper.class})
 public interface RemissionGuideMapper {
 
   @Mapping(target = "documentSeriesId", source = "documentSeries.id")
+  @Mapping(target = "recipient", source = "recipient")
   @Mapping(target = "items", source = "items")
   @Mapping(target = "drivers", source = "drivers")
   RemissionGuideResponse toResponse(RemissionGuide entity);

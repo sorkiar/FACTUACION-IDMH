@@ -572,13 +572,13 @@ public class SunatDocumentJobService {
     ubigeo.setUbigDistrito(config.get("ubigDistrito"));
     empresa.setUbigeo(ubigeo);
 
-    // DESTINATARIO (como cliente del comprobante)
-    ClientSendRequest destinatario = new ClientSendRequest();
-    destinatario.setClieNumeroDocumento(guide.getRecipientDocNumber());
-    destinatario.setClieRazonSocial(guide.getRecipientName());
-    destinatario.setClieDireccion(guide.getRecipientAddress());
-    destinatario.setTipoDocumentoIdentidad(
-        resolveDocIdentidad(guide.getRecipientDocType()));
+    // Recipient (como cliente del comprobante)
+    ClientSendRequest recipient = new ClientSendRequest();
+    recipient.setClieNumeroDocumento(guide.getRecipient().getDocNumber());
+    recipient.setClieRazonSocial(guide.getRecipient().getName());
+    recipient.setClieDireccion(guide.getRecipient().getAddress());
+    recipient.setTipoDocumentoIdentidad(
+        resolveDocIdentidad(guide.getRecipient().getDocType()));
 
     // ITEMS (bienes a transportar)
     List<ItemSendRequest> itemDtos = new ArrayList<>();
@@ -656,7 +656,7 @@ public class SunatDocumentJobService {
     comprobante.setMoneda("PEN");
     comprobante.setTipoDocumento("GUIA_REMISION_REMITENTE");
     comprobante.setTipoOperacion("VENTA_INTERNA");
-    comprobante.setCliente(destinatario);
+    comprobante.setCliente(recipient);
     comprobante.setLsItemComprobante(itemDtos);
     comprobante.setGuia(guia);
 

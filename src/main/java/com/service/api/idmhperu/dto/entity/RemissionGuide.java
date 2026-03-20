@@ -93,10 +93,10 @@ public class RemissionGuide {
   private String originLocalCode;
 
   // Punto de llegada
-  @Column(name = "destination_address", length = 500, nullable = false)
+  @Column(name = "destination_address", length = 500)
   private String destinationAddress;
 
-  @Column(name = "destination_ubigeo", length = 10, nullable = false)
+  @Column(name = "destination_ubigeo", length = 10)
   private String destinationUbigeo;
 
   @Column(name = "destination_local_code", length = 20)
@@ -105,18 +105,10 @@ public class RemissionGuide {
   @Column(name = "minor_vehicle_transfer", nullable = false)
   private Boolean minorVehicleTransfer = false;
 
-  // Destinatario
-  @Column(name = "recipient_doc_type", length = 5, nullable = false)
-  private String recipientDocType;
-
-  @Column(name = "recipient_doc_number", length = 20, nullable = false)
-  private String recipientDocNumber;
-
-  @Column(name = "recipient_name", length = 200, nullable = false)
-  private String recipientName;
-
-  @Column(name = "recipient_address", length = 500)
-  private String recipientAddress;
+  // Recipient
+  @ManyToOne
+  @JoinColumn(name = "recipient_id")
+  private Recipient recipient;
 
   // Transportista (solo para TRANSPORTE_PUBLICO)
   @Column(name = "carrier_doc_type", length = 5)

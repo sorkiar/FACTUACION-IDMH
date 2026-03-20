@@ -62,17 +62,9 @@ public class RemissionGuideRequest {
 
   private Boolean minorVehicleTransfer = false;
 
-  // Destinatario
-  @NotBlank(message = "recipientDocType es obligatorio")
-  private String recipientDocType;
-
-  @NotBlank(message = "recipientDocNumber es obligatorio")
-  private String recipientDocNumber;
-
-  @NotBlank(message = "recipientName es obligatorio")
-  private String recipientName;
-
-  private String recipientAddress;
+  // Recipient
+  @NotNull(message = "recipientId es obligatorio")
+  private Long recipientId;
 
   // Transportista (requerido solo si transportMode = TRANSPORTE_PUBLICO)
   private String carrierDocType;

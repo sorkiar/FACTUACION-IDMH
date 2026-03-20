@@ -75,10 +75,10 @@ public class RemissionGuidePdfServiceImpl implements RemissionGuidePdfService {
           + guide.getSeries() + " | "
           + guide.getSequence() + " | "
           + guide.getIssueDate().format(DATE_FMT) + " | 6 | "
-          + guide.getRecipientDocNumber();
+          + guide.getRecipient().getDocNumber();
 
       // Determinar si el destinatario es RUC (11 dígitos) o DNI (8 dígitos)
-      String numDoc = guide.getRecipientDocNumber();
+      String numDoc = guide.getRecipient().getDocNumber();
       String rucCliente = (numDoc != null && numDoc.length() == 11) ? numDoc : null;
       String dniCliente = (numDoc != null && numDoc.length() == 8) ? numDoc : null;
 
@@ -109,8 +109,8 @@ public class RemissionGuidePdfServiceImpl implements RemissionGuidePdfService {
         row.put("fecha_traslado", Date.valueOf(guide.getTransferDate()));
 
         // ====== DESTINATARIO ======
-        row.put("nombre_representante", guide.getRecipientName());
-        row.put("razonsocial", guide.getRecipientName());
+        row.put("nombre_representante", guide.getRecipient().getName());
+        row.put("razonsocial", guide.getRecipient().getName());
         row.put("ruccliente", rucCliente);
         row.put("dni_cliente", dniCliente);
 

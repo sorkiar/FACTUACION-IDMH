@@ -1,5 +1,6 @@
 package com.service.api.idmhperu.service.impl;
 
+import com.service.api.idmhperu.dto.entity.Recipient;
 import com.service.api.idmhperu.dto.entity.DocumentSeries;
 import com.service.api.idmhperu.dto.entity.RemissionGuide;
 import com.service.api.idmhperu.dto.entity.RemissionGuideDriver;
@@ -13,6 +14,7 @@ import com.service.api.idmhperu.dto.response.ApiResponse;
 import com.service.api.idmhperu.dto.response.RemissionGuideResponse;
 import com.service.api.idmhperu.exception.BusinessValidationException;
 import com.service.api.idmhperu.exception.ResourceNotFoundException;
+import com.service.api.idmhperu.repository.RecipientRepository;
 import com.service.api.idmhperu.repository.DocumentSeriesRepository;
 import com.service.api.idmhperu.repository.ProductRepository;
 import com.service.api.idmhperu.repository.RemissionGuideDriverRepository;
@@ -40,6 +42,7 @@ public class RemissionGuideServiceImpl implements RemissionGuideService {
   private final RemissionGuideDriverRepository driverRepository;
   private final DocumentSeriesRepository documentSeriesRepository;
   private final ProductRepository productRepository;
+  private final RecipientRepository recipientRepository;
   private final RemissionGuideMapper mapper;
   private final RemissionGuidePdfService pdfService;
   private final SunatDocumentJobService sunatDocumentJobService;
@@ -123,10 +126,10 @@ public class RemissionGuideServiceImpl implements RemissionGuideService {
     guide.setDestinationLocalCode(request.getDestinationLocalCode());
     guide.setMinorVehicleTransfer(
         request.getMinorVehicleTransfer() != null && request.getMinorVehicleTransfer());
-    guide.setRecipientDocType(request.getRecipientDocType());
-    guide.setRecipientDocNumber(request.getRecipientDocNumber());
-    guide.setRecipientName(request.getRecipientName());
-    guide.setRecipientAddress(request.getRecipientAddress());
+    Recipient recipient = recipientRepository
+        .findByIdAndStatusNot(request.getRecipientId(), 2)
+        .orElseThrow(() -> new ResourceNotFoundException("Destinatario no encontrado"));
+    guide.setRecipient(recipient);
     guide.setCarrierDocType(request.getCarrierDocType());
     guide.setCarrierDocNumber(request.getCarrierDocNumber());
     guide.setCarrierName(request.getCarrierName());

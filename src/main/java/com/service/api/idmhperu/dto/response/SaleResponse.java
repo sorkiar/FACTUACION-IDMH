@@ -20,6 +20,9 @@ public class SaleResponse {
   private BigDecimal retentionRate;
   private BigDecimal netAmount;
   private Boolean hasDetraction;
+  private String detractionCode;
+  private BigDecimal detractionRate;
+  private BigDecimal detractionAmount;
   private List<String> relatedGuides;
   private ClientResponse client;
   private List<SaleItemResponse> items;

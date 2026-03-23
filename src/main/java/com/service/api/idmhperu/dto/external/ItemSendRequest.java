@@ -14,6 +14,6 @@ public class ItemSendRequest {
   private BigDecimal itcoSubTotal;
   private BigDecimal itcoIgv;
   private BigDecimal itcoTotal;
-  private BigDecimal itcoRetencion;
+  private BigDecimal itcoRetencion = BigDecimal.ZERO;
   private String tipoAfectacionIgv;
 }

@@ -23,4 +23,6 @@ public class SaleItemRequest {
   private BigDecimal unitPrice;
 
   private BigDecimal discountPercentage;
+
+  private Long detractionCodeId;
 }

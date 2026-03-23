@@ -1,8 +1,11 @@
 package com.service.api.idmhperu.service.impl;
 
 import com.service.api.idmhperu.dto.entity.Client;
+import com.service.api.idmhperu.dto.entity.DetractionCode;
+import com.service.api.idmhperu.repository.DetractionCodeRepository;
 import com.service.api.idmhperu.dto.entity.Document;
 import com.service.api.idmhperu.dto.entity.DocumentSeries;
+import com.service.api.idmhperu.dto.entity.ExchangeRate;
 import com.service.api.idmhperu.dto.entity.PaymentMethod;
 import com.service.api.idmhperu.dto.entity.Product;
 import com.service.api.idmhperu.dto.entity.Sale;
@@ -23,6 +26,7 @@ import com.service.api.idmhperu.job.SunatDocumentJobService;
 import com.service.api.idmhperu.repository.ClientRepository;
 import com.service.api.idmhperu.repository.DocumentRepository;
 import com.service.api.idmhperu.repository.DocumentSeriesRepository;
+import com.service.api.idmhperu.repository.ExchangeRateRepository;
 import com.service.api.idmhperu.repository.PaymentMethodRepository;
 import com.service.api.idmhperu.repository.ProductRepository;
 import com.service.api.idmhperu.dto.entity.SaleRelatedGuide;
@@ -81,6 +85,8 @@ public class SaleServiceImpl implements SaleService {
   private final DocumentSeriesRepository documentSeriesRepository;
   private final SalePaymentRepository salePaymentRepository;
   private final DocumentRepository documentRepository;
+  private final ExchangeRateRepository exchangeRateRepository;
+  private final DetractionCodeRepository detractionCodeRepository;
   private final SaleMapper mapper;
   private final DocumentPdfService documentPdfService;
   private final GoogleDriveService googleDriveService;
@@ -146,8 +152,9 @@ public class SaleServiceImpl implements SaleService {
           mapper.toResponse(sale));
     }
 
-    // Calcular retención antes de validar pagos/cuotas
+    // Calcular retención y detracción antes de validar pagos/cuotas
     computeRetention(sale, request.getDocumentSeriesId());
+    computeDetraction(sale, request.getDocumentSeriesId());
     sale = saleRepository.save(sale);
 
     // Finalización real: pagos o cuotas según condición de pago
@@ -214,8 +221,9 @@ public class SaleServiceImpl implements SaleService {
 
     processRelatedGuides(sale, request.getRelatedGuides());
 
-    // Calcular retención antes de validar pagos/cuotas
+    // Calcular retención y detracción antes de validar pagos/cuotas
     computeRetention(sale, request.getDocumentSeriesId());
+    computeDetraction(sale, request.getDocumentSeriesId());
     sale = saleRepository.save(sale);
 
     //  Finalizar borrador: pagos o cuotas según condición de pago
@@ -304,6 +312,12 @@ public class SaleServiceImpl implements SaleService {
         com.service.api.idmhperu.dto.entity.Service service = serviceRepository.findById(itemReq.getServiceId())
             .orElseThrow(() -> new ResourceNotFoundException("Servicio no encontrado"));
         item.setService(service);
+      }
+
+      if (itemReq.getDetractionCodeId() != null) {
+        DetractionCode dc = detractionCodeRepository.findById(itemReq.getDetractionCodeId())
+            .orElseThrow(() -> new ResourceNotFoundException("Código de detracción no encontrado"));
+        item.setDetractionCode(dc);
       }
 
       item.setSale(sale);
@@ -627,11 +641,23 @@ public class SaleServiceImpl implements SaleService {
         .reduce(BigDecimal.ZERO, BigDecimal::add)
         .setScale(2, RoundingMode.HALF_UP);
 
-    BigDecimal expectedAmount = getExpectedAmount(sale);
-    if (sumCuotas.compareTo(expectedAmount) != 0) {
+    // Monto neto esperado: total menos retención (si aplica) menos detracción en moneda local (si aplica)
+    BigDecimal expectedTotal = sale.getTotalAmount();
+    if (Boolean.TRUE.equals(sale.getHasRetention()) && sale.getRetentionAmount() != null) {
+      expectedTotal = expectedTotal.subtract(sale.getRetentionAmount());
+    }
+    if (Boolean.TRUE.equals(sale.getHasDetraction()) && sale.getDetractionRate() != null) {
+      BigDecimal detrLocal = "PEN".equals(sale.getCurrencyCode())
+          ? sale.getDetractionAmount()
+          : sale.getTotalAmount()
+                .multiply(sale.getDetractionRate())
+                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+      expectedTotal = expectedTotal.subtract(detrLocal);
+    }
+    if (sumCuotas.subtract(expectedTotal).abs().compareTo(new BigDecimal("0.01")) > 0) {
       throw new BusinessValidationException(
           "La suma de las cuotas (" + sumCuotas + ") debe ser igual al monto neto de la venta ("
-              + expectedAmount + ")");
+              + expectedTotal + ")");
     }
 
     LocalDate saleDate = sale.getSaleDate().toLocalDate();
@@ -719,6 +745,79 @@ public class SaleServiceImpl implements SaleService {
     sale.setHasRetention(true);
     sale.setRetentionRate(rate);
     sale.setRetentionAmount(retentionAmount);
+  }
+
+  /**
+   * Calcula y aplica la detracción (SPOT) a la venta si corresponde:
+   * - Solo para FACTURA (código "01")
+   * - Total en PEN > min_detraccion_amount (config)
+   * - Todos los ítems sujetos a detracción deben tener el mismo código
+   * - detractionAmount se almacena siempre en PEN
+   */
+  private void computeDetraction(Sale sale, Long documentSeriesId) {
+    sale.setHasDetraction(false);
+    sale.setDetractionCode(null);
+    sale.setDetractionRate(null);
+    sale.setDetractionAmount(null);
+
+    if (documentSeriesId == null) return;
+
+    DocumentSeries series = documentSeriesRepository.findById(documentSeriesId).orElse(null);
+    if (series == null || !"01".equals(series.getDocumentTypeSunat().getCode())) return;
+
+    // Recopilar códigos de detracción de los ítems (load directly — in-memory set may be empty)
+    List<SaleItem> saleItems = saleItemRepository.findBySaleIdAndDeletedAtIsNull(sale.getId());
+    String foundCode = null;
+    BigDecimal foundRate = null;
+    boolean conflict = false;
+    for (SaleItem item : saleItems) {
+      DetractionCode dc = item.getDetractionCode() != null
+          ? item.getDetractionCode()
+          : (item.getProduct() != null
+              ? item.getProduct().getDetractionCode()
+              : (item.getService() != null ? item.getService().getDetractionCode() : null));
+      if (dc != null && Integer.valueOf(1).equals(dc.getStatus())) {
+        if (foundCode == null) {
+          foundCode = dc.getCode();
+          foundRate = dc.getPercentage();
+        } else if (!foundCode.equals(dc.getCode())) {
+          conflict = true;
+          break;
+        }
+      }
+    }
+    if (foundCode == null) return;
+    if (conflict) throw new BusinessValidationException(
+        "All items must have the same detraction code");
+
+    // Verificar umbral en PEN
+    BigDecimal totalInPen = sale.getTotalAmount();
+    BigDecimal exchangeRateValue = BigDecimal.ONE;
+    if ("USD".equals(sale.getCurrencyCode())) {
+      List<ExchangeRate> rates = exchangeRateRepository.findByDate(LocalDate.now());
+      exchangeRateValue = rates.stream()
+          .filter(r -> "V".equals(r.getType()))
+          .map(ExchangeRate::getValue)
+          .findFirst()
+          .orElse(BigDecimal.ONE);
+      totalInPen = sale.getTotalAmount()
+          .multiply(exchangeRateValue)
+          .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    Map<String, String> config = configurationService.getGroup("detraccion_retencion");
+    BigDecimal minAmount = new BigDecimal(config.getOrDefault("min_detraccion_amount", "700"));
+    if (totalInPen.compareTo(minAmount) <= 0) return;
+
+    // Monto de detracción siempre en PEN
+    BigDecimal detrAmountPen = totalInPen
+        .multiply(foundRate)
+        .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+
+    sale.setHasDetraction(true);
+    sale.setDetractionCode(foundCode);
+    sale.setDetractionRate(foundRate);
+    sale.setDetractionAmount(detrAmountPen);
   }
 
   /**

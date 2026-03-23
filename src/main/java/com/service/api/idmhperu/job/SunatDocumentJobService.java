@@ -11,8 +11,11 @@ import com.service.api.idmhperu.dto.entity.Sale;
 import com.service.api.idmhperu.dto.entity.SaleItem;
 import com.service.api.idmhperu.dto.entity.SunatRequestLog;
 import com.service.api.idmhperu.dto.entity.SaleInstallment;
+import com.service.api.idmhperu.dto.entity.DetractionCode;
+import com.service.api.idmhperu.dto.entity.ExchangeRate;
 import com.service.api.idmhperu.dto.external.ClientSendRequest;
 import com.service.api.idmhperu.dto.external.CompanySendRequest;
+import com.service.api.idmhperu.dto.external.DetraccionSendRequest;
 import com.service.api.idmhperu.dto.external.DocumentSendRequest;
 import com.service.api.idmhperu.dto.external.FacturacionResponse;
 import com.service.api.idmhperu.dto.external.GuiaSendRequest;
@@ -21,10 +24,13 @@ import com.service.api.idmhperu.dto.external.ItemCuotaSendRequest;
 import com.service.api.idmhperu.dto.external.ItemSendRequest;
 import com.service.api.idmhperu.dto.external.NotaSendRequest;
 import com.service.api.idmhperu.dto.external.SunatSendRequest;
+import com.service.api.idmhperu.dto.external.TipoDetraccionSendRequest;
 import com.service.api.idmhperu.dto.external.UbigeoSendRequest;
 import com.service.api.idmhperu.repository.CreditDebitNoteItemRepository;
 import com.service.api.idmhperu.repository.CreditDebitNoteRepository;
+import com.service.api.idmhperu.repository.DetractionCodeRepository;
 import com.service.api.idmhperu.repository.DocumentRepository;
+import com.service.api.idmhperu.repository.ExchangeRateRepository;
 import com.service.api.idmhperu.repository.RemissionGuideDriverRepository;
 import com.service.api.idmhperu.repository.RemissionGuideItemRepository;
 import com.service.api.idmhperu.repository.RemissionGuideRepository;
@@ -37,6 +43,7 @@ import com.service.api.idmhperu.service.SunatSendConfigService;
 import java.io.File;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -70,6 +77,8 @@ public class SunatDocumentJobService {
   private final RemissionGuideRepository remissionGuideRepository;
   private final RemissionGuideItemRepository remissionGuideItemRepository;
   private final RemissionGuideDriverRepository remissionGuideDriverRepository;
+  private final DetractionCodeRepository detractionCodeRepository;
+  private final ExchangeRateRepository exchangeRateRepository;
   private final SunatRequestLogRepository sunatRequestLogRepository;
   private final ConfigurationService configurationService;
   private final GoogleDriveService googleDriveService;
@@ -970,6 +979,54 @@ public class SunatDocumentJobService {
         cuotas.add(cuota);
       }
       comprobante.setLsItemCuota(cuotas);
+    }
+
+    // ==========================
+    // DETRACCIÓN (solo facturas en PEN)
+    // ==========================
+    if (Boolean.TRUE.equals(sale.getHasDetraction())
+        && sale.getDetractionCode() != null) {
+
+      Map<String, String> detrConfig = configurationService.getGroup("detraccion_retencion");
+      String detrAccount = detrConfig.getOrDefault("banco_nacion_detraccion", "");
+
+      // detrMonto siempre en PEN:
+      // - PEN: usar el valor almacenado
+      // - USD: recalcular con el tipo de cambio venta de la fecha de emisión
+      BigDecimal detrMontoPen;
+      if ("USD".equals(sale.getCurrencyCode())) {
+        LocalDate issueDate = doc.getIssueDate().toLocalDate();
+        BigDecimal exchangeRateValue = exchangeRateRepository.findByDate(issueDate).stream()
+            .filter(r -> "V".equals(r.getType()))
+            .map(ExchangeRate::getValue)
+            .findFirst()
+            .orElse(BigDecimal.ONE);
+        detrMontoPen = sale.getTotalAmount()
+            .multiply(sale.getDetractionRate())
+            .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP)
+            .multiply(exchangeRateValue)
+            .setScale(2, RoundingMode.HALF_UP);
+      } else {
+        detrMontoPen = sale.getDetractionAmount();
+      }
+
+      DetractionCode dc = detractionCodeRepository
+          .findByCode(sale.getDetractionCode()).orElse(null);
+
+      TipoDetraccionSendRequest tipo = new TipoDetraccionSendRequest();
+      tipo.setTideCodigo(sale.getDetractionCode());
+      tipo.setTideDescripcion(dc != null ? dc.getDescription() : "");
+      tipo.setTideEstado(true);
+
+      DetraccionSendRequest detr = new DetraccionSendRequest();
+      detr.setDetrCuenta(detrAccount);
+      detr.setDetrPorcentaje(sale.getDetractionRate());
+      detr.setDetrMonto(detrMontoPen);
+      detr.setTipoDetraccion(tipo);
+
+      comprobante.setCompDetraccion(true);
+      comprobante.setCompCuentaDetraccion(detrAccount);
+      comprobante.setLsDetraccion(List.of(detr));
     }
 
     // ==========================

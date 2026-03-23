@@ -24,7 +24,8 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface SaleMapper {
-  // hasRetention, retentionAmount, retentionRate, netAmount, hasDetraction → auto-mapped by name
+  // hasRetention, retentionAmount, retentionRate, netAmount → auto-mapped by name
+  // hasDetraction, detractionCode, detractionRate, detractionAmount, detractionAccount → auto-mapped by name
   @Mapping(target = "document", expression = "java(mapLastDocument(entity.getDocuments()))")
   @Mapping(target = "relatedGuides", expression = "java(mapRelatedGuides(entity.getRelatedGuides()))")
   SaleResponse toResponse(Sale entity);

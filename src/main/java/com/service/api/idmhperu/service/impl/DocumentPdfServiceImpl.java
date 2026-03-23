@@ -8,6 +8,7 @@ import com.service.api.idmhperu.dto.entity.SaleItem;
 import com.service.api.idmhperu.dto.entity.SaleRelatedGuide;
 import com.service.api.idmhperu.exception.BusinessValidationException;
 import com.service.api.idmhperu.exception.ResourceNotFoundException;
+import com.service.api.idmhperu.repository.DetractionCodeRepository;
 import com.service.api.idmhperu.repository.DocumentRepository;
 import com.service.api.idmhperu.repository.SaleInstallmentRepository;
 import com.service.api.idmhperu.repository.SaleItemRepository;
@@ -49,6 +50,7 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
   private final SaleItemRepository saleItemRepository;
   private final SaleInstallmentRepository saleInstallmentRepository;
   private final SaleRelatedGuideRepository saleRelatedGuideRepository;
+  private final DetractionCodeRepository detractionCodeRepository;
   private final GoogleDriveService googleDriveService;
   private final ConfigurationService configurationService;
 
@@ -247,6 +249,25 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
       parameters.put("retention_rate", sale.getRetentionRate());
       parameters.put("retention_amount", sale.getRetentionAmount());
       parameters.put("retention_base", sale.getTotalAmount());
+
+      boolean hasDetraction = Boolean.TRUE.equals(sale.getHasDetraction());
+      parameters.put("has_detraction", hasDetraction);
+      parameters.put("detraction_code", sale.getDetractionCode());
+      parameters.put("detraction_rate", sale.getDetractionRate());
+      parameters.put("detraction_amount", sale.getDetractionAmount());
+      String detrDescription = "";
+      String detrAccount = "";
+      if (hasDetraction) {
+        if (sale.getDetractionCode() != null) {
+          detrDescription = detractionCodeRepository.findByCode(sale.getDetractionCode())
+              .map(dc -> dc.getDescription())
+              .orElse("");
+        }
+        Map<String, String> detrConfig = configurationService.getGroup("detraccion_retencion");
+        detrAccount = detrConfig.getOrDefault("banco_nacion_detraccion", "");
+      }
+      parameters.put("detraction_description", detrDescription);
+      parameters.put("detraction_account", detrAccount);
 
       JasperPrint jasperPrint =
           JasperFillManager.fillReport(

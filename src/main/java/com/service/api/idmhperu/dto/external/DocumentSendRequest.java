@@ -21,4 +21,7 @@ public class DocumentSendRequest {
   private List<ItemCuotaSendRequest> lsItemCuota;
   private NotaSendRequest nota;
   private GuiaSendRequest guia;
+  private Boolean compDetraccion;
+  private String compCuentaDetraccion;
+  private List<DetraccionSendRequest> lsDetraccion;
 }

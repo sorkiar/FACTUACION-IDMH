@@ -1,6 +1,7 @@
 package com.service.api.idmhperu.dto.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.service.api.idmhperu.dto.entity.DetractionCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -44,6 +45,10 @@ public class SaleItem {
   @ManyToOne
   @JoinColumn(name = "service_id")
   private Service service;
+
+  @ManyToOne
+  @JoinColumn(name = "detraction_code_id")
+  private DetractionCode detractionCode;
 
   @Column(length = 500, nullable = false)
   private String description;

@@ -62,6 +62,12 @@
 	<parameter name="retention_rate" class="java.math.BigDecimal"/>
 	<parameter name="retention_amount" class="java.math.BigDecimal"/>
 	<parameter name="retention_base" class="java.math.BigDecimal"/>
+	<parameter name="has_detraction" class="java.lang.Boolean"/>
+	<parameter name="detraction_code" class="java.lang.String"/>
+	<parameter name="detraction_description" class="java.lang.String"/>
+	<parameter name="detraction_rate" class="java.math.BigDecimal"/>
+	<parameter name="detraction_amount" class="java.math.BigDecimal"/>
+	<parameter name="detraction_account" class="java.lang.String"/>
 	<field name="empr_ruc" class="java.lang.String"/>
 	<field name="empr_nombre_comercial" class="java.lang.String"/>
 	<field name="empr_razon_social" class="java.lang.String"/>
@@ -616,7 +622,7 @@
 		</band>
 	</detail>
 	<lastPageFooter>
-		<band height="302">
+		<band height="352">
 			<staticText>
 				<reportElement x="310" y="63" width="133" height="15" forecolor="#093697" uuid="c801a444-f819-4f5a-8294-6a569a3cd69f"/>
 				<box rightPadding="3"/>
@@ -751,7 +757,7 @@
 				<textFieldExpression><![CDATA["SON: " + InvoicingUtils.convertir($V{valor_venta}+$V{otros})]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement mode="Transparent" x="8" y="229" width="540" height="24" forecolor="#000000" backcolor="#FFFFFF" uuid="56c7c70a-b3c0-42d4-96b2-9f698babebe7"/>
+				<reportElement mode="Transparent" x="8" y="278" width="540" height="24" forecolor="#000000" backcolor="#FFFFFF" uuid="56c7c70a-b3c0-42d4-96b2-9f698babebe7"/>
 				<textElement textAlignment="Center" verticalAlignment="Bottom" rotation="None" markup="none">
 					<font fontName="Arial" size="8" isBold="false" isItalic="true" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
@@ -940,8 +946,85 @@
 					<pen lineWidth="0.5"/>
 				</graphicElement>
 			</line>
+			<!-- INFORMACIÓN DE DETRACCIÓN (solo visible si has_detraction = true) -->
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="226" width="555" height="10" forecolor="#093697" backcolor="#BFE1FF" uuid="de700001-0001-0000-0000-000000000001">
+					<printWhenExpression><![CDATA[Boolean.TRUE.equals($P{has_detraction})]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.5" lineColor="#093697"/>
+					<topPen lineWidth="0.5" lineColor="#093697"/>
+					<leftPen lineWidth="0.25" lineColor="#2282C7"/>
+					<bottomPen lineWidth="0.25" lineColor="#2282C7"/>
+					<rightPen lineWidth="0.25" lineColor="#2282C7"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[INFORMACIÓN DE LA DETRACCIÓN]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="236" width="555" height="13" uuid="de700001-0001-0000-0000-000000000002">
+					<printWhenExpression><![CDATA[Boolean.TRUE.equals($P{has_detraction})]]></printWhenExpression>
+				</reportElement>
+				<box leftPadding="3">
+					<pen lineWidth="0.25" lineColor="#2282C7"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<text><![CDATA[Leyenda: Operación sujeta al Sistema de Pago de Obligaciones Tributarias con el Gobierno Central]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="0" y="249" width="555" height="13" uuid="de700001-0001-0000-0000-000000000003">
+					<printWhenExpression><![CDATA[Boolean.TRUE.equals($P{has_detraction})]]></printWhenExpression>
+				</reportElement>
+				<box leftPadding="3">
+					<pen lineWidth="0.25" lineColor="#2282C7"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Bien o Servicio: " + ($P{detraction_code} != null ? $P{detraction_code} : "") + " " + ($P{detraction_description} != null ? $P{detraction_description} : "")]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="0" y="262" width="185" height="13" uuid="de700001-0001-0000-0000-000000000004">
+					<printWhenExpression><![CDATA[Boolean.TRUE.equals($P{has_detraction})]]></printWhenExpression>
+				</reportElement>
+				<box leftPadding="3">
+					<pen lineWidth="0.0"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Nro. Cta. Banco de la Nación: " + ($P{detraction_account} != null ? $P{detraction_account} : "")]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="185" y="262" width="185" height="13" uuid="de700001-0001-0000-0000-000000000005">
+					<printWhenExpression><![CDATA[Boolean.TRUE.equals($P{has_detraction})]]></printWhenExpression>
+				</reportElement>
+				<box leftPadding="3">
+					<pen lineWidth="0.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Porcentaje de detracción: " + ($P{detraction_rate} != null ? $P{detraction_rate}.stripTrailingZeros().toPlainString() : "") + "%"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="370" y="262" width="185" height="13" uuid="de700001-0001-0000-0000-000000000006">
+					<printWhenExpression><![CDATA[Boolean.TRUE.equals($P{has_detraction})]]></printWhenExpression>
+				</reportElement>
+				<box rightPadding="3">
+					<pen lineWidth="0.0"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Monto detracción: S/ " + ($P{detraction_amount} != null ? new java.text.DecimalFormat("###,##0.00").format($P{detraction_amount}) : "0.00")]]></textFieldExpression>
+			</textField>
 			<textField>
-				<reportElement mode="Opaque" x="1" y="253" width="552" height="20" backcolor="#F0FFFF" uuid="be860a7a-0135-4b67-a1b9-6ad43f5562b7">
+				<reportElement mode="Opaque" x="1" y="302" width="552" height="20" backcolor="#F0FFFF" uuid="be860a7a-0135-4b67-a1b9-6ad43f5562b7">
 					<printWhenExpression><![CDATA[$F{empr_pdf_eslogan}!=null && !$F{empr_pdf_eslogan}.equals( "-" ) && $F{empr_pdf_eslogan}.length() > 0]]></printWhenExpression>
 				</reportElement>
 				<textElement textAlignment="Center">
@@ -1068,7 +1151,7 @@
 				<text><![CDATA[MONEDA]]></text>
 			</staticText>
 			<textField>
-				<reportElement mode="Transparent" x="2" y="279" width="553" height="16" forecolor="#000000" backcolor="#333333" uuid="5dd166c9-2037-4f80-b027-d856a80ed2e7">
+				<reportElement mode="Transparent" x="2" y="328" width="553" height="16" forecolor="#000000" backcolor="#333333" uuid="5dd166c9-2037-4f80-b027-d856a80ed2e7">
 					<printWhenExpression><![CDATA[$F{empr_pdf_texto_inferior}!=null && !$F{empr_pdf_texto_inferior}.equals( "-" ) && $F{empr_pdf_texto_inferior}.length() > 0]]></printWhenExpression>
 				</reportElement>
 				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" markup="none">

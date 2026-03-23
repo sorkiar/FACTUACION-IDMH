@@ -83,9 +83,19 @@ public class Sale {
   @Column(name = "retention_rate", precision = 5, scale = 2)
   private BigDecimal retentionRate;
 
-  // Detracción (placeholder para uso futuro)
+  // Detracción
   @Column(name = "has_detraction", nullable = false)
   private Boolean hasDetraction = false;
+
+  @Column(name = "detraction_code", length = 3)
+  private String detractionCode;
+
+  @Column(name = "detraction_rate", precision = 5, scale = 2)
+  private BigDecimal detractionRate;
+
+  /** Always stored in PEN, even for USD invoices. */
+  @Column(name = "detraction_amount", precision = 14, scale = 2)
+  private BigDecimal detractionAmount;
 
   /** Monto neto a pagar: totalAmount menos retención (si aplica). */
   @Transient

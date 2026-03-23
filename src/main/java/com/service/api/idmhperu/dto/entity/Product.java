@@ -50,6 +50,10 @@ public class Product {
   @JoinColumn(name = "unit_measure_id", nullable = false)
   private UnitMeasure unitMeasure;
 
+  @ManyToOne
+  @JoinColumn(name = "detraction_code_id")
+  private DetractionCode detractionCode;
+
   // Comercial — precios en soles (PEN)
   @Column(name = "sale_price_pen", precision = 12, scale = 2)
   private BigDecimal salePricePen;

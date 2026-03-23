@@ -13,6 +13,10 @@ public interface ServiceMapper {
   @Mapping(source = "chargeUnit.id", target = "chargeUnitId")
   @Mapping(source = "chargeUnit.name", target = "chargeUnitName")
   @Mapping(source = "createdAt", target = "registrationDate")
+  @Mapping(source = "detractionCode.id", target = "detractionId")
+  @Mapping(source = "detractionCode.code", target = "detractionCode")
+  @Mapping(source = "detractionCode.description", target = "detractionDescription")
+  @Mapping(source = "detractionCode.percentage", target = "detractionPercentage")
   ServiceResponse toResponse(Service entity);
   List<ServiceResponse> toResponseList(List<Service> entities);
 }

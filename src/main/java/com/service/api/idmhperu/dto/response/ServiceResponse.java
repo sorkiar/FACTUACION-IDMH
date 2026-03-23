@@ -13,6 +13,11 @@ public class ServiceResponse {
   private String serviceCategoryName;
   private Long chargeUnitId;
   private String chargeUnitName;
+
+  private Long detractionId;
+  private String detractionCode;
+  private String detractionDescription;
+  private BigDecimal detractionPercentage;
   private BigDecimal pricePen;
   private BigDecimal priceUsd;
   private String estimatedTime;

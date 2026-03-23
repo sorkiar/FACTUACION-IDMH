@@ -30,6 +30,8 @@ public class ProductRequest {
   @DecimalMin(value = "0.00", message = "El costo en dólares no puede ser negativo")
   private BigDecimal estimatedCostUsd;
 
+  private Long detractionCodeId;
+
   private String brand;
   private String model;
 

@@ -1,0 +1,2 @@
+ALTER TABLE client
+    ADD COLUMN retention_agent TINYINT(1) NOT NULL DEFAULT 0;

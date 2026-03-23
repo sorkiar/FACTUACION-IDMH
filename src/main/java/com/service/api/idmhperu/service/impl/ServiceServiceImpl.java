@@ -1,6 +1,7 @@
 package com.service.api.idmhperu.service.impl;
 
 import com.service.api.idmhperu.dto.entity.ChargeUnit;
+import com.service.api.idmhperu.dto.entity.DetractionCode;
 import com.service.api.idmhperu.dto.entity.ServiceCategory;
 import com.service.api.idmhperu.dto.filter.ServiceFilter;
 import com.service.api.idmhperu.dto.mapper.ServiceMapper;
@@ -11,6 +12,7 @@ import com.service.api.idmhperu.dto.response.ServiceResponse;
 import com.service.api.idmhperu.exception.BusinessValidationException;
 import com.service.api.idmhperu.exception.ResourceNotFoundException;
 import com.service.api.idmhperu.repository.ChargeUnitRepository;
+import com.service.api.idmhperu.repository.DetractionCodeRepository;
 import com.service.api.idmhperu.repository.ServiceCategoryRepository;
 import com.service.api.idmhperu.repository.ServiceRepository;
 import com.service.api.idmhperu.repository.spec.ServiceSpecification;
@@ -46,6 +48,7 @@ public class ServiceServiceImpl implements ServiceService {
   private final ServiceRepository repository;
   private final ServiceCategoryRepository serviceCategoryRepository;
   private final ChargeUnitRepository chargeUnitRepository;
+  private final DetractionCodeRepository detractionCodeRepository;
   private final ServiceMapper mapper;
   private final GoogleDriveService googleDriveService;
   private final SkuSequenceService skuSequenceService;
@@ -140,6 +143,7 @@ public class ServiceServiceImpl implements ServiceService {
       service.setDetailedDescription(request.getDetailedDescription());
       service.setImageUrl(imageUrl);
       service.setTechnicalSheetUrl(technicalSheetUrl);
+      service.setDetractionCode(resolveDetractionCode(request.getDetractionCodeId()));
       service.setStatus(1);
       service.setCreatedBy(JwtUtils.extractUsernameFromContext());
 
@@ -217,6 +221,7 @@ public class ServiceServiceImpl implements ServiceService {
       service.setRequiresSpecification(request.getRequiresSpecification());
       service.setShortDescription(request.getShortDescription());
       service.setDetailedDescription(request.getDetailedDescription());
+      service.setDetractionCode(resolveDetractionCode(request.getDetractionCodeId()));
       service.setUpdatedBy(JwtUtils.extractUsernameFromContext());
 
       return new ApiResponse<>(
@@ -297,6 +302,19 @@ public class ServiceServiceImpl implements ServiceService {
       e.printStackTrace();
       throw new BusinessValidationException("Error al generar PDF del servicio: " + e.getMessage());
     }
+  }
+
+  private DetractionCode resolveDetractionCode(Long detractionCodeId) {
+    if (detractionCodeId == null) {
+      return null;
+    }
+    DetractionCode detraction = detractionCodeRepository.findById(detractionCodeId)
+        .orElseThrow(() -> new ResourceNotFoundException("Código de detracción no encontrado"));
+    if (!"SERVICIO".equals(detraction.getCategory())) {
+      throw new BusinessValidationException(
+          "El código de detracción seleccionado no corresponde a un servicio (categoría SERVICIO)");
+    }
+    return detraction;
   }
 
   private void validatePrices(BigDecimal pricePen, BigDecimal priceUsd) {

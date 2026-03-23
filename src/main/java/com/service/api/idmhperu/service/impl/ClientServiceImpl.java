@@ -48,6 +48,7 @@ public class ClientServiceImpl implements ClientService {
     client.setPersonType(personType);
     client.setDocumentType(documentTypeRepository.findById(request.getDocumentTypeId())
         .orElseThrow(() -> new ResourceNotFoundException("Tipo de documento no válido")));
+    client.setRetentionAgent(Boolean.TRUE.equals(request.getRetentionAgent()));
     client.setStatus(1);
     client.setCreatedBy(JwtUtils.extractUsernameFromContext());
 

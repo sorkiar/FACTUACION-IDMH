@@ -17,6 +17,7 @@ public interface ProductRepository
   @EntityGraph(attributePaths = {
       "category",
       "unitMeasure",
+      "detractionCode",
   })
   @NullMarked
   List<Product> findAll(Specification<Product> spec);
@@ -26,6 +27,7 @@ public interface ProductRepository
   @EntityGraph(attributePaths = {
       "category",
       "unitMeasure",
+      "detractionCode",
   })
   Optional<Product> findByIdAndStatusNot(Long id, Integer status);
 }

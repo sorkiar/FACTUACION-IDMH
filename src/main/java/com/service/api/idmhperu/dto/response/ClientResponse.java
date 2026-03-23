@@ -21,5 +21,6 @@ public class ClientResponse {
   private String phone2;
   private String email2;
   private String address;
+  private Boolean retentionAgent;
   private Integer status;
 }

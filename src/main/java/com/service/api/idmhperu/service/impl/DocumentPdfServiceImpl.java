@@ -243,6 +243,10 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
       parameters.put("cuotas_texto", cuotasTexto);
       parameters.put("guias_relacionadas", guiasTexto);
       parameters.put("orden_compra", sale.getPurchaseOrder());
+      parameters.put("has_retention", Boolean.TRUE.equals(sale.getHasRetention()));
+      parameters.put("retention_rate", sale.getRetentionRate());
+      parameters.put("retention_amount", sale.getRetentionAmount());
+      parameters.put("retention_base", sale.getTotalAmount());
 
       JasperPrint jasperPrint =
           JasperFillManager.fillReport(

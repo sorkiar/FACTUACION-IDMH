@@ -12,6 +12,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -71,6 +72,29 @@ public class Sale {
 
   @Column(columnDefinition = "TEXT")
   private String observations;
+
+  // Retención
+  @Column(name = "has_retention", nullable = false)
+  private Boolean hasRetention = false;
+
+  @Column(name = "retention_amount", precision = 14, scale = 2)
+  private BigDecimal retentionAmount;
+
+  @Column(name = "retention_rate", precision = 5, scale = 2)
+  private BigDecimal retentionRate;
+
+  // Detracción (placeholder para uso futuro)
+  @Column(name = "has_detraction", nullable = false)
+  private Boolean hasDetraction = false;
+
+  /** Monto neto a pagar: totalAmount menos retención (si aplica). */
+  @Transient
+  public BigDecimal getNetAmount() {
+    if (Boolean.TRUE.equals(hasRetention) && retentionAmount != null) {
+      return totalAmount.subtract(retentionAmount);
+    }
+    return totalAmount;
+  }
 
   @BatchSize(size = 30)
   @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true)

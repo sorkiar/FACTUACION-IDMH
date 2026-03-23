@@ -146,6 +146,10 @@ public class SaleServiceImpl implements SaleService {
           mapper.toResponse(sale));
     }
 
+    // Calcular retención antes de validar pagos/cuotas
+    computeRetention(sale, request.getDocumentSeriesId());
+    sale = saleRepository.save(sale);
+
     // Finalización real: pagos o cuotas según condición de pago
     if ("CREDITO".equals(sale.getPaymentType())) {
       processInstallments(sale, request, username);
@@ -209,6 +213,10 @@ public class SaleServiceImpl implements SaleService {
     sale = saleRepository.save(sale);
 
     processRelatedGuides(sale, request.getRelatedGuides());
+
+    // Calcular retención antes de validar pagos/cuotas
+    computeRetention(sale, request.getDocumentSeriesId());
+    sale = saleRepository.save(sale);
 
     //  Finalizar borrador: pagos o cuotas según condición de pago
     if ("CREDITO".equals(sale.getPaymentType())) {
@@ -330,7 +338,7 @@ public class SaleServiceImpl implements SaleService {
       throw new BusinessValidationException("Debe registrar al menos un pago");
     }
 
-    BigDecimal total = sale.getTotalAmount();
+    BigDecimal total = getExpectedAmount(sale);
     BigDecimal totalPaid = BigDecimal.ZERO;
     SalePayment lastCashPayment = null;
 
@@ -619,10 +627,11 @@ public class SaleServiceImpl implements SaleService {
         .reduce(BigDecimal.ZERO, BigDecimal::add)
         .setScale(2, RoundingMode.HALF_UP);
 
-    if (sumCuotas.compareTo(sale.getTotalAmount()) != 0) {
+    BigDecimal expectedAmount = getExpectedAmount(sale);
+    if (sumCuotas.compareTo(expectedAmount) != 0) {
       throw new BusinessValidationException(
-          "La suma de las cuotas (" + sumCuotas + ") debe ser igual al total de la venta ("
-              + sale.getTotalAmount() + ")");
+          "La suma de las cuotas (" + sumCuotas + ") debe ser igual al monto neto de la venta ("
+              + expectedAmount + ")");
     }
 
     LocalDate saleDate = sale.getSaleDate().toLocalDate();
@@ -670,6 +679,57 @@ public class SaleServiceImpl implements SaleService {
       guide.setGuideNumber(number.trim());
       saleRelatedGuideRepository.save(guide);
     }
+  }
+
+  /**
+   * Calcula y aplica la retención a la venta si corresponde:
+   *  - Solo para FACTURA (código "01")
+   *  - Solo si el cliente es agente de retención
+   *  - Solo si el total supera el monto mínimo configurado
+   */
+  private void computeRetention(Sale sale, Long documentSeriesId) {
+    sale.setHasRetention(false);
+    sale.setHasDetraction(false);
+    sale.setRetentionAmount(null);
+    sale.setRetentionRate(null);
+
+    if (documentSeriesId == null) return;
+
+    com.service.api.idmhperu.dto.entity.DocumentSeries series =
+        documentSeriesRepository.findById(documentSeriesId).orElse(null);
+    if (series == null || series.getDocumentTypeSunat() == null) return;
+
+    // Solo aplica a FACTURA
+    if (!"01".equals(series.getDocumentTypeSunat().getCode())) return;
+
+    // El cliente debe ser agente de retención
+    if (!Boolean.TRUE.equals(sale.getClient().getRetentionAgent())) return;
+
+    Map<String, String> config = configurationService.getGroup("detraccion_retencion");
+    BigDecimal minAmount = new BigDecimal(config.getOrDefault("min_retencion_amount", "700"));
+    BigDecimal rate = new BigDecimal(config.getOrDefault("retencion_rate", "3"));
+
+    // Solo aplica si el total supera el monto mínimo
+    if (sale.getTotalAmount().compareTo(minAmount) <= 0) return;
+
+    BigDecimal retentionAmount = sale.getTotalAmount()
+        .multiply(rate)
+        .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+
+    sale.setHasRetention(true);
+    sale.setRetentionRate(rate);
+    sale.setRetentionAmount(retentionAmount);
+  }
+
+  /**
+   * Monto esperado en pagos/cuotas: si hay retención, es el total menos la retención;
+   * de lo contrario es el total completo.
+   */
+  private BigDecimal getExpectedAmount(Sale sale) {
+    if (Boolean.TRUE.equals(sale.getHasRetention()) && sale.getRetentionAmount() != null) {
+      return sale.getTotalAmount().subtract(sale.getRetentionAmount());
+    }
+    return sale.getTotalAmount();
   }
 
   // Helper interno simple para retornos de totales

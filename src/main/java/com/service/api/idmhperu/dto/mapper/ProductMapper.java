@@ -11,6 +11,10 @@ public interface ProductMapper {
   @Mapping(target = "categoryName", source = "category.name")
   @Mapping(target = "unitMeasureId", source = "unitMeasure.id")
   @Mapping(target = "unitMeasureCode", source = "unitMeasure.code")
+  @Mapping(target = "detractionId", source = "detractionCode.id")
+  @Mapping(target = "detractionCode", source = "detractionCode.code")
+  @Mapping(target = "detractionDescription", source = "detractionCode.description")
+  @Mapping(target = "detractionPercentage", source = "detractionCode.percentage")
   ProductResponse toResponse(Product entity);
   List<ProductResponse> toResponseList(List<Product> entities);
 }

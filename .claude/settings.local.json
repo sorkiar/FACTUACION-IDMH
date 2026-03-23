@@ -19,7 +19,25 @@
       "Bash(\"/c/Users/USER/OneDrive/Proyectos Python/hosting_django/venv/Scripts/python.exe\" --version)",
       "Bash(winget --version:*)",
       "Bash(node --version:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "WebSearch",
+      "WebFetch(domain:docs.factpro.la)",
+      "WebFetch(domain:misha.pe)",
+      "WebFetch(domain:orientacion.sunat.gob.pe)",
+      "WebFetch(domain:estudiobonilla.pe)",
+      "WebFetch(domain:www.sunat.gob.pe)",
+      "Bash(grep:*)",
+      "Bash(git log:*)",
+      "WebFetch(domain:apis.net.pe)",
+      "WebFetch(domain:www.peruapis.com)",
+      "WebFetch(domain:dolar.pe)",
+      "WebFetch(domain:lduenash.blogspot.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.excelnegocios.com)",
+      "WebFetch(domain:decolecta.com)",
+      "WebFetch(domain:gist.github.com)",
+      "WebFetch(domain:docs.e-api.net.pe)",
+      "WebFetch(domain:free.e-api.net.pe)"
     ]
   }
 }

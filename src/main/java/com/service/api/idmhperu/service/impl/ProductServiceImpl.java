@@ -9,7 +9,9 @@ import com.service.api.idmhperu.dto.response.ApiResponse;
 import com.service.api.idmhperu.dto.response.ProductResponse;
 import com.service.api.idmhperu.exception.BusinessValidationException;
 import com.service.api.idmhperu.exception.ResourceNotFoundException;
+import com.service.api.idmhperu.dto.entity.DetractionCode;
 import com.service.api.idmhperu.repository.CategoryRepository;
+import com.service.api.idmhperu.repository.DetractionCodeRepository;
 import com.service.api.idmhperu.repository.ProductRepository;
 import com.service.api.idmhperu.repository.UnitMeasureRepository;
 import com.service.api.idmhperu.repository.spec.ProductSpecification;
@@ -33,6 +35,7 @@ public class ProductServiceImpl implements ProductService {
   private final ProductRepository repository;
   private final CategoryRepository categoryRepository;
   private final UnitMeasureRepository unitMeasureRepository;
+  private final DetractionCodeRepository detractionCodeRepository;
   private final ProductMapper mapper;
   private final GoogleDriveService googleDriveService;
   private final SkuSequenceService skuSequenceService;
@@ -108,6 +111,7 @@ public class ProductServiceImpl implements ProductService {
       product.setTechnicalSpec(request.getTechnicalSpec());
       product.setMainImageUrl(imageUrl);
       product.setTechnicalSheetUrl(technicalSheetUrl);
+      product.setDetractionCode(resolveDetractionCode(request.getDetractionCodeId()));
       product.setStatus(1);
       product.setCreatedBy(JwtUtils.extractUsernameFromContext());
 
@@ -178,6 +182,7 @@ public class ProductServiceImpl implements ProductService {
       product.setModel(request.getModel());
       product.setShortDescription(request.getShortDescription());
       product.setTechnicalSpec(request.getTechnicalSpec());
+      product.setDetractionCode(resolveDetractionCode(request.getDetractionCodeId()));
       product.setUpdatedBy(JwtUtils.extractUsernameFromContext());
 
       return new ApiResponse<>(
@@ -205,6 +210,19 @@ public class ProductServiceImpl implements ProductService {
 
     repository.save(product);
     return new ApiResponse<>("Estado del producto actualizado", null);
+  }
+
+  private DetractionCode resolveDetractionCode(Long detractionCodeId) {
+    if (detractionCodeId == null) {
+      return null;
+    }
+    DetractionCode detraction = detractionCodeRepository.findById(detractionCodeId)
+        .orElseThrow(() -> new ResourceNotFoundException("Código de detracción no encontrado"));
+    if (!"BIEN".equals(detraction.getCategory())) {
+      throw new BusinessValidationException(
+          "El código de detracción seleccionado no corresponde a un bien (categoría BIEN)");
+    }
+    return detraction;
   }
 
   private void validatePrices(BigDecimal pricePen, BigDecimal priceUsd) {

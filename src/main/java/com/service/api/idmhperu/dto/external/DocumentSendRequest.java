@@ -12,6 +12,7 @@ public class DocumentSendRequest {
   private String compCondicionPago;
   private String compMedioPago;
   private String compFechaEmision;
+  private String compObservaciones;
   private String moneda;
   private String tipoDocumento;
   private String tipoOperacion;

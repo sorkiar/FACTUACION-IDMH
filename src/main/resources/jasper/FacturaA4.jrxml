@@ -58,6 +58,10 @@
 	<parameter name="cuotas_texto" class="java.lang.String"/>
 	<parameter name="guias_relacionadas" class="java.lang.String"/>
 	<parameter name="orden_compra" class="java.lang.String"/>
+	<parameter name="has_retention" class="java.lang.Boolean"/>
+	<parameter name="retention_rate" class="java.math.BigDecimal"/>
+	<parameter name="retention_amount" class="java.math.BigDecimal"/>
+	<parameter name="retention_base" class="java.math.BigDecimal"/>
 	<field name="empr_ruc" class="java.lang.String"/>
 	<field name="empr_nombre_comercial" class="java.lang.String"/>
 	<field name="empr_razon_social" class="java.lang.String"/>
@@ -612,7 +616,7 @@
 		</band>
 	</detail>
 	<lastPageFooter>
-		<band height="289">
+		<band height="302">
 			<staticText>
 				<reportElement x="310" y="63" width="133" height="15" forecolor="#093697" uuid="c801a444-f819-4f5a-8294-6a569a3cd69f"/>
 				<box rightPadding="3"/>
@@ -747,7 +751,7 @@
 				<textFieldExpression><![CDATA["SON: " + InvoicingUtils.convertir($V{valor_venta}+$V{otros})]]></textFieldExpression>
 			</textField>
 			<textField>
-				<reportElement mode="Transparent" x="8" y="216" width="540" height="24" forecolor="#000000" backcolor="#FFFFFF" uuid="56c7c70a-b3c0-42d4-96b2-9f698babebe7"/>
+				<reportElement mode="Transparent" x="8" y="229" width="540" height="24" forecolor="#000000" backcolor="#FFFFFF" uuid="56c7c70a-b3c0-42d4-96b2-9f698babebe7"/>
 				<textElement textAlignment="Center" verticalAlignment="Bottom" rotation="None" markup="none">
 					<font fontName="Arial" size="8" isBold="false" isItalic="true" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
 					<paragraph lineSpacing="Single"/>
@@ -877,14 +881,67 @@
 				</textElement>
 				<text><![CDATA[ICBPER :]]></text>
 			</staticText>
+			<!-- INFORMACIÓN DE RETENCIÓN (solo visible si has_retention = true) -->
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="198" width="555" height="10" forecolor="#093697" backcolor="#BFE1FF" uuid="aa110011-bb22-cc33-dd44-ee5566778899">
+					<printWhenExpression><![CDATA[Boolean.TRUE.equals($P{has_retention})]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<pen lineWidth="0.5" lineColor="#093697"/>
+					<topPen lineWidth="0.5" lineColor="#093697"/>
+					<leftPen lineWidth="0.25" lineColor="#2282C7"/>
+					<bottomPen lineWidth="0.25" lineColor="#2282C7"/>
+					<rightPen lineWidth="0.25" lineColor="#2282C7"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7" isBold="true"/>
+				</textElement>
+				<text><![CDATA[INFORMACIÓN DE LA RETENCIÓN]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="0" y="208" width="185" height="13" uuid="bb220022-cc33-dd44-ee55-ff6677889900">
+					<printWhenExpression><![CDATA[Boolean.TRUE.equals($P{has_retention})]]></printWhenExpression>
+				</reportElement>
+				<box leftPadding="3">
+					<pen lineWidth="0.25" lineColor="#2282C7"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Base imponible: " + $F{comp_simbolo_moneda} + " " + ($P{retention_base} != null ? new java.text.DecimalFormat("###,##0.00").format($P{retention_base}) : "0.00")]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="185" y="208" width="185" height="13" uuid="cc330033-dd44-ee55-ff66-001122334455">
+					<printWhenExpression><![CDATA[Boolean.TRUE.equals($P{has_retention})]]></printWhenExpression>
+				</reportElement>
+				<box leftPadding="3">
+					<pen lineWidth="0.25" lineColor="#2282C7"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Porcentaje de retención: " + ($P{retention_rate} != null ? $P{retention_rate}.stripTrailingZeros().toPlainString() : "3") + "%"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="370" y="208" width="185" height="13" uuid="dd440044-ee55-ff66-0011-223344556677">
+					<printWhenExpression><![CDATA[Boolean.TRUE.equals($P{has_retention})]]></printWhenExpression>
+				</reportElement>
+				<box rightPadding="3">
+					<pen lineWidth="0.25" lineColor="#2282C7"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Monto de retención: " + $F{comp_simbolo_moneda} + " " + ($P{retention_amount} != null ? new java.text.DecimalFormat("###,##0.00").format($P{retention_amount}) : "0.00")]]></textFieldExpression>
+			</textField>
 			<line>
-				<reportElement style="DefaultLine" x="-1" y="211" width="556" height="1" forecolor="#093697" uuid="39d3a6e4-51bd-4b33-8dc1-7c5e0baf9f52"/>
+				<reportElement style="DefaultLine" x="-1" y="224" width="556" height="1" forecolor="#093697" uuid="39d3a6e4-51bd-4b33-8dc1-7c5e0baf9f52"/>
 				<graphicElement>
 					<pen lineWidth="0.5"/>
 				</graphicElement>
 			</line>
 			<textField>
-				<reportElement mode="Opaque" x="1" y="240" width="552" height="20" backcolor="#F0FFFF" uuid="be860a7a-0135-4b67-a1b9-6ad43f5562b7">
+				<reportElement mode="Opaque" x="1" y="253" width="552" height="20" backcolor="#F0FFFF" uuid="be860a7a-0135-4b67-a1b9-6ad43f5562b7">
 					<printWhenExpression><![CDATA[$F{empr_pdf_eslogan}!=null && !$F{empr_pdf_eslogan}.equals( "-" ) && $F{empr_pdf_eslogan}.length() > 0]]></printWhenExpression>
 				</reportElement>
 				<textElement textAlignment="Center">
@@ -1011,7 +1068,7 @@
 				<text><![CDATA[MONEDA]]></text>
 			</staticText>
 			<textField>
-				<reportElement mode="Transparent" x="2" y="266" width="553" height="16" forecolor="#000000" backcolor="#333333" uuid="5dd166c9-2037-4f80-b027-d856a80ed2e7">
+				<reportElement mode="Transparent" x="2" y="279" width="553" height="16" forecolor="#000000" backcolor="#333333" uuid="5dd166c9-2037-4f80-b027-d856a80ed2e7">
 					<printWhenExpression><![CDATA[$F{empr_pdf_texto_inferior}!=null && !$F{empr_pdf_texto_inferior}.equals( "-" ) && $F{empr_pdf_texto_inferior}.length() > 0]]></printWhenExpression>
 				</reportElement>
 				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None" markup="none">

@@ -15,6 +15,11 @@ public class SaleResponse {
   private BigDecimal subtotalAmount;
   private BigDecimal taxAmount;
   private BigDecimal totalAmount;
+  private Boolean hasRetention;
+  private BigDecimal retentionAmount;
+  private BigDecimal retentionRate;
+  private BigDecimal netAmount;
+  private Boolean hasDetraction;
   private List<String> relatedGuides;
   private ClientResponse client;
   private List<SaleItemResponse> items;

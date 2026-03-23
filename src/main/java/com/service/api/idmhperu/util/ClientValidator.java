@@ -15,6 +15,10 @@ public class ClientValidator {
 
       if (!StringUtils.hasText(request.getLastName()))
         throw new BusinessValidationException("El apellido es obligatorio para persona natural");
+
+      if (Boolean.TRUE.equals(request.getRetentionAgent()))
+        throw new BusinessValidationException(
+            "Solo una persona jurídica puede ser agente de retención");
     }
 
     if ("Persona Jurídica".equalsIgnoreCase(personType.getName())) {

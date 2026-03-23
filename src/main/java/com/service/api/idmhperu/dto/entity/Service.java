@@ -50,6 +50,10 @@ public class Service {
   @JoinColumn(name = "charge_unit_id", nullable = false)
   private ChargeUnit chargeUnit;
 
+  @ManyToOne
+  @JoinColumn(name = "detraction_code_id")
+  private DetractionCode detractionCode;
+
   // Precio en soles (PEN)
   @Column(name = "price_pen", precision = 12, scale = 2)
   private BigDecimal pricePen;

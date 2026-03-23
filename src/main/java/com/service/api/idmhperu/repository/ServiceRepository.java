@@ -17,6 +17,7 @@ public interface ServiceRepository
   @EntityGraph(attributePaths = {
       "serviceCategory",
       "chargeUnit",
+      "detractionCode",
   })
   @NullMarked
   List<Service> findAll(Specification<Service> spec);
@@ -26,6 +27,7 @@ public interface ServiceRepository
   @EntityGraph(attributePaths = {
       "serviceCategory",
       "chargeUnit",
+      "detractionCode",
   })
   Optional<Service> findByIdAndStatusNot(Long id, Integer status);
 }

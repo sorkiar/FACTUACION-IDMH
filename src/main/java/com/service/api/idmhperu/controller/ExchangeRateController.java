@@ -1,0 +1,31 @@
+package com.service.api.idmhperu.controller;
+
+import com.service.api.idmhperu.dto.response.ApiResponse;
+import com.service.api.idmhperu.dto.response.ExchangeRateResponse;
+import com.service.api.idmhperu.service.ExchangeRateService;
+import java.time.LocalDate;
+import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/exchange-rates")
+@RequiredArgsConstructor
+public class ExchangeRateController {
+
+  private final ExchangeRateService exchangeRateService;
+
+  @GetMapping
+  public ResponseEntity<ApiResponse<ExchangeRateResponse>> findByDate(
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+  ) {
+    if (date == null) {
+      date = LocalDate.now();
+    }
+    return ResponseEntity.ok(exchangeRateService.findByDate(date));
+  }
+}

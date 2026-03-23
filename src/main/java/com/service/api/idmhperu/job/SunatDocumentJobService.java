@@ -908,6 +908,14 @@ public class SunatDocumentJobService {
       dto.setItcoTotal(item.getTotalAmount());
       dto.setTipoAfectacionIgv("GRAVADO");
 
+      // Retención por ítem: itcoTotal × tasa / 100 (informativo, Catálogo 53 código 02)
+      if (Boolean.TRUE.equals(sale.getHasRetention()) && sale.getRetentionRate() != null) {
+        BigDecimal itemRetention = item.getTotalAmount()
+            .multiply(sale.getRetentionRate())
+            .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+        dto.setItcoRetencion(itemRetention);
+      }
+
       itemDtos.add(dto);
     }
 
@@ -932,6 +940,18 @@ public class SunatDocumentJobService {
             : "BOLETA"
     );
     comprobante.setTipoOperacion("VENTA_INTERNA");
+
+    // Retención: agrega observación si aplica.
+    // itcoRetencion por ítem ya se setea arriba; el facturador genera AllowanceCharge
+    // código 02 (Catálogo 53) y calcula FormaPago/Credito = sum(cuotas) automáticamente.
+    if (Boolean.TRUE.equals(sale.getHasRetention()) && sale.getRetentionRate() != null) {
+      comprobante.setCompObservaciones(
+          "OPERACION SUJETA A RETENCIÓN DEL "
+              + sale.getRetentionRate().stripTrailingZeros().toPlainString()
+              + "% - RG N° 037-2002/SUNAT"
+      );
+    }
+
     comprobante.setCliente(cliente);
     comprobante.setLsItemComprobante(itemDtos);
 

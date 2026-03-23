@@ -33,4 +33,6 @@ public class ClientRequest {
   private String email2;
 
   private String address;
+
+  private Boolean retentionAgent;
 }

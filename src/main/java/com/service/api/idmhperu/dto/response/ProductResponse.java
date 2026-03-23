@@ -15,6 +15,11 @@ public class ProductResponse {
   private Long unitMeasureId;
   private String unitMeasureCode;
 
+  private Long detractionId;
+  private String detractionCode;
+  private String detractionDescription;
+  private BigDecimal detractionPercentage;
+
   private BigDecimal salePricePen;
   private BigDecimal estimatedCostPen;
   private BigDecimal salePriceUsd;

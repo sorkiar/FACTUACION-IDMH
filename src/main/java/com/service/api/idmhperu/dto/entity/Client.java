@@ -64,6 +64,10 @@ public class Client {
   @Column(nullable = false)
   private String address;
 
+  // Retención
+  @Column(name = "retention_agent", nullable = false)
+  private Boolean retentionAgent;
+
   // Estado
   private Integer status;
 

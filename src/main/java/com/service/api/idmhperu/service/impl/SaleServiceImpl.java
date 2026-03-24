@@ -818,6 +818,11 @@ public class SaleServiceImpl implements SaleService {
     sale.setDetractionCode(foundCode);
     sale.setDetractionRate(foundRate);
     sale.setDetractionAmount(detrAmountPen);
+
+    // Detraction takes priority over retention: if detraction applies, retention must not
+    sale.setHasRetention(false);
+    sale.setRetentionAmount(null);
+    sale.setRetentionRate(null);
   }
 
   /**

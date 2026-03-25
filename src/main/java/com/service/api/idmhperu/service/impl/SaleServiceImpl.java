@@ -711,11 +711,11 @@ public class SaleServiceImpl implements SaleService {
    * Calcula y aplica la retención a la venta si corresponde:
    *  - Solo para FACTURA (código "01")
    *  - Solo si el cliente es agente de retención
-   *  - Solo si el total supera el monto mínimo configurado
+   *  - Solo si el total en PEN supera el monto mínimo configurado
+   *  - El monto de retención se calcula sobre el total en la moneda de la venta
    */
   private void computeRetention(Sale sale, Long documentSeriesId) {
     sale.setHasRetention(false);
-    sale.setHasDetraction(false);
     sale.setRetentionAmount(null);
     sale.setRetentionRate(null);
 
@@ -735,9 +735,23 @@ public class SaleServiceImpl implements SaleService {
     BigDecimal minAmount = new BigDecimal(config.getOrDefault("min_retencion_amount", "700"));
     BigDecimal rate = new BigDecimal(config.getOrDefault("retencion_rate", "3"));
 
-    // Solo aplica si el total supera el monto mínimo
-    if (sale.getTotalAmount().compareTo(minAmount) <= 0) return;
+    // Verificar umbral en PEN (el mínimo configurado siempre es en PEN)
+    BigDecimal totalInPen = sale.getTotalAmount();
+    if ("USD".equals(sale.getCurrencyCode())) {
+      List<ExchangeRate> rates = exchangeRateRepository.findByDate(LocalDate.now());
+      BigDecimal exchangeRateValue = rates.stream()
+          .filter(r -> "V".equals(r.getType()))
+          .map(ExchangeRate::getValue)
+          .findFirst()
+          .orElse(BigDecimal.ONE);
+      totalInPen = sale.getTotalAmount()
+          .multiply(exchangeRateValue)
+          .setScale(2, RoundingMode.HALF_UP);
+    }
 
+    if (totalInPen.compareTo(minAmount) <= 0) return;
+
+    // Retención se calcula sobre el total en la moneda de la venta
     BigDecimal retentionAmount = sale.getTotalAmount()
         .multiply(rate)
         .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
@@ -826,14 +840,23 @@ public class SaleServiceImpl implements SaleService {
   }
 
   /**
-   * Monto esperado en pagos/cuotas: si hay retención, es el total menos la retención;
-   * de lo contrario es el total completo.
+   * Monto esperado en pagos: total menos retención (si aplica) menos detracción en moneda
+   * local (si aplica). Misma lógica que processInstallments().
    */
   private BigDecimal getExpectedAmount(Sale sale) {
+    BigDecimal expected = sale.getTotalAmount();
     if (Boolean.TRUE.equals(sale.getHasRetention()) && sale.getRetentionAmount() != null) {
-      return sale.getTotalAmount().subtract(sale.getRetentionAmount());
+      expected = expected.subtract(sale.getRetentionAmount());
     }
-    return sale.getTotalAmount();
+    if (Boolean.TRUE.equals(sale.getHasDetraction()) && sale.getDetractionRate() != null) {
+      BigDecimal detrLocal = "PEN".equals(sale.getCurrencyCode())
+          ? sale.getDetractionAmount()
+          : sale.getTotalAmount()
+                .multiply(sale.getDetractionRate())
+                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+      expected = expected.subtract(detrLocal);
+    }
+    return expected;
   }
 
   // Helper interno simple para retornos de totales

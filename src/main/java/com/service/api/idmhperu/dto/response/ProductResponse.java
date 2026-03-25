@@ -19,6 +19,7 @@ public class ProductResponse {
   private String detractionCode;
   private String detractionDescription;
   private BigDecimal detractionPercentage;
+  private BigDecimal detractionMinAmount;
 
   private BigDecimal salePricePen;
   private BigDecimal estimatedCostPen;

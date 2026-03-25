@@ -17,6 +17,7 @@ public interface ServiceMapper {
   @Mapping(source = "detractionCode.code", target = "detractionCode")
   @Mapping(source = "detractionCode.description", target = "detractionDescription")
   @Mapping(source = "detractionCode.percentage", target = "detractionPercentage")
+  @Mapping(source = "detractionCode.minAmount", target = "detractionMinAmount")
   ServiceResponse toResponse(Service entity);
   List<ServiceResponse> toResponseList(List<Service> entities);
 }

@@ -15,6 +15,7 @@ public interface ProductMapper {
   @Mapping(target = "detractionCode", source = "detractionCode.code")
   @Mapping(target = "detractionDescription", source = "detractionCode.description")
   @Mapping(target = "detractionPercentage", source = "detractionCode.percentage")
+  @Mapping(target = "detractionMinAmount", source = "detractionCode.minAmount")
   ProductResponse toResponse(Product entity);
   List<ProductResponse> toResponseList(List<Product> entities);
 }

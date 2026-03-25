@@ -18,6 +18,7 @@ public class ServiceResponse {
   private String detractionCode;
   private String detractionDescription;
   private BigDecimal detractionPercentage;
+  private BigDecimal detractionMinAmount;
   private BigDecimal pricePen;
   private BigDecimal priceUsd;
   private String estimatedTime;

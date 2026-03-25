@@ -9,6 +9,7 @@ public class DetractionCodeResponse {
   private String code;
   private String description;
   private BigDecimal percentage;
+  private BigDecimal minAmount;
   private String category;
   private Integer status;
 }

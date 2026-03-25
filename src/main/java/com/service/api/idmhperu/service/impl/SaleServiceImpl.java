@@ -764,7 +764,7 @@ public class SaleServiceImpl implements SaleService {
   /**
    * Calcula y aplica la detracción (SPOT) a la venta si corresponde:
    * - Solo para FACTURA (código "01")
-   * - Total en PEN > min_detraccion_amount (config)
+   * - Total en PEN > min_amount del código (1/2 UIT para Anexo 1, S/700 para Anexo 2 y servicios)
    * - Todos los ítems sujetos a detracción deben tener el mismo código
    * - detractionAmount se almacena siempre en PEN
    */
@@ -783,6 +783,7 @@ public class SaleServiceImpl implements SaleService {
     List<SaleItem> saleItems = saleItemRepository.findBySaleIdAndDeletedAtIsNull(sale.getId());
     String foundCode = null;
     BigDecimal foundRate = null;
+    BigDecimal foundMinAmount = new BigDecimal("700");
     boolean conflict = false;
     for (SaleItem item : saleItems) {
       DetractionCode dc = item.getDetractionCode() != null
@@ -794,6 +795,7 @@ public class SaleServiceImpl implements SaleService {
         if (foundCode == null) {
           foundCode = dc.getCode();
           foundRate = dc.getPercentage();
+          foundMinAmount = dc.getMinAmount() != null ? dc.getMinAmount() : new BigDecimal("700");
         } else if (!foundCode.equals(dc.getCode())) {
           conflict = true;
           break;
@@ -804,7 +806,7 @@ public class SaleServiceImpl implements SaleService {
     if (conflict) throw new BusinessValidationException(
         "All items must have the same detraction code");
 
-    // Verificar umbral en PEN
+    // Verificar umbral en PEN (min_amount del código es siempre en PEN)
     BigDecimal totalInPen = sale.getTotalAmount();
     BigDecimal exchangeRateValue = BigDecimal.ONE;
     if ("USD".equals(sale.getCurrencyCode())) {
@@ -819,9 +821,7 @@ public class SaleServiceImpl implements SaleService {
           .setScale(2, RoundingMode.HALF_UP);
     }
 
-    Map<String, String> config = configurationService.getGroup("detraccion_retencion");
-    BigDecimal minAmount = new BigDecimal(config.getOrDefault("min_detraccion_amount", "700"));
-    if (totalInPen.compareTo(minAmount) <= 0) return;
+    if (totalInPen.compareTo(foundMinAmount) <= 0) return;
 
     // Monto de detracción siempre en PEN
     BigDecimal detrAmountPen = totalInPen

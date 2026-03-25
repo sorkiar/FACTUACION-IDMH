@@ -40,6 +40,14 @@ public class DetractionCode {
   @Column(nullable = false, precision = 5, scale = 2)
   private BigDecimal percentage;
 
+  /**
+   * Monto mínimo en PEN a partir del cual aplica la detracción.
+   * Anexo 1 (bienes especiales): S/ 2,750.00 (1/2 UIT 2026).
+   * Anexo 2 y servicios: S/ 700.00 (regla general).
+   */
+  @Column(name = "min_amount", nullable = false, precision = 14, scale = 2)
+  private BigDecimal minAmount;
+
   /** "BIEN" o "SERVICIO" según clasificación SUNAT. */
   @Column(length = 10, nullable = false)
   private String category;

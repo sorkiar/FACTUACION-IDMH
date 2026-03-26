@@ -62,6 +62,11 @@ public class RemissionGuidePdfServiceImpl implements RemissionGuidePdfService {
         throw new BusinessValidationException("La guía no tiene ítems registrados");
       }
 
+      if (guide.getRecipient() == null) {
+        throw new BusinessValidationException(
+            "La guía no tiene destinatario asignado. Edite la guía y asigne un destinatario antes de generar el PDF.");
+      }
+
       List<RemissionGuideDriver> drivers =
           driverRepository.findByRemissionGuideIdAndDeletedAtIsNull(guideId);
 

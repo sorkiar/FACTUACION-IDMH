@@ -3,9 +3,10 @@ ALTER TABLE sale
     ADD COLUMN payment_type VARCHAR(10) NOT NULL DEFAULT 'CONTADO';
 
 -- Tabla de cuotas para ventas a crédito
-CREATE TABLE sale_installment (
-    id                 BIGINT          AUTO_INCREMENT PRIMARY KEY,
-    sale_id            BIGINT          NOT NULL,
+CREATE TABLE sale_installment
+(
+    id                 BIGINT AUTO_INCREMENT PRIMARY KEY,
+    sale_id            BIGINT UNSIGNED NOT NULL,
     installment_number INTEGER         NOT NULL,
     due_date           DATE            NOT NULL,
     amount             DECIMAL(14, 2)  NOT NULL,
@@ -18,5 +19,5 @@ CREATE TABLE sale_installment (
     deleted_at         DATETIME,
     deleted_by         VARCHAR(50),
 
-    CONSTRAINT fk_sale_installment_sale FOREIGN KEY (sale_id) REFERENCES sale(id)
+    CONSTRAINT fk_sale_installment_sale FOREIGN KEY (sale_id) REFERENCES sale (id)
 );

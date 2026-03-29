@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <!-- Created with Jaspersoft Studio version 6.21.5.final using JasperReports Library version 6.20.0 -->
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -77,7 +77,7 @@
         <variableExpression><![CDATA[($F{itco_cantidad}*$F{itco_precio_unitario})*0.18]]></variableExpression>
     </variable>
     <variable name="afecto" class="java.lang.Double" calculation="Sum">
-        <variableExpression><![CDATA[($F{itco_cantidad}*$F{itco_precio_unitario}) - (($F{itco_cantidad}*$F{itco_precio_unitario})*0.18)]]></variableExpression>
+        <variableExpression><![CDATA[$F{itco_cantidad}*$F{itco_precio_unitario}]]></variableExpression>
     </variable>
     <variable name="otros" class="java.lang.Double" calculation="Sum">
         <variableExpression><![CDATA[$F{otros_tributos}]]></variableExpression>
@@ -341,27 +341,27 @@
                 <graphicElement><pen lineWidth="0.5"/></graphicElement>
             </line>
             <!-- Separadores verticales -->
-            <line direction="BottomUp">
+            <line>
                 <reportElement x="58" y="0" width="1" height="14" forecolor="#093697"/>
                 <graphicElement><pen lineWidth="0.5"/></graphicElement>
             </line>
-            <line direction="BottomUp">
+            <line>
                 <reportElement x="102" y="0" width="1" height="14" forecolor="#093697"/>
                 <graphicElement><pen lineWidth="0.5"/></graphicElement>
             </line>
-            <line direction="BottomUp">
+            <line>
                 <reportElement x="147" y="0" width="1" height="14" forecolor="#093697"/>
                 <graphicElement><pen lineWidth="0.5"/></graphicElement>
             </line>
-            <line direction="BottomUp">
+            <line>
                 <reportElement x="367" y="0" width="1" height="14" forecolor="#093697"/>
                 <graphicElement><pen lineWidth="0.5"/></graphicElement>
             </line>
-            <line direction="BottomUp">
+            <line>
                 <reportElement x="406" y="0" width="1" height="14" forecolor="#093697"/>
                 <graphicElement><pen lineWidth="0.5"/></graphicElement>
             </line>
-            <line direction="BottomUp">
+            <line>
                 <reportElement x="463" y="0" width="1" height="14" forecolor="#093697"/>
                 <graphicElement><pen lineWidth="0.5"/></graphicElement>
             </line>
@@ -434,7 +434,7 @@
                 <textElement verticalAlignment="Bottom">
                     <font fontName="Arial" size="8" isBold="true"/>
                 </textElement>
-                <textFieldExpression><![CDATA["SON: " + InvoicingUtils.convertir(new java.math.BigDecimal($V{subtotal}.doubleValue() - $V{descuento}))]]></textFieldExpression>
+                <textFieldExpression><![CDATA["SON: " + InvoicingUtils.convertir(new java.math.BigDecimal(($V{subtotal}.doubleValue() - $V{descuento}) * 1.18))]]></textFieldExpression>
             </textField>
 
             <!-- Línea separadora izquierda (bajo SON) -->
@@ -506,7 +506,7 @@
             <textField pattern="###,##0.00">
                 <reportElement x="464" y="34" width="87" height="15"/>
                 <textElement textAlignment="Right" verticalAlignment="Middle"><font fontName="Arial" size="8"/></textElement>
-                <textFieldExpression><![CDATA[($V{subtotal}.doubleValue() - $V{descuento}) * 0.82]]></textFieldExpression>
+                <textFieldExpression><![CDATA[$V{subtotal}.doubleValue() - $V{descuento}]]></textFieldExpression>
             </textField>
 
             <!-- I.G.V (18%) -->
@@ -540,7 +540,7 @@
             <textField pattern="###,##0.00">
                 <reportElement x="464" y="64" width="87" height="15"/>
                 <textElement textAlignment="Right" verticalAlignment="Middle"><font fontName="Arial" size="9" isBold="true"/></textElement>
-                <textFieldExpression><![CDATA[$V{subtotal}.doubleValue() - $V{descuento}]]></textFieldExpression>
+                <textFieldExpression><![CDATA[($V{subtotal}.doubleValue() - $V{descuento}) * 1.18]]></textFieldExpression>
             </textField>
 
             <!-- === TABLA CUENTAS BANCARIAS === -->

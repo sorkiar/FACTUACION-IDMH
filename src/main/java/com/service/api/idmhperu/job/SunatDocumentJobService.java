@@ -886,19 +886,20 @@ public class SunatDocumentJobService {
     for (SaleItem item : items) {
 
       BigDecimal cantidad = item.getQuantity();
-      BigDecimal precioConIgv = item.getUnitPrice();
 
-      // Precio unitario sin IGV (bruto, antes del descuento)
-      BigDecimal valorUnitario =
-          precioConIgv.divide(new BigDecimal("1.18"), 6, RoundingMode.HALF_UP);
+      // unitPrice es ahora la BASE sin IGV (nuevo modelo: precios excluyen IGV)
+      BigDecimal valorUnitario = item.getUnitPrice();
+      BigDecimal precioConIgv = item.getUnitPrice()
+          .multiply(new BigDecimal("1.18"))
+          .setScale(2, RoundingMode.HALF_UP);
 
-      // Descuento sin IGV: (bruto con IGV - neto con IGV) / 1.18
+      // Descuento en base: grossBase - subtotalAmount (0 si no hay descuento)
       // Garantiza: valorUnitario * cantidad - descuentoAfecta == itcoSubTotal
-      BigDecimal grossTotal = cantidad.multiply(precioConIgv)
+      BigDecimal grossTotal = cantidad.multiply(item.getUnitPrice())
           .setScale(2, RoundingMode.HALF_UP);
       BigDecimal descuentoAfecta = grossTotal
-          .subtract(item.getTotalAmount())
-          .divide(new BigDecimal("1.18"), 2, RoundingMode.HALF_UP);
+          .subtract(item.getSubtotalAmount())
+          .setScale(2, RoundingMode.HALF_UP);
 
       ItemSendRequest dto = new ItemSendRequest();
       String unidad = "NIU";

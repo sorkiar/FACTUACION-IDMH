@@ -266,7 +266,6 @@ public class SaleServiceImpl implements SaleService {
     BigDecimal total = BigDecimal.ZERO;
 
     BigDecimal taxRate = new BigDecimal("0.18");
-    BigDecimal divisor = BigDecimal.ONE.add(taxRate);
 
     for (SaleItemRequest itemReq : items) {
 
@@ -283,16 +282,12 @@ public class SaleServiceImpl implements SaleService {
           grossTotal.multiply(discountPct)
               .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
 
-      BigDecimal itemTotal = grossTotal.subtract(discountAmount);
-
-      BigDecimal itemBase =
-          itemTotal.divide(divisor, 10, RoundingMode.HALF_UP);
+      BigDecimal itemBase = grossTotal.subtract(discountAmount);
 
       BigDecimal itemTax =
-          itemTotal.subtract(itemBase);
+          itemBase.multiply(taxRate).setScale(2, RoundingMode.HALF_UP);
 
-      itemBase = itemBase.setScale(2, RoundingMode.HALF_UP);
-      itemTax = itemTax.setScale(2, RoundingMode.HALF_UP);
+      BigDecimal itemTotal = itemBase.add(itemTax);
 
       SaleItem item = new SaleItem();
 
@@ -504,7 +499,6 @@ public class SaleServiceImpl implements SaleService {
 
     List<Map<String, Object>> dataList = new ArrayList<>();
     BigDecimal taxRate = new BigDecimal("0.18");
-    BigDecimal divisor = BigDecimal.ONE.add(taxRate);
 
     String cotRef = "COT-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
@@ -563,11 +557,10 @@ public class SaleServiceImpl implements SaleService {
         }
       }
 
-      BigDecimal itemTotal = itemReq.getQuantity()
+      BigDecimal itemBase = itemReq.getQuantity()
           .multiply(itemReq.getUnitPrice())
           .setScale(2, RoundingMode.HALF_UP);
-      BigDecimal itemBase = itemTotal.divide(divisor, 10, RoundingMode.HALF_UP);
-      BigDecimal itemTax = itemTotal.subtract(itemBase).setScale(2, RoundingMode.HALF_UP);
+      BigDecimal itemTax = itemBase.multiply(taxRate).setScale(2, RoundingMode.HALF_UP);
 
       row.put("itco_codigo_interno", sku);
       row.put("itco_descripcion_completa", itemReq.getDescription());
@@ -575,7 +568,7 @@ public class SaleServiceImpl implements SaleService {
       row.put("itco_unidad_medida", unidad);
       row.put("itco_precio_unitario", itemReq.getUnitPrice().doubleValue());
       BigDecimal discountPct = itemReq.getDiscountPercentage() != null ? itemReq.getDiscountPercentage() : BigDecimal.ZERO;
-      BigDecimal discountAmount = itemTotal.multiply(discountPct).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+      BigDecimal discountAmount = itemBase.multiply(discountPct).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
       row.put("itco_descuento", discountAmount);
       row.put("itco_tipo_igv", 10);
       row.put("itco_igv", itemTax);
@@ -823,10 +816,9 @@ public class SaleServiceImpl implements SaleService {
 
     if (totalInPen.compareTo(foundMinAmount) <= 0) return;
 
-    // Monto de detracción siempre en PEN
-    BigDecimal detrAmountPen = totalInPen
-        .multiply(foundRate)
-        .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+    // Monto de detracción siempre en PEN (con redondeo a 0.50 o entero)
+    BigDecimal detrAmountPen = roundDetraction(
+        totalInPen.multiply(foundRate).divide(new BigDecimal("100"), 10, RoundingMode.HALF_UP));
 
     sale.setHasDetraction(true);
     sale.setDetractionCode(foundCode);
@@ -857,6 +849,21 @@ public class SaleServiceImpl implements SaleService {
       expected = expected.subtract(detrLocal);
     }
     return expected;
+  }
+
+  /**
+   * Redondeo especial para montos de detracción:
+   * - Si la parte decimal es > 0.5  → redondea a la unidad superior
+   * - Si la parte decimal es <= 0.5 → redondea a X.50
+   */
+  private BigDecimal roundDetraction(BigDecimal amount) {
+    BigDecimal floor = amount.setScale(0, RoundingMode.FLOOR);
+    BigDecimal decimal = amount.subtract(floor);
+    if (decimal.compareTo(new BigDecimal("0.5")) > 0) {
+      return floor.add(BigDecimal.ONE).setScale(2, RoundingMode.UNNECESSARY);
+    } else {
+      return floor.add(new BigDecimal("0.5")).setScale(2, RoundingMode.UNNECESSARY);
+    }
   }
 
   // Helper interno simple para retornos de totales

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <!-- Created with Jaspersoft Studio version 6.21.5.final using JasperReports Library version 6.21.5-74d586df47b25dbd05bd0957999819196e59934a  -->
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -523,29 +523,29 @@
                 </textElement>
                 <text><![CDATA[Importe]]></text>
             </staticText>
-            <line direction="BottomUp">
-                <reportElement style="DefaultLine" x="58" y="0" width="15" height="14"
+            <line>
+                <reportElement style="DefaultLine" x="58" y="0" width="1" height="14"
                                forecolor="#093697" uuid="1811a903-8d02-40df-acb2-dad9cff0bf64"/>
                 <graphicElement>
                     <pen lineWidth="0.5"/>
                 </graphicElement>
             </line>
-            <line direction="BottomUp">
-                <reportElement style="DefaultLine" x="102" y="0" width="15" height="14"
+            <line>
+                <reportElement style="DefaultLine" x="102" y="0" width="1" height="14"
                                forecolor="#093697" uuid="da7c3e92-d109-4533-9ef7-a55ccd17715a"/>
                 <graphicElement>
                     <pen lineWidth="0.5"/>
                 </graphicElement>
             </line>
-            <line direction="BottomUp">
-                <reportElement style="DefaultLine" x="147" y="0" width="15" height="14"
+            <line>
+                <reportElement style="DefaultLine" x="147" y="0" width="1" height="14"
                                forecolor="#093697" uuid="8efabb36-f1c0-484e-b42c-4a48a5eabd59"/>
                 <graphicElement>
                     <pen lineWidth="0.5"/>
                 </graphicElement>
             </line>
-            <line direction="BottomUp">
-                <reportElement style="DefaultLine" x="463" y="0" width="15" height="14"
+            <line>
+                <reportElement style="DefaultLine" x="463" y="0" width="1" height="14"
                                forecolor="#093697" uuid="7fc31203-5423-4274-bede-010fd9c72e8f"/>
                 <graphicElement>
                     <pen lineWidth="0.5"/>
@@ -587,15 +587,15 @@
                     <pen lineWidth="0.5"/>
                 </graphicElement>
             </line>
-            <line direction="BottomUp">
-                <reportElement style="DefaultLine" x="390" y="0" width="15" height="14"
+            <line>
+                <reportElement style="DefaultLine" x="390" y="0" width="1" height="14"
                                forecolor="#093697" uuid="73bb462f-ccc1-48b9-a09d-c17108fc1cda"/>
                 <graphicElement>
                     <pen lineWidth="0.5"/>
                 </graphicElement>
             </line>
-            <line direction="BottomUp">
-                <reportElement style="DefaultLine" x="350" y="0" width="15" height="14"
+            <line>
+                <reportElement style="DefaultLine" x="350" y="0" width="1" height="14"
                                forecolor="#093697" uuid="aa11bb22-cc33-dd44-ee55-ff6677889900"/>
                 <graphicElement>
                     <pen lineWidth="0.5"/>

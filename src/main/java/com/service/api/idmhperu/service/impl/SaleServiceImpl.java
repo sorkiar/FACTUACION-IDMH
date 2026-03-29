@@ -640,11 +640,9 @@ public class SaleServiceImpl implements SaleService {
       expectedTotal = expectedTotal.subtract(sale.getRetentionAmount());
     }
     if (Boolean.TRUE.equals(sale.getHasDetraction()) && sale.getDetractionRate() != null) {
-      BigDecimal detrLocal = "PEN".equals(sale.getCurrencyCode())
-          ? sale.getDetractionAmount()
-          : sale.getTotalAmount()
-                .multiply(sale.getDetractionRate())
-                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+      BigDecimal detrLocal = sale.getTotalAmount()
+          .multiply(sale.getDetractionRate())
+          .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
       expectedTotal = expectedTotal.subtract(detrLocal);
     }
     if (sumCuotas.subtract(expectedTotal).abs().compareTo(new BigDecimal("0.01")) > 0) {
@@ -841,11 +839,9 @@ public class SaleServiceImpl implements SaleService {
       expected = expected.subtract(sale.getRetentionAmount());
     }
     if (Boolean.TRUE.equals(sale.getHasDetraction()) && sale.getDetractionRate() != null) {
-      BigDecimal detrLocal = "PEN".equals(sale.getCurrencyCode())
-          ? sale.getDetractionAmount()
-          : sale.getTotalAmount()
-                .multiply(sale.getDetractionRate())
-                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+      BigDecimal detrLocal = sale.getTotalAmount()
+          .multiply(sale.getDetractionRate())
+          .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
       expected = expected.subtract(detrLocal);
     }
     return expected;

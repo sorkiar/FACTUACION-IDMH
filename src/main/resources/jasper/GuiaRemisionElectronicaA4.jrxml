@@ -899,39 +899,39 @@
                     <pen lineWidth="0.5"/>
                 </graphicElement>
             </line>
-            <!-- Referencia (fijo en y=3; el valor puede crecer en altura) -->
+            <!-- Motivo Traslado (fijo arriba) -->
             <staticText>
                 <reportElement x="0" y="7" width="84" height="12" forecolor="#000000"
-                               uuid="a1b2c3d4-e5f6-7890-abcd-ef1234567890"/>
-                <textElement verticalAlignment="Top">
-                    <font fontName="Arial" size="9" isBold="true" pdfFontName="Helvetica-Bold"/>
-                </textElement>
-                <text><![CDATA[Referencia:]]></text>
-            </staticText>
-            <textField isStretchWithOverflow="true" isBlankWhenNull="true">
-                <reportElement x="86" y="7" width="469" height="12"
-                               uuid="b2c3d4e5-f6a7-8901-bcde-f12345678901"/>
-                <textElement verticalAlignment="Top">
-                    <font fontName="Arial" size="8"/>
-                </textElement>
-                <textFieldExpression><![CDATA[$F{comprobante}]]></textFieldExpression>
-            </textField>
-            <!-- Motivo Traslado (Float: se desplaza si Referencia crece) -->
-            <staticText>
-                <reportElement positionType="Float" x="0" y="24" width="84" height="12"
-                               forecolor="#000000" uuid="83377720-9e1d-4bd8-946f-e7ac5d8dfdae"/>
+                               uuid="83377720-9e1d-4bd8-946f-e7ac5d8dfdae"/>
                 <textElement verticalAlignment="Top">
                     <font fontName="Arial" size="9" isBold="true" pdfFontName="Helvetica-Bold"/>
                 </textElement>
                 <text><![CDATA[Motivo Traslado:]]></text>
             </staticText>
             <textField isStretchWithOverflow="true">
-                <reportElement positionType="Float" x="86" y="24" width="469" height="12"
+                <reportElement x="86" y="7" width="469" height="12"
                                uuid="cadebac6-8de0-4d8d-a421-c0ba981dbc32"/>
                 <textElement verticalAlignment="Top">
                     <font fontName="Arial" size="8"/>
                 </textElement>
                 <textFieldExpression><![CDATA[$F{tipo_guia_descripcion}]]></textFieldExpression>
+            </textField>
+            <!-- Referencia (Float: se desplaza si Motivo Traslado crece) -->
+            <staticText>
+                <reportElement positionType="Float" x="0" y="24" width="84" height="12"
+                               forecolor="#000000" uuid="a1b2c3d4-e5f6-7890-abcd-ef1234567890"/>
+                <textElement verticalAlignment="Top">
+                    <font fontName="Arial" size="9" isBold="true" pdfFontName="Helvetica-Bold"/>
+                </textElement>
+                <text><![CDATA[Referencia:]]></text>
+            </staticText>
+            <textField isStretchWithOverflow="true" isBlankWhenNull="true">
+                <reportElement positionType="Float" x="86" y="24" width="469" height="12"
+                               uuid="b2c3d4e5-f6a7-8901-bcde-f12345678901"/>
+                <textElement verticalAlignment="Top">
+                    <font fontName="Arial" size="8"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{comprobante}]]></textFieldExpression>
             </textField>
         </band>
     </summary>

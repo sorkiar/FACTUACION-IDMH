@@ -29,8 +29,8 @@ public interface RemissionGuideRepository
   })
   Optional<RemissionGuide> findByIdAndDeletedAtIsNull(Long id);
 
-  // Solo campos primitivos: el job carga items/drivers por separado; el listing no accede asociaciones
-  @EntityGraph(attributePaths = {})
+  // El job accede a guide.getRecipient() directamente, debe cargarse aquí
+  @EntityGraph(attributePaths = {"recipient"})
   List<RemissionGuide> findByStatusAndDeletedAtIsNull(String status);
 
   @EntityGraph(attributePaths = {})

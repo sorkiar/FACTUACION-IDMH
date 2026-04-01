@@ -2,6 +2,7 @@ package com.service.api.idmhperu.repository;
 
 import com.service.api.idmhperu.dto.entity.DocumentSeries;
 import jakarta.persistence.LockModeType;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -24,6 +25,10 @@ public interface DocumentSeriesRepository
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT ds FROM DocumentSeries ds JOIN FETCH ds.documentTypeSunat WHERE ds.id = :id")
   Optional<DocumentSeries> findByIdForUpdate(@Param("id") Long id);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("SELECT ds FROM DocumentSeries ds JOIN FETCH ds.documentTypeSunat WHERE ds.documentTypeSunat.code = :code AND ds.status = :status ORDER BY ds.id ASC")
+  List<DocumentSeries> findActiveByDocumentTypeCodeForUpdate(@Param("code") String code, @Param("status") Integer status);
 
   @EntityGraph(attributePaths = {"documentTypeSunat"})
   Optional<DocumentSeries> findFirstByDocumentTypeSunat_CodeAndStatusNotOrderByIdAsc(

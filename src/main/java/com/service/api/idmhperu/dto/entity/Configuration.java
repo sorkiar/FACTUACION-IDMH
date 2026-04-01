@@ -50,6 +50,15 @@ public class Configuration {
   @Column(length = 255)
   private String description;
 
+  @Column(nullable = false, columnDefinition = "INT DEFAULT 0")
+  private Integer editable = 0;
+
+  @Column(name = "sort_order", nullable = false, columnDefinition = "INT DEFAULT 0")
+  private Integer sortOrder = 0;
+
+  @Column(name = "col_span", nullable = false, columnDefinition = "INT DEFAULT 2")
+  private Integer colSpan = 2;
+
   @CreationTimestamp
   @Column(name = "created_at", updatable = false)
   private LocalDateTime createdAt;

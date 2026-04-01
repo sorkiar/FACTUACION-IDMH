@@ -93,13 +93,10 @@ public class RemissionGuideServiceImpl implements RemissionGuideService {
 
     // 2. Reservar secuencia en la serie (con lock pesimista)
     DocumentSeries series = documentSeriesRepository
-        .findByIdForUpdate(7L)
-        .orElseThrow(() -> new ResourceNotFoundException("Serie no encontrada"));
-
-    if (!"09".equals(series.getDocumentTypeSunat().getCode())) {
-      throw new BusinessValidationException(
-          "La serie seleccionada no corresponde a Guía de Remisión (09)");
-    }
+        .findActiveByDocumentTypeCodeForUpdate("09", 1)
+        .stream().findFirst()
+        .orElseThrow(() -> new ResourceNotFoundException(
+            "No se encontró una serie activa para Guía de Remisión (09)"));
 
     Integer nextSequence = series.getCurrentSequence() + 1;
     series.setCurrentSequence(nextSequence);

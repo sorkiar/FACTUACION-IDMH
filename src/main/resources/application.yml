@@ -27,7 +27,7 @@ spring:
       max-request-size: 20MB
 
 server:
-  port: 8091
+  port: 8090
 
 jwt:
   secret:
@@ -39,7 +39,9 @@ custom:
 
 sunat:
   url: https://e-fact.facturacion-idmhperu.website/facturador/sunat/comprobante/sent
-  url-guia: https://e-fact.facturacion-idmhperu.website/facturador/sunat/guia/sent
+  url-guia: http://localhost:8889/facturador/sunat/guia/sent
+  url-guia-valid: http://localhost:8889/facturador/sunat/guia/valid
+  #url-guia-valid: https://e-fact.facturacion-idmhperu.website/facturador/sunat/guia/valid
 
 drive:
   folder-id:

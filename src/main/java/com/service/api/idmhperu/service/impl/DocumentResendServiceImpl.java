@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class DocumentResendServiceImpl implements DocumentResendService {
 
-  private static final Set<String> NO_RESEND_STATUSES = Set.of("ACEPTADO");
+  private static final Set<String> NO_RESEND_STATUSES = Set.of("ACEPTADO", "EN PROCESO");
 
   private final DocumentRepository documentRepository;
   private final CreditDebitNoteRepository creditDebitNoteRepository;

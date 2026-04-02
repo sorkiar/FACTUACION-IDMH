@@ -39,7 +39,8 @@ custom:
 
 sunat:
   url: https://e-fact.facturacion-idmhperu.website/facturador/sunat/comprobante/sent
-  url-guia: https://e-fact.facturacion-idmhperu.website/facturador/sunat/guia/sent
+  url-guia: http://localhost:8889/facturador/sunat/guia/sent
+  url-guia-valid: http://localhost:8889/facturador/sunat/guia/valid
   #url: http://localhost:8889/facturador/sunat/comprobante/sent
   #url-guia: http://localhost:8889/facturador/sunat/guia/sent
 

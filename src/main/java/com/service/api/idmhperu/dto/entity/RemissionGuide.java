@@ -133,6 +133,9 @@ public class RemissionGuide {
   @Column(name = "sunat_message", columnDefinition = "TEXT")
   private String sunatMessage;
 
+  @Column(name = "sunat_ticket", length = 100)
+  private String sunatTicket;
+
   @Column(name = "hash_code")
   private String hashCode;
 

@@ -3,16 +3,16 @@ package com.service.api.idmhperu.job;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.service.api.idmhperu.dto.entity.CreditDebitNote;
 import com.service.api.idmhperu.dto.entity.CreditDebitNoteItem;
+import com.service.api.idmhperu.dto.entity.DetractionCode;
 import com.service.api.idmhperu.dto.entity.Document;
+import com.service.api.idmhperu.dto.entity.ExchangeRate;
 import com.service.api.idmhperu.dto.entity.RemissionGuide;
 import com.service.api.idmhperu.dto.entity.RemissionGuideDriver;
 import com.service.api.idmhperu.dto.entity.RemissionGuideItem;
 import com.service.api.idmhperu.dto.entity.Sale;
+import com.service.api.idmhperu.dto.entity.SaleInstallment;
 import com.service.api.idmhperu.dto.entity.SaleItem;
 import com.service.api.idmhperu.dto.entity.SunatRequestLog;
-import com.service.api.idmhperu.dto.entity.SaleInstallment;
-import com.service.api.idmhperu.dto.entity.DetractionCode;
-import com.service.api.idmhperu.dto.entity.ExchangeRate;
 import com.service.api.idmhperu.dto.external.ClientSendRequest;
 import com.service.api.idmhperu.dto.external.CompanySendRequest;
 import com.service.api.idmhperu.dto.external.DetraccionSendRequest;
@@ -20,12 +20,15 @@ import com.service.api.idmhperu.dto.external.DocumentSendRequest;
 import com.service.api.idmhperu.dto.external.FacturacionResponse;
 import com.service.api.idmhperu.dto.external.GuiaSendRequest;
 import com.service.api.idmhperu.dto.external.GuiaTransporteSendRequest;
+import com.service.api.idmhperu.dto.external.GuiaValidRequest;
 import com.service.api.idmhperu.dto.external.ItemCuotaSendRequest;
 import com.service.api.idmhperu.dto.external.ItemSendRequest;
 import com.service.api.idmhperu.dto.external.NotaSendRequest;
 import com.service.api.idmhperu.dto.external.SunatSendRequest;
 import com.service.api.idmhperu.dto.external.TipoDetraccionSendRequest;
 import com.service.api.idmhperu.dto.external.UbigeoSendRequest;
+import com.service.api.idmhperu.exception.BusinessValidationException;
+import com.service.api.idmhperu.exception.ResourceNotFoundException;
 import com.service.api.idmhperu.repository.CreditDebitNoteItemRepository;
 import com.service.api.idmhperu.repository.CreditDebitNoteRepository;
 import com.service.api.idmhperu.repository.DetractionCodeRepository;
@@ -95,6 +98,9 @@ public class SunatDocumentJobService {
   @Value("${sunat.url-guia}")
   private String sunatGuiaUrl;
 
+  @Value("${sunat.url-guia-valid}")
+  private String sunatGuiaValidUrl;
+
   @Value("${drive.folder-id.boletas}")
   private String boletasFolderId;
 
@@ -126,6 +132,7 @@ public class SunatDocumentJobService {
     processIfApplicable("nota_credito", () -> sendPendingNotesByType("07"));
     processIfApplicable("nota_debito", () -> sendPendingNotesByType("08"));
     processIfApplicable("guia_remision", this::sendPendingRemissionGuides);
+    checkPendingGuideTickets();
   }
 
   private void processIfApplicable(String docTypeKey, Runnable processor) {
@@ -390,7 +397,7 @@ public class SunatDocumentJobService {
 
     } else {
       note.setStatus("ERROR");
-      note.setSunatMessage("HTTP Error: " + response.getStatusCode());
+      note.setSunatMessage(body != null ? body.getMessage() : "HTTP Error: " + response.getStatusCode());
     }
   }
 
@@ -659,6 +666,7 @@ public class SunatDocumentJobService {
     comprobante.setCompSerie(guide.getSeries());
     comprobante.setCompNumero(Integer.parseInt(guide.getSequence()));
     comprobante.setCompFechaEmision(guide.getIssueDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+    comprobante.setCompHoraEmision(guide.getIssueDate().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
     comprobante.setCompPorcentajeIgv(new BigDecimal("18"));
     comprobante.setCompCondicionPago("CONTADO");
     comprobante.setCompMedioPago("EFECTIVO");
@@ -684,32 +692,48 @@ public class SunatDocumentJobService {
     if (response.getStatusCode().is2xxSuccessful() && body != null && body.isSuccess()) {
 
       var data = body.getData();
-
-      if ("ACEPTADO".equalsIgnoreCase(data.getDeclarationResultType())) {
-        guide.setStatus("ACEPTADO");
-      } else {
-        guide.setStatus("RECHAZADO");
-      }
-
       guide.setSunatResponseCode(data.getResponseCode());
       guide.setSunatMessage(data.getMessage());
-      guide.setHashCode(data.getHashCode());
-      guide.setXmlBase64(data.getXmlBase64());
-      guide.setCdrBase64(data.getCdrBase64());
 
-      if ("ACEPTADO".equals(guide.getStatus())
-          && data.getXmlBase64() != null
-          && data.getCdrBase64() != null) {
-        String[] urls = uploadXmlAndCdr(
-            "09", guide.getSeries(), guide.getSequence(),
-            data.getXmlBase64(), data.getCdrBase64(), guiasFolderId);
-        guide.setXmlUrl(urls[0]);
-        guide.setCdrUrl(urls[1]);
+      if ("ACEPTADO".equalsIgnoreCase(data.getDeclarationResultType())) {
+        // CDR disponible; XML ya fue guardado en la etapa EN_PROCESO
+        guide.setStatus("ACEPTADO");
+        guide.setCdrBase64(data.getCdrBase64());
+        String xmlToUpload = guide.getXmlBase64();
+        if (xmlToUpload != null && data.getCdrBase64() != null) {
+          String[] urls = uploadXmlAndCdr(
+              "09", guide.getSeries(), guide.getSequence(),
+              xmlToUpload, data.getCdrBase64(), guiasFolderId);
+          guide.setXmlUrl(urls[0]);
+          guide.setCdrUrl(urls[1]);
+        }
+
+      } else if ("EN_PROCESO".equalsIgnoreCase(data.getDeclarationResultType())) {
+        // SUNAT recibió la guía y emitió un ticket; XML firmado ya disponible
+        guide.setStatus("EN PROCESO");
+        if (data.getTicket() != null && !data.getTicket().isEmpty()) {
+          guide.setSunatTicket(data.getTicket());
+        }
+        if (data.getXmlBase64() != null) {
+          guide.setXmlBase64(data.getXmlBase64());
+        }
+        if (data.getHashCode() != null && !data.getHashCode().isEmpty()) {
+          guide.setHashCode(data.getHashCode());
+        }
+
+      } else {
+        // EXCEPCION: responseCode=99 es rechazo formal de SUNAT; otros códigos son error técnico
+        String errMsg = data.getMessage();
+        if (data.getObservation() != null && !data.getObservation().isEmpty()) {
+          errMsg = errMsg != null ? errMsg : data.getObservation();
+        }
+        guide.setSunatMessage(errMsg);
+        guide.setStatus(Integer.valueOf(99).equals(data.getResponseCode()) ? "RECHAZADO" : "ERROR");
       }
 
     } else {
       guide.setStatus("ERROR");
-      guide.setSunatMessage("HTTP Error: " + response.getStatusCode());
+      guide.setSunatMessage(body != null ? body.getMessage() : "HTTP Error: " + response.getStatusCode());
     }
   }
 
@@ -1120,5 +1144,191 @@ public class SunatDocumentJobService {
       log.error("Error subiendo XML/CDR a Drive: {}", e.getMessage(), e);
       return new String[]{null, null};
     }
+  }
+
+  // ========================================================================================
+  // CONSULTA TICKETS PENDIENTES DE GUÍAS (job cada minuto)
+  // ========================================================================================
+
+  private void checkPendingGuideTickets() {
+    List<RemissionGuide> guides = remissionGuideRepository.findByStatusAndDeletedAtIsNull("EN PROCESO");
+    if (guides.isEmpty()) return;
+
+    log.info("Consultando tickets pendientes de guías: {}", guides.size());
+
+    Map<String, String> config = configurationService.getGroup("empresa_emisora");
+
+    CompanySendRequest empresa = new CompanySendRequest();
+    empresa.setEmprRuc(config.get("emprRuc"));
+    empresa.setEmprRazonSocial(config.get("emprRazonSocial"));
+    empresa.setEmprDireccionFiscal(config.get("emprDireccionFiscal"));
+    empresa.setEmprCodigoEstablecimientoSunat(config.get("emprCodigoEstablecimientoSunat"));
+    empresa.setEmprLeyAmazonia(Boolean.parseBoolean(config.get("emprLeyAmazonia")));
+    empresa.setEmprProduccion(Boolean.parseBoolean(config.get("emprProduccion")));
+    empresa.setEmprCertificadoLLavePublica(config.get("emprCertificadoLlavePublica"));
+    empresa.setEmprCertificadoLLavePrivada(config.get("emprCertificadoLlavePrivada"));
+    empresa.setEmprUsuarioSecundario(config.get("emprUsuarioSecundario"));
+    empresa.setEmprClaveUsuarioSecundario(config.get("emprClaveUsuarioSecundario"));
+    empresa.setEmprGuiaId(config.get("emprGuiaId"));
+    empresa.setEmprGuiaClave(config.get("emprGuiaClave"));
+
+    UbigeoSendRequest ubigeo = new UbigeoSendRequest();
+    ubigeo.setUbigUbigeo(config.get("ubigUbigeo"));
+    ubigeo.setUbigDepartamento(config.get("ubigDepartamento"));
+    ubigeo.setUbigProvincia(config.get("ubigProvincia"));
+    ubigeo.setUbigDistrito(config.get("ubigDistrito"));
+    empresa.setUbigeo(ubigeo);
+
+    for (RemissionGuide guide : guides) {
+      try {
+        GuiaValidRequest validRequest = new GuiaValidRequest();
+        validRequest.setEmpresa(empresa);
+        validRequest.setTicket(guide.getSunatTicket());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<GuiaValidRequest> entity = new HttpEntity<>(validRequest, headers);
+
+        String requestJson = serializeJson(validRequest);
+        log.info("Consultando ticket guía {}-{}: {}", guide.getSeries(), guide.getSequence(), guide.getSunatTicket());
+
+        LocalDateTime sentAt = LocalDateTime.now();
+        ResponseEntity<FacturacionResponse> response =
+            restTemplate.exchange(sunatGuiaValidUrl, HttpMethod.POST, entity, FacturacionResponse.class);
+
+        processGuideResponse(guide, response);
+        saveLog("job-ticket", "09",
+            guide.getSeries(), guide.getSequence(),
+            requestJson, serializeJson(response.getBody()),
+            response.getStatusCode().value(), response.getStatusCode().is2xxSuccessful()
+                && response.getBody() != null && response.getBody().isSuccess(), sentAt);
+
+      } catch (Exception e) {
+        guide.setStatus("ERROR");
+        guide.setSunatMessage("Error consultando ticket: " + e.getMessage());
+        log.error("Error consultando ticket guía {}", guide.getId(), e);
+      }
+
+      guide.setUpdatedBy("job-ticket");
+      remissionGuideRepository.save(guide);
+    }
+  }
+
+  // ========================================================================================
+  // CONSULTA TICKET GUÍA POR ID (endpoint manual — actualiza la guía)
+  // ========================================================================================
+
+  /**
+   * Consulta el ticket de una guía por su ID, procesa la respuesta y actualiza el estado
+   * en la base de datos igual que el job automático.
+   */
+  @org.springframework.transaction.annotation.Transactional
+  public FacturacionResponse checkGuideTicketById(Long id) {
+    RemissionGuide guide = remissionGuideRepository.findByIdAndDeletedAtIsNull(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Guía de remisión no encontrada con id: " + id));
+
+    if (guide.getSunatTicket() == null || guide.getSunatTicket().isBlank()) {
+      throw new BusinessValidationException(
+          "La guía " + guide.getSeries() + "-" + guide.getSequence() + " no tiene ticket registrado.");
+    }
+
+    Map<String, String> config = configurationService.getGroup("empresa_emisora");
+
+    CompanySendRequest empresa = new CompanySendRequest();
+    empresa.setEmprRuc(config.get("emprRuc"));
+    empresa.setEmprRazonSocial(config.get("emprRazonSocial"));
+    empresa.setEmprDireccionFiscal(config.get("emprDireccionFiscal"));
+    empresa.setEmprCodigoEstablecimientoSunat(config.get("emprCodigoEstablecimientoSunat"));
+    empresa.setEmprLeyAmazonia(Boolean.parseBoolean(config.get("emprLeyAmazonia")));
+    empresa.setEmprProduccion(Boolean.parseBoolean(config.get("emprProduccion")));
+    empresa.setEmprCertificadoLLavePublica(config.get("emprCertificadoLlavePublica"));
+    empresa.setEmprCertificadoLLavePrivada(config.get("emprCertificadoLlavePrivada"));
+    empresa.setEmprUsuarioSecundario(config.get("emprUsuarioSecundario"));
+    empresa.setEmprClaveUsuarioSecundario(config.get("emprClaveUsuarioSecundario"));
+    empresa.setEmprGuiaId(config.get("emprGuiaId"));
+    empresa.setEmprGuiaClave(config.get("emprGuiaClave"));
+
+    UbigeoSendRequest ubigeo = new UbigeoSendRequest();
+    ubigeo.setUbigUbigeo(config.get("ubigUbigeo"));
+    ubigeo.setUbigDepartamento(config.get("ubigDepartamento"));
+    ubigeo.setUbigProvincia(config.get("ubigProvincia"));
+    ubigeo.setUbigDistrito(config.get("ubigDistrito"));
+    empresa.setUbigeo(ubigeo);
+
+    GuiaValidRequest request = new GuiaValidRequest();
+    request.setEmpresa(empresa);
+    request.setTicket(guide.getSunatTicket());
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    HttpEntity<GuiaValidRequest> entity = new HttpEntity<>(request, headers);
+
+    String requestJson = serializeJson(request);
+    log.info("Consultando ticket manual guía {}-{}: {}", guide.getSeries(), guide.getSequence(), guide.getSunatTicket());
+
+    LocalDateTime sentAt = LocalDateTime.now();
+    ResponseEntity<FacturacionResponse> response =
+        restTemplate.exchange(sunatGuiaValidUrl, HttpMethod.POST, entity, FacturacionResponse.class);
+
+    processGuideResponse(guide, response);
+    saveLog("manual-ticket", "09",
+        guide.getSeries(), guide.getSequence(),
+        requestJson, serializeJson(response.getBody()),
+        response.getStatusCode().value(), response.getStatusCode().is2xxSuccessful()
+            && response.getBody() != null && response.getBody().isSuccess(), sentAt);
+
+    guide.setUpdatedBy("manual-ticket");
+    remissionGuideRepository.save(guide);
+
+    log.info("Estado guía {}-{} tras consulta manual: {}", guide.getSeries(), guide.getSequence(), guide.getStatus());
+    return response.getBody();
+  }
+
+  // ========================================================================================
+  // CONSULTA TICKET GUÍA (endpoint manual — solo consulta, sin actualizar)
+  // ========================================================================================
+
+  /**
+   * Consulta el estado de un ticket de guía de remisión en el facturador externo.
+   * Los datos de la empresa se obtienen de la configuración.
+   */
+  public FacturacionResponse checkGuideTicket(String ticket) {
+    Map<String, String> config = configurationService.getGroup("empresa_emisora");
+
+    CompanySendRequest empresa = new CompanySendRequest();
+    empresa.setEmprRuc(config.get("emprRuc"));
+    empresa.setEmprRazonSocial(config.get("emprRazonSocial"));
+    empresa.setEmprDireccionFiscal(config.get("emprDireccionFiscal"));
+    empresa.setEmprCodigoEstablecimientoSunat(config.get("emprCodigoEstablecimientoSunat"));
+    empresa.setEmprLeyAmazonia(Boolean.parseBoolean(config.get("emprLeyAmazonia")));
+    empresa.setEmprProduccion(Boolean.parseBoolean(config.get("emprProduccion")));
+    empresa.setEmprCertificadoLLavePublica(config.get("emprCertificadoLlavePublica"));
+    empresa.setEmprCertificadoLLavePrivada(config.get("emprCertificadoLlavePrivada"));
+    empresa.setEmprUsuarioSecundario(config.get("emprUsuarioSecundario"));
+    empresa.setEmprClaveUsuarioSecundario(config.get("emprClaveUsuarioSecundario"));
+    empresa.setEmprGuiaId(config.get("emprGuiaId"));
+    empresa.setEmprGuiaClave(config.get("emprGuiaClave"));
+
+    UbigeoSendRequest ubigeo = new UbigeoSendRequest();
+    ubigeo.setUbigUbigeo(config.get("ubigUbigeo"));
+    ubigeo.setUbigDepartamento(config.get("ubigDepartamento"));
+    ubigeo.setUbigProvincia(config.get("ubigProvincia"));
+    ubigeo.setUbigDistrito(config.get("ubigDistrito"));
+    empresa.setUbigeo(ubigeo);
+
+    GuiaValidRequest request = new GuiaValidRequest();
+    request.setEmpresa(empresa);
+    request.setTicket(ticket);
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    HttpEntity<GuiaValidRequest> entity = new HttpEntity<>(request, headers);
+
+    log.info("Consultando ticket de guía: {}", ticket);
+    ResponseEntity<FacturacionResponse> response =
+        restTemplate.exchange(sunatGuiaValidUrl, HttpMethod.POST, entity, FacturacionResponse.class);
+    log.info("Respuesta consulta ticket guía: {}", serializeJson(response.getBody()));
+
+    return response.getBody();
   }
 }

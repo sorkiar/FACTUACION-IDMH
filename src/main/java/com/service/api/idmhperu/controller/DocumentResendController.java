@@ -1,5 +1,6 @@
 package com.service.api.idmhperu.controller;
 
+import com.service.api.idmhperu.dto.external.FacturacionResponse;
 import com.service.api.idmhperu.dto.response.ApiResponse;
 import com.service.api.idmhperu.dto.response.FileDownload;
 import com.service.api.idmhperu.dto.response.SunatDocumentSummaryResponse;
@@ -151,6 +152,25 @@ public class DocumentResendController {
   // ========================================================================================
   // JOB MANUAL
   // ========================================================================================
+
+  /**
+   * Consulta el ticket de una guía por su ID, actualiza su estado en base de datos
+   * y devuelve la respuesta del facturador. Requiere que la guía tenga ticket registrado.
+   */
+  @PostMapping("/remission-guides/{id}/check-ticket")
+  public ApiResponse<FacturacionResponse> checkGuideTicketById(@PathVariable Long id) {
+    return new ApiResponse<>(null, jobService.checkGuideTicketById(id));
+  }
+
+  /**
+   * Consulta el estado de un ticket de guía de remisión en el facturador externo.
+   * Los datos de la empresa se obtienen automáticamente de la configuración.
+   * No actualiza ningún registro — solo retorna la respuesta del facturador.
+   */
+  @PostMapping("/remission-guides/check-ticket")
+  public ApiResponse<FacturacionResponse> checkGuideTicket(@RequestParam String ticket) {
+    return new ApiResponse<>(null, jobService.checkGuideTicket(ticket));
+  }
 
   /**
    * Dispara manualmente el job de envío a SUNAT para procesar todos los documentos

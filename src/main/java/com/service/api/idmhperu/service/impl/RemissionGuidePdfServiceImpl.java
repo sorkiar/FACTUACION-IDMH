@@ -62,7 +62,7 @@ public class RemissionGuidePdfServiceImpl implements RemissionGuidePdfService {
         throw new BusinessValidationException("La guía no tiene ítems registrados");
       }
 
-      if (guide.getRecipient() == null) {
+      if (guide.getClient() == null) {
         throw new BusinessValidationException(
             "La guía no tiene destinatario asignado. Edite la guía y asigne un destinatario antes de generar el PDF.");
       }
@@ -76,14 +76,14 @@ public class RemissionGuidePdfServiceImpl implements RemissionGuidePdfService {
       Map<String, String> config = configurationService.getGroup("empresa_emisora");
 
       // Construir cadena QR
+      String numDoc = guide.getClient().getDocumentNumber();
       String qrString = COMPANY_RUC + " | 09 | "
           + guide.getSeries() + " | "
           + guide.getSequence() + " | "
           + guide.getIssueDate().format(DATE_FMT) + " | 6 | "
-          + guide.getRecipient().getDocNumber();
+          + numDoc;
 
       // Determinar si el destinatario es RUC (11 dígitos) o DNI (8 dígitos)
-      String numDoc = guide.getRecipient().getDocNumber();
       String rucCliente = (numDoc != null && numDoc.length() == 11) ? numDoc : null;
       String dniCliente = (numDoc != null && numDoc.length() == 8) ? numDoc : null;
 
@@ -114,8 +114,12 @@ public class RemissionGuidePdfServiceImpl implements RemissionGuidePdfService {
         row.put("fecha_traslado", Date.valueOf(guide.getTransferDate()));
 
         // ====== DESTINATARIO ======
-        row.put("nombre_representante", guide.getRecipient().getName());
-        row.put("razonsocial", guide.getRecipient().getName());
+        String clientName = guide.getClient().getBusinessName() != null
+            ? guide.getClient().getBusinessName()
+            : ((guide.getClient().getFirstName() != null ? guide.getClient().getFirstName() : "")
+                + " " + (guide.getClient().getLastName() != null ? guide.getClient().getLastName() : "")).trim();
+        row.put("nombre_representante", clientName);
+        row.put("razonsocial", clientName);
         row.put("ruccliente", rucCliente);
         row.put("dni_cliente", dniCliente);
 
@@ -144,19 +148,24 @@ public class RemissionGuidePdfServiceImpl implements RemissionGuidePdfService {
                 : guide.getTransferReason());
 
         // TRANSPORTE_PUBLICO
-        row.put("transporte", guide.getCarrierName());
+        String carrierName = (guide.getCarrier() != null) ? guide.getCarrier().getBusinessName() : null;
+        String carrierDocNumber = (guide.getCarrier() != null) ? guide.getCarrier().getDocNumber() : null;
+        row.put("transporte", carrierName);
         row.put("ructrasnporte",
             "TRANSPORTE_PUBLICO".equals(guide.getTransportMode())
-                ? guide.getCarrierDocNumber()
-                : (firstDriver != null ? firstDriver.getDriverDocNumber() : null));
+                ? carrierDocNumber
+                : (firstDriver != null && firstDriver.getDriver() != null
+                    ? firstDriver.getDriver().getDocNumber() : null));
 
         // TRANSPORTE_PRIVADO
         row.put("vehiculo", null);
-        row.put("placa", firstDriver != null ? firstDriver.getVehiclePlate() : null);
-        row.put("chofer", firstDriver != null
-            ? firstDriver.getDriverFirstName() + " " + firstDriver.getDriverLastName()
+        row.put("placa", firstDriver != null && firstDriver.getDriverVehicle() != null
+            ? firstDriver.getDriverVehicle().getPlate() : null);
+        row.put("chofer", firstDriver != null && firstDriver.getDriver() != null
+            ? firstDriver.getDriver().getFirstName() + " " + firstDriver.getDriver().getLastName()
             : null);
-        row.put("licencia", firstDriver != null ? firstDriver.getDriverLicenseNumber() : null);
+        row.put("licencia", firstDriver != null && firstDriver.getDriver() != null
+            ? firstDriver.getDriver().getLicenseNumber() : null);
         row.put("inscripcion", null);
 
         // ====== REFERENCIA / VARIOS ======

@@ -3,8 +3,7 @@ package com.service.api.idmhperu.dto.filter;
 import lombok.Data;
 
 @Data
-public class RecipientFilter {
+public class DriverFilter {
+  private Long id;
   private Integer status;
-  private String docNumber;
-  private String name;
 }

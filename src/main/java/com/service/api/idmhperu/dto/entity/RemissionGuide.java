@@ -105,20 +105,20 @@ public class RemissionGuide {
   @Column(name = "minor_vehicle_transfer", nullable = false)
   private Boolean minorVehicleTransfer = false;
 
-  // Recipient
+  // Destinatario (cliente)
   @ManyToOne
-  @JoinColumn(name = "recipient_id")
-  private Recipient recipient;
+  @JoinColumn(name = "client_id")
+  private Client client;
+
+  // Dirección del cliente seleccionada (referencial, nullable)
+  @ManyToOne
+  @JoinColumn(name = "client_address_id")
+  private ClientAddress clientAddress;
 
   // Transportista (solo para TRANSPORTE_PUBLICO)
-  @Column(name = "carrier_doc_type", length = 5)
-  private String carrierDocType;
-
-  @Column(name = "carrier_doc_number", length = 20)
-  private String carrierDocNumber;
-
-  @Column(name = "carrier_name", length = 200)
-  private String carrierName;
+  @ManyToOne
+  @JoinColumn(name = "carrier_id")
+  private Carrier carrier;
 
   @Column(columnDefinition = "TEXT")
   private String observations;

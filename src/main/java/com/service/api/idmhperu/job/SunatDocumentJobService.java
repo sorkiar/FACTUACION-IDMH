@@ -588,13 +588,17 @@ public class SunatDocumentJobService {
     ubigeo.setUbigDistrito(config.get("ubigDistrito"));
     empresa.setUbigeo(ubigeo);
 
-    // Recipient (como cliente del comprobante)
+    // Destinatario (como cliente del comprobante)
     ClientSendRequest recipient = new ClientSendRequest();
-    recipient.setClieNumeroDocumento(guide.getRecipient().getDocNumber());
-    recipient.setClieRazonSocial(guide.getRecipient().getName());
-    recipient.setClieDireccion(guide.getRecipient().getAddress());
+    recipient.setClieNumeroDocumento(guide.getClient().getDocumentNumber());
+    String guideClientName = guide.getClient().getBusinessName() != null
+        ? guide.getClient().getBusinessName()
+        : (guide.getClient().getFirstName() != null ? guide.getClient().getFirstName() : "")
+            + " " + (guide.getClient().getLastName() != null ? guide.getClient().getLastName() : "");
+    recipient.setClieRazonSocial(guideClientName.trim());
+    recipient.setClieDireccion(guide.getDestinationAddress());
     recipient.setTipoDocumentoIdentidad(
-        resolveDocIdentidad(guide.getRecipient().getDocType()));
+        resolveDocIdentidad(guide.getClient().getDocumentType().getName()));
 
     // ITEMS (bienes a transportar)
     List<ItemSendRequest> itemDtos = new ArrayList<>();
@@ -637,25 +641,27 @@ public class SunatDocumentJobService {
     guia.setTipoTransporte(guide.getTransportMode());
     guia.setGuiaTrasladoVehiculoMenores(guide.getMinorVehicleTransfer());
 
-    if ("TRANSPORTE_PUBLICO".equals(guide.getTransportMode())) {
+    if ("TRANSPORTE_PUBLICO".equals(guide.getTransportMode()) && guide.getCarrier() != null) {
       ClientSendRequest transportista = new ClientSendRequest();
-      transportista.setClieNumeroDocumento(guide.getCarrierDocNumber());
-      transportista.setClieRazonSocial(guide.getCarrierName());
+      transportista.setClieNumeroDocumento(guide.getCarrier().getDocNumber());
+      transportista.setClieRazonSocial(guide.getCarrier().getBusinessName());
       transportista.setTipoDocumentoIdentidad(
-          resolveDocIdentidad(guide.getCarrierDocType()));
+          resolveDocIdentidad(guide.getCarrier().getDocType()));
       guia.setTransportista(transportista);
     }
 
     if ("TRANSPORTE_PRIVADO".equals(guide.getTransportMode()) && !drivers.isEmpty()) {
       List<GuiaTransporteSendRequest> transporteDtos = new ArrayList<>();
-      for (RemissionGuideDriver driver : drivers) {
+      for (RemissionGuideDriver rgDriver : drivers) {
+        if (rgDriver.getDriver() == null) continue;
         GuiaTransporteSendRequest dto = new GuiaTransporteSendRequest();
-        dto.setGutrConductorTipoDocumento(resolveDocIdentidadCat06(driver.getDriverDocType()));
-        dto.setGutrConductorNumeroDocumento(driver.getDriverDocNumber());
-        dto.setGutrConductorNombres(driver.getDriverFirstName());
-        dto.setGutrConductorApellidos(driver.getDriverLastName());
-        dto.setGutrConductorNumeroLicencia(driver.getDriverLicenseNumber());
-        dto.setGutrVehiculoPlaca(driver.getVehiclePlate());
+        dto.setGutrConductorTipoDocumento(resolveDocIdentidadCat06(rgDriver.getDriver().getDocType()));
+        dto.setGutrConductorNumeroDocumento(rgDriver.getDriver().getDocNumber());
+        dto.setGutrConductorNombres(rgDriver.getDriver().getFirstName());
+        dto.setGutrConductorApellidos(rgDriver.getDriver().getLastName());
+        dto.setGutrConductorNumeroLicencia(rgDriver.getDriver().getLicenseNumber());
+        dto.setGutrVehiculoPlaca(
+            rgDriver.getDriverVehicle() != null ? rgDriver.getDriverVehicle().getPlate() : "");
         transporteDtos.add(dto);
       }
       guia.setLsGuiaTransporte(transporteDtos);

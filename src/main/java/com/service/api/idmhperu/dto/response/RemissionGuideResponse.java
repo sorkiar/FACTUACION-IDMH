@@ -36,13 +36,12 @@ public class RemissionGuideResponse {
 
   private Boolean minorVehicleTransfer;
 
-  // Recipient
-  private RecipientResponse recipient;
+  // Destinatario (cliente)
+  private ClientResponse client;
+  private ClientAddressResponse clientAddress;
 
   // Transportista (TRANSPORTE_PUBLICO)
-  private String carrierDocType;
-  private String carrierDocNumber;
-  private String carrierName;
+  private CarrierResponse carrier;
 
   private String observations;
 

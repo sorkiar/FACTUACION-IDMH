@@ -17,19 +17,14 @@ public interface SaleRepository
     extends JpaRepository<Sale, Long>,
     JpaSpecificationExecutor<Sale> {
 
+  // EntityGraph solo carga la relación ManyToOne (client) para evitar producto cartesiano.
+  // Las colecciones (items, documents, payments, installments, relatedGuides) se cargan
+  // vía @BatchSize(size=30) definido en la entidad: N/30 queries en lugar de N*M*K filas.
   @Override
   @EntityGraph(attributePaths = {
       "client",
       "client.documentType",
       "client.personType",
-      "items",
-      "items.product",
-      "items.service",
-      "items.unitMeasure",
-      "documents",
-      "documents.documentTypeSunat",
-      "payments",
-      "payments.paymentMethod",
   })
   @NullMarked
   List<Sale> findAll(Specification<Sale> spec);

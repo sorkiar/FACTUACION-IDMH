@@ -34,24 +34,15 @@ public class RemissionGuideDriver {
   @JsonBackReference
   private RemissionGuide remissionGuide;
 
-  /** Tipo de documento del conductor (ej: DNI) */
-  @Column(name = "driver_doc_type", length = 5, nullable = false)
-  private String driverDocType;
+  /** Conductor del maestro de conductores. */
+  @ManyToOne
+  @JoinColumn(name = "driver_id", nullable = false)
+  private Driver driver;
 
-  @Column(name = "driver_doc_number", length = 20, nullable = false)
-  private String driverDocNumber;
-
-  @Column(name = "driver_first_name", length = 100, nullable = false)
-  private String driverFirstName;
-
-  @Column(name = "driver_last_name", length = 100, nullable = false)
-  private String driverLastName;
-
-  @Column(name = "driver_license_number", length = 30, nullable = false)
-  private String driverLicenseNumber;
-
-  @Column(name = "vehicle_plate", length = 20, nullable = false)
-  private String vehiclePlate;
+  /** Placa específica del conductor usada en esta guía (nullable). */
+  @ManyToOne
+  @JoinColumn(name = "driver_vehicle_id")
+  private DriverVehicle driverVehicle;
 
   // Auditoría
   @CreationTimestamp

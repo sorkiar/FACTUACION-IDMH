@@ -45,6 +45,7 @@ public interface SaleMapper {
   @Mapping(target = "documentTypeId", source = "documentType.id")
   @Mapping(target = "documentType", source = "documentType.name")
   @Mapping(target = "birthDate", source = "birthDate", dateFormat = "yyyy-MM-dd")
+  @Mapping(target = "addresses", ignore = true)
   ClientResponse toClientResponse(Client entity);
 
   PaymentMethodResponse toPaymentMethodResponse(PaymentMethod entity);

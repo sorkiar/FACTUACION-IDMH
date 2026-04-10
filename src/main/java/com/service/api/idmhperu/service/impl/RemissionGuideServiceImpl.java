@@ -1,7 +1,11 @@
 package com.service.api.idmhperu.service.impl;
 
-import com.service.api.idmhperu.dto.entity.Recipient;
+import com.service.api.idmhperu.dto.entity.Carrier;
+import com.service.api.idmhperu.dto.entity.Client;
+import com.service.api.idmhperu.dto.entity.ClientAddress;
 import com.service.api.idmhperu.dto.entity.DocumentSeries;
+import com.service.api.idmhperu.dto.entity.Driver;
+import com.service.api.idmhperu.dto.entity.DriverVehicle;
 import com.service.api.idmhperu.dto.entity.RemissionGuide;
 import com.service.api.idmhperu.dto.entity.RemissionGuideDriver;
 import com.service.api.idmhperu.dto.entity.RemissionGuideItem;
@@ -14,14 +18,18 @@ import com.service.api.idmhperu.dto.response.ApiResponse;
 import com.service.api.idmhperu.dto.response.RemissionGuideResponse;
 import com.service.api.idmhperu.exception.BusinessValidationException;
 import com.service.api.idmhperu.exception.ResourceNotFoundException;
-import com.service.api.idmhperu.repository.RecipientRepository;
+import com.service.api.idmhperu.job.SunatDocumentJobService;
+import com.service.api.idmhperu.repository.CarrierRepository;
+import com.service.api.idmhperu.repository.ClientAddressRepository;
+import com.service.api.idmhperu.repository.ClientRepository;
 import com.service.api.idmhperu.repository.DocumentSeriesRepository;
+import com.service.api.idmhperu.repository.DriverRepository;
+import com.service.api.idmhperu.repository.DriverVehicleRepository;
 import com.service.api.idmhperu.repository.ProductRepository;
 import com.service.api.idmhperu.repository.RemissionGuideDriverRepository;
 import com.service.api.idmhperu.repository.RemissionGuideItemRepository;
 import com.service.api.idmhperu.repository.RemissionGuideRepository;
 import com.service.api.idmhperu.repository.spec.RemissionGuideSpecification;
-import com.service.api.idmhperu.job.SunatDocumentJobService;
 import com.service.api.idmhperu.service.RemissionGuidePdfService;
 import com.service.api.idmhperu.service.RemissionGuideService;
 import com.service.api.idmhperu.util.JwtUtils;
@@ -42,7 +50,11 @@ public class RemissionGuideServiceImpl implements RemissionGuideService {
   private final RemissionGuideDriverRepository driverRepository;
   private final DocumentSeriesRepository documentSeriesRepository;
   private final ProductRepository productRepository;
-  private final RecipientRepository recipientRepository;
+  private final ClientRepository clientRepository;
+  private final ClientAddressRepository clientAddressRepository;
+  private final CarrierRepository carrierRepository;
+  private final DriverRepository driverMasterRepository;
+  private final DriverVehicleRepository vehicleRepository;
   private final RemissionGuideMapper mapper;
   private final RemissionGuidePdfService pdfService;
   private final SunatDocumentJobService sunatDocumentJobService;
@@ -77,9 +89,9 @@ public class RemissionGuideServiceImpl implements RemissionGuideService {
     }
 
     if ("TRANSPORTE_PUBLICO".equals(request.getTransportMode())) {
-      if (request.getCarrierDocNumber() == null || request.getCarrierDocNumber().isBlank()) {
+      if (request.getCarrierId() == null) {
         throw new BusinessValidationException(
-            "Se requieren datos del transportista para TRANSPORTE_PUBLICO");
+            "Se requiere carrierId para TRANSPORTE_PUBLICO");
       }
     }
 
@@ -123,13 +135,29 @@ public class RemissionGuideServiceImpl implements RemissionGuideService {
     guide.setDestinationLocalCode(request.getDestinationLocalCode());
     guide.setMinorVehicleTransfer(
         request.getMinorVehicleTransfer() != null && request.getMinorVehicleTransfer());
-    Recipient recipient = recipientRepository
-        .findByIdAndStatusNot(request.getRecipientId(), 2)
+
+    // Destinatario (cliente)
+    Client client = clientRepository.findById(request.getClientId())
         .orElseThrow(() -> new ResourceNotFoundException("Destinatario no encontrado"));
-    guide.setRecipient(recipient);
-    guide.setCarrierDocType(request.getCarrierDocType());
-    guide.setCarrierDocNumber(request.getCarrierDocNumber());
-    guide.setCarrierName(request.getCarrierName());
+    guide.setClient(client);
+
+    // Dirección del cliente (referencial, nullable)
+    if (request.getClientAddressId() != null) {
+      ClientAddress clientAddress = clientAddressRepository
+          .findByIdAndClientIdAndDeletedAtIsNull(request.getClientAddressId(), client.getId())
+          .orElseThrow(
+              () -> new ResourceNotFoundException("Dirección del destinatario no encontrada"));
+      guide.setClientAddress(clientAddress);
+    }
+
+    // Transportista (TRANSPORTE_PUBLICO → master carrier)
+    if (request.getCarrierId() != null) {
+      Carrier carrier = carrierRepository.findById(request.getCarrierId())
+          .filter(c -> Integer.valueOf(1).equals(c.getStatus()))
+          .orElseThrow(() -> new ResourceNotFoundException("Transportista no encontrado o inactivo"));
+      guide.setCarrier(carrier);
+    }
+
     guide.setObservations(request.getObservations());
     guide.setStatus("PENDIENTE");
     guide.setCreatedBy(username);
@@ -157,7 +185,6 @@ public class RemissionGuideServiceImpl implements RemissionGuideService {
       item.setSubtotalAmount(subtotal);
       item.setTaxAmount(tax);
       item.setTotalAmount(total);
-
       item.setCreatedBy(username);
 
       if (itemReq.getProductId() != null) {
@@ -168,19 +195,25 @@ public class RemissionGuideServiceImpl implements RemissionGuideService {
       itemRepository.save(item);
     }
 
-    // 5. Guardar conductores (TRANSPORTE_PRIVADO)
+    // 5. Guardar conductores (TRANSPORTE_PRIVADO → master driver + specific vehicle)
     if (request.getDrivers() != null) {
       for (RemissionGuideDriverRequest driverReq : request.getDrivers()) {
-        RemissionGuideDriver driver = new RemissionGuideDriver();
-        driver.setRemissionGuide(guide);
-        driver.setDriverDocType(driverReq.getDocType());
-        driver.setDriverDocNumber(driverReq.getDocNumber());
-        driver.setDriverFirstName(driverReq.getFirstName());
-        driver.setDriverLastName(driverReq.getLastName());
-        driver.setDriverLicenseNumber(driverReq.getLicenseNumber());
-        driver.setVehiclePlate(driverReq.getVehiclePlate());
-        driver.setCreatedBy(username);
-        driverRepository.save(driver);
+        Driver driver = driverMasterRepository.findById(driverReq.getDriverId())
+            .filter(d -> Integer.valueOf(1).equals(d.getStatus()))
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Conductor no encontrado o inactivo: id=" + driverReq.getDriverId()));
+
+        DriverVehicle vehicle = vehicleRepository
+            .findByIdAndDriverIdAndDeletedAtIsNull(driverReq.getVehiclePlateId(), driver.getId())
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Placa no encontrada para el conductor id=" + driverReq.getDriverId()));
+
+        RemissionGuideDriver guideDriver = new RemissionGuideDriver();
+        guideDriver.setRemissionGuide(guide);
+        guideDriver.setDriver(driver);
+        guideDriver.setDriverVehicle(vehicle);
+        guideDriver.setCreatedBy(username);
+        driverRepository.save(guideDriver);
       }
     }
 

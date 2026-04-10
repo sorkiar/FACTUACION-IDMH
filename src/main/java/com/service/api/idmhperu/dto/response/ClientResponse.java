@@ -1,6 +1,7 @@
 package com.service.api.idmhperu.dto.response;
 
 import java.time.LocalDate;
+import java.util.List;
 import lombok.Data;
 
 @Data
@@ -23,4 +24,5 @@ public class ClientResponse {
   private String address;
   private Boolean retentionAgent;
   private Integer status;
+  private List<ClientAddressResponse> addresses;
 }

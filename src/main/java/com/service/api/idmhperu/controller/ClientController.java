@@ -1,15 +1,18 @@
 package com.service.api.idmhperu.controller;
 
 import com.service.api.idmhperu.dto.filter.ClientFilter;
+import com.service.api.idmhperu.dto.request.ClientAddressRequest;
 import com.service.api.idmhperu.dto.request.ClientRequest;
 import com.service.api.idmhperu.dto.request.ClientStatusRequest;
 import com.service.api.idmhperu.dto.response.ApiResponse;
+import com.service.api.idmhperu.dto.response.ClientAddressResponse;
 import com.service.api.idmhperu.dto.response.ClientResponse;
 import com.service.api.idmhperu.service.ClientService;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @Validated
 public class ClientController {
+
   private final ClientService service;
 
   @GetMapping
@@ -39,14 +43,16 @@ public class ClientController {
     filter.setStatus(status);
     filter.setDocumentTypeId(documentTypeId);
     filter.setDocumentNumber(documentNumber);
-
     return service.findAll(filter);
   }
 
+  @GetMapping("/{id}")
+  public ApiResponse<ClientResponse> findById(@PathVariable Long id) {
+    return service.findById(id);
+  }
+
   @PostMapping
-  public ApiResponse<ClientResponse> create(
-      @Valid @RequestBody ClientRequest request
-  ) {
+  public ApiResponse<ClientResponse> create(@Valid @RequestBody ClientRequest request) {
     return service.create(request);
   }
 
@@ -64,5 +70,37 @@ public class ClientController {
       @Valid @RequestBody ClientStatusRequest request
   ) {
     return service.updateStatus(id, request);
+  }
+
+  // ─── Address endpoints ───────────────────────────────────────────────────
+
+  @GetMapping("/{clientId}/addresses")
+  public ApiResponse<List<ClientAddressResponse>> listAddresses(@PathVariable Long clientId) {
+    return service.findAddresses(clientId);
+  }
+
+  @PostMapping("/{clientId}/addresses")
+  public ApiResponse<ClientAddressResponse> addAddress(
+      @PathVariable Long clientId,
+      @Valid @RequestBody ClientAddressRequest request
+  ) {
+    return service.addAddress(clientId, request);
+  }
+
+  @PutMapping("/{clientId}/addresses/{addressId}")
+  public ApiResponse<ClientAddressResponse> updateAddress(
+      @PathVariable Long clientId,
+      @PathVariable Long addressId,
+      @Valid @RequestBody ClientAddressRequest request
+  ) {
+    return service.updateAddress(clientId, addressId, request);
+  }
+
+  @DeleteMapping("/{clientId}/addresses/{addressId}")
+  public ApiResponse<Void> deleteAddress(
+      @PathVariable Long clientId,
+      @PathVariable Long addressId
+  ) {
+    return service.deleteAddress(clientId, addressId);
   }
 }

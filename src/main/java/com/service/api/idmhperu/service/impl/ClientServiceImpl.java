@@ -1,14 +1,19 @@
 package com.service.api.idmhperu.service.impl;
 
 import com.service.api.idmhperu.dto.entity.Client;
+import com.service.api.idmhperu.dto.entity.ClientAddress;
 import com.service.api.idmhperu.dto.entity.PersonType;
 import com.service.api.idmhperu.dto.filter.ClientFilter;
+import com.service.api.idmhperu.dto.mapper.ClientAddressMapper;
 import com.service.api.idmhperu.dto.mapper.ClientMapper;
+import com.service.api.idmhperu.dto.request.ClientAddressRequest;
 import com.service.api.idmhperu.dto.request.ClientRequest;
 import com.service.api.idmhperu.dto.request.ClientStatusRequest;
 import com.service.api.idmhperu.dto.response.ApiResponse;
+import com.service.api.idmhperu.dto.response.ClientAddressResponse;
 import com.service.api.idmhperu.dto.response.ClientResponse;
 import com.service.api.idmhperu.exception.ResourceNotFoundException;
+import com.service.api.idmhperu.repository.ClientAddressRepository;
 import com.service.api.idmhperu.repository.ClientRepository;
 import com.service.api.idmhperu.repository.DocumentTypeRepository;
 import com.service.api.idmhperu.repository.PersonTypeRepository;
@@ -17,6 +22,7 @@ import com.service.api.idmhperu.service.ClientService;
 import com.service.api.idmhperu.util.ClientValidator;
 import com.service.api.idmhperu.util.JwtUtils;
 import jakarta.transaction.Transactional;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,11 +30,14 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class ClientServiceImpl implements ClientService {
+
   private final ClientRepository repository;
+  private final ClientAddressRepository addressRepository;
   private final PersonTypeRepository personTypeRepository;
   private final DocumentTypeRepository documentTypeRepository;
   private final ClientValidator validator;
   private final ClientMapper mapper;
+  private final ClientAddressMapper addressMapper;
 
   @Override
   public ApiResponse<List<ClientResponse>> findAll(ClientFilter filter) {
@@ -37,8 +46,20 @@ public class ClientServiceImpl implements ClientService {
   }
 
   @Override
+  public ApiResponse<ClientResponse> findById(Long id) {
+    Client client = repository.findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
+    ClientResponse response = mapper.toResponse(client);
+    response.setAddresses(
+        addressMapper.toResponseList(addressRepository.findByClientIdAndDeletedAtIsNull(id)));
+    return new ApiResponse<>("Cliente obtenido correctamente", response);
+  }
+
+  @Override
   @Transactional
   public ApiResponse<ClientResponse> create(ClientRequest request) {
+    String username = JwtUtils.extractUsernameFromContext();
+
     PersonType personType = personTypeRepository.findById(request.getPersonTypeId())
         .orElseThrow(() -> new ResourceNotFoundException("Tipo de persona no válido"));
 
@@ -50,15 +71,32 @@ public class ClientServiceImpl implements ClientService {
         .orElseThrow(() -> new ResourceNotFoundException("Tipo de documento no válido")));
     client.setRetentionAgent(Boolean.TRUE.equals(request.getRetentionAgent()));
     client.setStatus(1);
-    client.setCreatedBy(JwtUtils.extractUsernameFromContext());
+    client.setCreatedBy(username);
 
-    return new ApiResponse<>("Cliente registrado correctamente",
-        mapper.toResponse(repository.save(client)));
+    Client saved = repository.save(client);
+
+    if (request.getAddresses() != null) {
+      for (ClientAddressRequest addrReq : request.getAddresses()) {
+        ClientAddress addr = new ClientAddress();
+        addr.setClient(saved);
+        addr.setAddress(addrReq.getAddress());
+        addr.setUbigeo(addrReq.getUbigeo());
+        addr.setDescription(addrReq.getDescription());
+        addr.setCreatedBy(username);
+        addressRepository.save(addr);
+      }
+    }
+
+    ClientResponse response = mapper.toResponse(saved);
+    response.setAddresses(
+        addressMapper.toResponseList(addressRepository.findByClientIdAndDeletedAtIsNull(saved.getId())));
+    return new ApiResponse<>("Cliente registrado correctamente", response);
   }
 
   @Override
   @Transactional
   public ApiResponse<ClientResponse> update(Long id, ClientRequest request) {
+    String username = JwtUtils.extractUsernameFromContext();
 
     Client client = repository.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
@@ -72,22 +110,98 @@ public class ClientServiceImpl implements ClientService {
     client.setPersonType(personType);
     client.setDocumentType(documentTypeRepository.findById(request.getDocumentTypeId())
         .orElseThrow(() -> new ResourceNotFoundException("Tipo de documento no válido")));
-    client.setUpdatedBy(JwtUtils.extractUsernameFromContext());
+    client.setUpdatedBy(username);
 
-    return new ApiResponse<>("Cliente actualizado correctamente",
-        mapper.toResponse(repository.save(client)));
+    Client saved = repository.save(client);
+
+    if (request.getAddresses() != null) {
+      for (ClientAddressRequest addrReq : request.getAddresses()) {
+        ClientAddress addr = new ClientAddress();
+        addr.setClient(saved);
+        addr.setAddress(addrReq.getAddress());
+        addr.setUbigeo(addrReq.getUbigeo());
+        addr.setDescription(addrReq.getDescription());
+        addr.setCreatedBy(username);
+        addressRepository.save(addr);
+      }
+    }
+
+    ClientResponse response = mapper.toResponse(saved);
+    response.setAddresses(
+        addressMapper.toResponseList(addressRepository.findByClientIdAndDeletedAtIsNull(id)));
+    return new ApiResponse<>("Cliente actualizado correctamente", response);
   }
 
   @Override
   @Transactional
   public ApiResponse<Void> updateStatus(Long id, ClientStatusRequest request) {
-
     Client client = repository.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
 
     client.setStatus(request.getStatus());
     client.setUpdatedBy(JwtUtils.extractUsernameFromContext());
+    repository.save(client);
 
     return new ApiResponse<>("Estado del cliente actualizado correctamente", null);
+  }
+
+  // ─── Address management ──────────────────────────────────────────────────
+
+  @Override
+  public ApiResponse<List<ClientAddressResponse>> findAddresses(Long clientId) {
+    if (!repository.existsById(clientId)) {
+      throw new ResourceNotFoundException("Cliente no encontrado");
+    }
+    return new ApiResponse<>("Direcciones listadas correctamente",
+        addressMapper.toResponseList(addressRepository.findByClientIdAndDeletedAtIsNull(clientId)));
+  }
+
+  @Override
+  @Transactional
+  public ApiResponse<ClientAddressResponse> addAddress(Long clientId,
+      ClientAddressRequest request) {
+    Client client = repository.findById(clientId)
+        .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
+
+    ClientAddress addr = new ClientAddress();
+    addr.setClient(client);
+    addr.setAddress(request.getAddress());
+    addr.setUbigeo(request.getUbigeo());
+    addr.setDescription(request.getDescription());
+    addr.setCreatedBy(JwtUtils.extractUsernameFromContext());
+
+    return new ApiResponse<>("Dirección agregada correctamente",
+        addressMapper.toResponse(addressRepository.save(addr)));
+  }
+
+  @Override
+  @Transactional
+  public ApiResponse<ClientAddressResponse> updateAddress(Long clientId, Long addressId,
+      ClientAddressRequest request) {
+    ClientAddress addr = addressRepository
+        .findByIdAndClientIdAndDeletedAtIsNull(addressId, clientId)
+        .orElseThrow(() -> new ResourceNotFoundException("Dirección no encontrada"));
+
+    addr.setAddress(request.getAddress());
+    addr.setUbigeo(request.getUbigeo());
+    addr.setDescription(request.getDescription());
+    addr.setUpdatedBy(JwtUtils.extractUsernameFromContext());
+
+    return new ApiResponse<>("Dirección actualizada correctamente",
+        addressMapper.toResponse(addressRepository.save(addr)));
+  }
+
+  @Override
+  @Transactional
+  public ApiResponse<Void> deleteAddress(Long clientId, Long addressId) {
+    ClientAddress addr = addressRepository
+        .findByIdAndClientIdAndDeletedAtIsNull(addressId, clientId)
+        .orElseThrow(() -> new ResourceNotFoundException("Dirección no encontrada"));
+
+    addr.setDeletedAt(LocalDateTime.now());
+    addr.setDeletedBy(JwtUtils.extractUsernameFromContext());
+    addressRepository.save(addr);
+
+    return new ApiResponse<>("Dirección eliminada correctamente", null);
   }
 }

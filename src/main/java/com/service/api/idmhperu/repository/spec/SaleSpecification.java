@@ -16,6 +16,9 @@ public class SaleSpecification {
 
     return (root, query, cb) -> {
 
+      // Evita filas duplicadas cuando el EntityGraph o joins agreguen rows extra
+      if (query != null) query.distinct(true);
+
       List<Predicate> predicates = new ArrayList<>();
 
       predicates.add(cb.isNull(root.get("deletedAt")));

@@ -98,7 +98,11 @@ public class SaleServiceImpl implements SaleService {
   private String PAYMENT_PROOF_FOLDER_ID;
 
   @Override
+  @Transactional
   public ApiResponse<List<SaleResponse>> findAll(SaleFilter filter) {
+    // @Transactional mantiene la Session abierta para que @BatchSize inicialice
+    // las colecciones lazy (items, documents, payments, installments, relatedGuides)
+    // con queries agrupadas en lugar de un producto cartesiano.
     return new ApiResponse<>(
         "Ventas listadas correctamente",
         mapper.toResponseList(
@@ -267,6 +271,8 @@ public class SaleServiceImpl implements SaleService {
 
     BigDecimal taxRate = new BigDecimal("0.18");
 
+    List<SaleItem> itemsToSave = new ArrayList<>();
+
     for (SaleItemRequest itemReq : items) {
 
       BigDecimal discountPct = itemReq.getDiscountPercentage() != null
@@ -326,12 +332,14 @@ public class SaleServiceImpl implements SaleService {
       item.setTotalAmount(itemTotal);
       item.setCreatedBy(username);
 
-      saleItemRepository.save(item);
+      itemsToSave.add(item);
 
       subtotal = subtotal.add(itemBase);
       tax = tax.add(itemTax);
       total = total.add(itemTotal);
     }
+
+    saleItemRepository.saveAll(itemsToSave);
 
     return new Totals(subtotal, tax, total);
   }
@@ -662,6 +670,7 @@ public class SaleServiceImpl implements SaleService {
 
     saleInstallmentRepository.deleteBySaleId(sale.getId());
 
+    List<SaleInstallment> installmentsToSave = new ArrayList<>();
     for (SaleInstallmentRequest installmentReq : request.getInstallments()) {
       SaleInstallment installment = new SaleInstallment();
       installment.setSale(sale);
@@ -669,8 +678,9 @@ public class SaleServiceImpl implements SaleService {
       installment.setDueDate(LocalDate.parse(installmentReq.getDueDate()));
       installment.setAmount(installmentReq.getAmount());
       installment.setCreatedBy(username);
-      saleInstallmentRepository.save(installment);
+      installmentsToSave.add(installment);
     }
+    saleInstallmentRepository.saveAll(installmentsToSave);
   }
 
   private String resolveCurrencyCode(String currencyCode) {
@@ -690,12 +700,14 @@ public class SaleServiceImpl implements SaleService {
   private void processRelatedGuides(Sale sale, List<String> guideNumbers) {
     saleRelatedGuideRepository.deleteBySaleId(sale.getId());
     if (guideNumbers == null || guideNumbers.isEmpty()) return;
+    List<SaleRelatedGuide> guidesToSave = new ArrayList<>();
     for (String number : guideNumbers) {
       SaleRelatedGuide guide = new SaleRelatedGuide();
       guide.setSale(sale);
       guide.setGuideNumber(number.trim());
-      saleRelatedGuideRepository.save(guide);
+      guidesToSave.add(guide);
     }
+    saleRelatedGuideRepository.saveAll(guidesToSave);
   }
 
   /**

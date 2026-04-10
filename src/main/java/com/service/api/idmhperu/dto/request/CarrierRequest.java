@@ -4,16 +4,14 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class RecipientRequest {
+public class CarrierRequest {
 
-  @NotBlank(message = "docType es obligatorio")
-  private String docType;
+  /** Tipo de documento. Default RUC. */
+  private String docType = "RUC";
 
   @NotBlank(message = "docNumber es obligatorio")
   private String docNumber;
 
-  @NotBlank(message = "name es obligatorio")
-  private String name;
-
-  private String address;
+  @NotBlank(message = "businessName es obligatorio")
+  private String businessName;
 }

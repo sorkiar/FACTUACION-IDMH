@@ -1,30 +1,16 @@
 package com.service.api.idmhperu.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
 public class RemissionGuideDriverRequest {
 
-  /**
-   * Tipo de documento del conductor.
-   * Usar nombre del enum Catalog06TipoDocIdentidad del facturador (ej: "DNI").
-   */
-  @NotBlank(message = "docType es obligatorio")
-  private String docType;
+  /** ID del conductor en el maestro de conductores. */
+  @NotNull(message = "driverId es obligatorio")
+  private Long driverId;
 
-  @NotBlank(message = "docNumber es obligatorio")
-  private String docNumber;
-
-  @NotBlank(message = "firstName es obligatorio")
-  private String firstName;
-
-  @NotBlank(message = "lastName es obligatorio")
-  private String lastName;
-
-  @NotBlank(message = "licenseNumber es obligatorio")
-  private String licenseNumber;
-
-  @NotBlank(message = "vehiclePlate es obligatorio")
-  private String vehiclePlate;
+  /** ID de la placa del conductor a usar en esta guía. */
+  @NotNull(message = "vehiclePlateId es obligatorio")
+  private Long vehiclePlateId;
 }

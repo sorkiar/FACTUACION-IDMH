@@ -9,12 +9,16 @@ import com.service.api.idmhperu.dto.response.RemissionGuideResponse;
 import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 
-@Mapper(componentModel = "spring", uses = {RecipientMapper.class})
+@Mapper(componentModel = "spring",
+    uses = {ClientMapper.class, ClientAddressMapper.class, CarrierMapper.class, DriverMapper.class})
 public interface RemissionGuideMapper {
 
   @Mapping(target = "documentSeriesId", source = "documentSeries.id")
-  @Mapping(target = "recipient", source = "recipient")
+  @Mapping(target = "client", source = "client")
+  @Mapping(target = "clientAddress", source = "clientAddress")
+  @Mapping(target = "carrier", source = "carrier")
   @Mapping(target = "items", source = "items")
   @Mapping(target = "drivers", source = "drivers")
   RemissionGuideResponse toResponse(RemissionGuide entity);
@@ -24,5 +28,7 @@ public interface RemissionGuideMapper {
   @Mapping(target = "productId", source = "product.id")
   RemissionGuideItemResponse toItemResponse(RemissionGuideItem entity);
 
+  @Mapping(target = "driver", source = "driver", qualifiedByName = "toDriverResponse")
+  @Mapping(target = "driverVehicle", source = "driverVehicle")
   RemissionGuideDriverResponse toDriverResponse(RemissionGuideDriver entity);
 }

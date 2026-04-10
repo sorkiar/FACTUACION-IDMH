@@ -16,21 +16,31 @@ public interface RemissionGuideRepository
   @Override
   @EntityGraph(attributePaths = {
       "documentSeries", "documentSeries.documentTypeSunat",
+      "client", "client.documentType", "client.personType",
+      "clientAddress",
+      "carrier",
       "items", "items.product",
-      "drivers",
+      "drivers", "drivers.driver", "drivers.driverVehicle",
   })
   @NullMarked
   List<RemissionGuide> findAll(Specification<RemissionGuide> spec);
 
   @EntityGraph(attributePaths = {
       "documentSeries", "documentSeries.documentTypeSunat",
+      "client", "client.documentType", "client.personType",
+      "clientAddress",
+      "carrier",
       "items", "items.product",
-      "drivers",
+      "drivers", "drivers.driver", "drivers.driverVehicle",
   })
   Optional<RemissionGuide> findByIdAndDeletedAtIsNull(Long id);
 
-  // El job accede a guide.getRecipient() directamente, debe cargarse aquí
-  @EntityGraph(attributePaths = {"recipient"})
+  // Job accede a guide.getClient(), guide.getCarrier(), guide.getDrivers().driver/vehicle
+  @EntityGraph(attributePaths = {
+      "client", "client.documentType", "client.personType",
+      "carrier",
+      "drivers", "drivers.driver", "drivers.driverVehicle",
+  })
   List<RemissionGuide> findByStatusAndDeletedAtIsNull(String status);
 
   @EntityGraph(attributePaths = {})

@@ -2,7 +2,6 @@ package com.service.api.idmhperu.dto.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -60,8 +59,8 @@ public class Client {
   @Column(name = "email_2", length = 150)
   private String email2;
 
-  // Dirección
-  @Column(nullable = false)
+  // Dirección (nullable: las direcciones ahora viven en client_address)
+  @Column(length = 500)
   private String address;
 
   // Retención

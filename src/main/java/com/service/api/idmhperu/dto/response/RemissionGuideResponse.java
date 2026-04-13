@@ -38,7 +38,10 @@ public class RemissionGuideResponse {
 
   // Destinatario (cliente)
   private ClientResponse client;
-  private ClientAddressResponse clientAddress;
+  /** Dirección del cliente usada en el comprobante. */
+  private String clientAddress;
+  /** Dirección registrada seleccionada (referencial, nullable). */
+  private ClientAddressResponse selectedClientAddress;
 
   // Transportista (TRANSPORTE_PUBLICO)
   private CarrierResponse carrier;

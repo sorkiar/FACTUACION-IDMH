@@ -105,7 +105,7 @@ public class CreditDebitNotePdfServiceImpl implements CreditDebitNotePdfService 
         Client client = note.getSale().getClient();
         row.put("comp_descripcion_cliente", resolveClientName(origDocTypeCode, client));
         row.put("clie_numero_documento", client.getDocumentNumber());
-        row.put("comp_direccion_cliente", client.getAddress());
+        row.put("comp_direccion_cliente", note.getSale().getClientAddress());
         row.put("comp_condicion_pago", "Contado");
         row.put("priorizar_despacho", false);
 

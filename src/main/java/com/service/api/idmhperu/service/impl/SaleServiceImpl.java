@@ -132,6 +132,8 @@ public class SaleServiceImpl implements SaleService {
     Client client = clientRepository.findById(request.getClientId())
         .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
     sale.setClient(client);
+    sale.setClientAddressId(request.getClientAddressId());
+    sale.setClientAddress(request.getClientAddress());
 
     if (Boolean.TRUE.equals(request.getDraft())) {
       sale.setSaleStatus("BORRADOR");
@@ -206,6 +208,12 @@ public class SaleServiceImpl implements SaleService {
       Client client = clientRepository.findById(request.getClientId())
           .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
       sale.setClient(client);
+    }
+    if (request.getClientAddressId() != null) {
+      sale.setClientAddressId(request.getClientAddressId());
+    }
+    if (request.getClientAddress() != null) {
+      sale.setClientAddress(request.getClientAddress());
     }
 
     sale.setCurrencyCode(resolveCurrencyCode(request.getCurrencyCode()));
@@ -542,7 +550,7 @@ public class SaleServiceImpl implements SaleService {
       // Cliente
       row.put("comp_descripcion_cliente", clientName);
       row.put("clie_numero_documento", client.getDocumentNumber());
-      row.put("comp_direccion_cliente", client.getAddress());
+      row.put("comp_direccion_cliente", request.getClientAddress());
 
       // Moneda
       row.put("comp_descripcion_moneda", request.getCurrencyCode().equalsIgnoreCase("PEN") ? "SOLES" : "DÓLARES");

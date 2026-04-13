@@ -25,6 +25,8 @@ public class SaleResponse {
   private BigDecimal detractionAmount;
   private List<String> relatedGuides;
   private ClientResponse client;
+  private Long clientAddressId;
+  private String clientAddress;
   private List<SaleItemResponse> items;
   private List<SalePaymentResponse> payments;
   private List<SaleInstallmentResponse> installments;

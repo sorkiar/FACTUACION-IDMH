@@ -1,6 +1,7 @@
 package com.service.api.idmhperu.job;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.text.Normalizer;
 import com.service.api.idmhperu.dto.entity.CreditDebitNote;
 import com.service.api.idmhperu.dto.entity.CreditDebitNoteItem;
 import com.service.api.idmhperu.dto.entity.DetractionCode;
@@ -281,7 +282,7 @@ public class SunatDocumentJobService {
 
     ClientSendRequest cliente = new ClientSendRequest();
     cliente.setClieNumeroDocumento(sale.getClient().getDocumentNumber());
-    cliente.setClieDireccion(sale.getClient().getAddress());
+    cliente.setClieDireccion(sale.getClientAddress());
 
     if ("01".equals(origDocTypeCode)) {
       cliente.setClieRazonSocial(sale.getClient().getBusinessName());
@@ -591,12 +592,16 @@ public class SunatDocumentJobService {
     // Destinatario (como cliente del comprobante)
     ClientSendRequest recipient = new ClientSendRequest();
     recipient.setClieNumeroDocumento(guide.getClient().getDocumentNumber());
-    String guideClientName = guide.getClient().getBusinessName() != null
-        ? guide.getClient().getBusinessName()
-        : (guide.getClient().getFirstName() != null ? guide.getClient().getFirstName() : "")
-            + " " + (guide.getClient().getLastName() != null ? guide.getClient().getLastName() : "");
+    String guideClientName;
+    String bName = guide.getClient().getBusinessName();
+    if (bName != null && !bName.isBlank()) {
+      guideClientName = bName;
+    } else {
+      guideClientName = (guide.getClient().getFirstName() != null ? guide.getClient().getFirstName() : "")
+          + " " + (guide.getClient().getLastName() != null ? guide.getClient().getLastName() : "");
+    }
     recipient.setClieRazonSocial(guideClientName.trim());
-    recipient.setClieDireccion(guide.getDestinationAddress());
+    recipient.setClieDireccion(guide.getClientAddress());
     recipient.setTipoDocumentoIdentidad(
         resolveDocIdentidad(guide.getClient().getDocumentType().getName()));
 
@@ -661,7 +666,7 @@ public class SunatDocumentJobService {
         dto.setGutrConductorApellidos(rgDriver.getDriver().getLastName());
         dto.setGutrConductorNumeroLicencia(rgDriver.getDriver().getLicenseNumber());
         dto.setGutrVehiculoPlaca(
-            rgDriver.getDriverVehicle() != null ? rgDriver.getDriverVehicle().getPlate() : "");
+            rgDriver.getVehiclePlate() != null ? rgDriver.getVehiclePlate() : "");
         transporteDtos.add(dto);
       }
       guia.setLsGuiaTransporte(transporteDtos);
@@ -746,11 +751,19 @@ public class SunatDocumentJobService {
   /** Resuelve el nombre del tipo de documento de identidad para el facturador. */
   private String resolveDocIdentidad(String tipoDoc) {
     if (tipoDoc == null) return "RUC";
-    return switch (tipoDoc.toUpperCase()) {
+    // Normalizar: quitar tildes y pasar a mayúsculas para manejar nombres display de la BD
+    String normalized = Normalizer.normalize(tipoDoc, Normalizer.Form.NFD)
+        .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
+        .toUpperCase();
+    return switch (normalized) {
       case "DNI", "1" -> "DNI";
       case "RUC", "6" -> "RUC";
-      case "CE", "4" -> "CARNET_EXTRANJERIA";
+      case "CE", "4", "CARNE DE EXTRANJERIA", "CARNET DE EXTRANJERIA",
+          "CARNET EXTRANJERIA", "CARNE EXTRANJERIA" -> "CARNET_EXTRANJERIA";
       case "PASAPORTE", "7" -> "PASAPORTE";
+      case "CEDULA DIPLOMATICA", "A" -> "CEDULA_DIPLOMATICA";
+      case "SIN DOCUMENTO", "0" -> "SIN_DOCUMENTO";
+      case "TARJETA ANDINA", "B" -> "TARJETA_ANDINA";
       default -> tipoDoc;
     };
   }
@@ -886,8 +899,7 @@ public class SunatDocumentJobService {
     cliente.setClieNumeroDocumento(
         sale.getClient().getDocumentNumber());
 
-    cliente.setClieDireccion(
-        sale.getClient().getAddress());
+    cliente.setClieDireccion(sale.getClientAddress());
 
     if ("01".equals(doc.getDocumentTypeSunat().getCode())) {
       cliente.setClieRazonSocial(

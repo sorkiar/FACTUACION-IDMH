@@ -34,8 +34,6 @@ public class ClientRequest {
   private String email1;
   private String email2;
 
-  private String address;
-
   private Boolean retentionAgent;
 
   @Valid

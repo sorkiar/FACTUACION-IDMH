@@ -125,8 +125,7 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
         row.put("clie_numero_documento",
             sale.getClient().getDocumentNumber());
 
-        row.put("comp_direccion_cliente",
-            sale.getClient().getAddress());
+        row.put("comp_direccion_cliente", sale.getClientAddress());
 
         row.put("comp_condicion_pago",
             sale.getPaymentType() != null ? sale.getPaymentType() : "CONTADO");

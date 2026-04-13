@@ -40,6 +40,14 @@ public class Sale {
   @JoinColumn(name = "client_id")
   private Client client;
 
+  /** ID de dirección registrada del cliente (referencial, nullable). */
+  @Column(name = "client_address_id")
+  private Long clientAddressId;
+
+  /** Dirección del cliente para el comprobante (texto plano). */
+  @Column(name = "client_address", length = 500)
+  private String clientAddress;
+
   @Column(name = "sale_status", length = 20, nullable = false)
   private String saleStatus;
 

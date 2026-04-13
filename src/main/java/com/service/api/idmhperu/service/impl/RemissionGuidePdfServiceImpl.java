@@ -159,8 +159,7 @@ public class RemissionGuidePdfServiceImpl implements RemissionGuidePdfService {
 
         // TRANSPORTE_PRIVADO
         row.put("vehiculo", null);
-        row.put("placa", firstDriver != null && firstDriver.getDriverVehicle() != null
-            ? firstDriver.getDriverVehicle().getPlate() : null);
+        row.put("placa", firstDriver != null ? firstDriver.getVehiclePlate() : null);
         row.put("chofer", firstDriver != null && firstDriver.getDriver() != null
             ? firstDriver.getDriver().getFirstName() + " " + firstDriver.getDriver().getLastName()
             : null);

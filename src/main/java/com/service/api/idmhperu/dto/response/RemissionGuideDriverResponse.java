@@ -8,4 +8,5 @@ public class RemissionGuideDriverResponse {
   private Long id;
   private DriverResponse driver;
   private DriverVehicleResponse driverVehicle;
+  private String vehiclePlate;
 }

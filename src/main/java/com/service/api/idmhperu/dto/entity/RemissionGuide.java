@@ -110,10 +110,14 @@ public class RemissionGuide {
   @JoinColumn(name = "client_id")
   private Client client;
 
-  // Dirección del cliente seleccionada (referencial, nullable)
+  /** Dirección del cliente para el comprobante (texto plano del request). */
+  @Column(name = "client_address", length = 500)
+  private String clientAddress;
+
+  /** Dirección registrada seleccionada del cliente (referencial, nullable). */
   @ManyToOne
   @JoinColumn(name = "client_address_id")
-  private ClientAddress clientAddress;
+  private ClientAddress selectedClientAddress;
 
   // Transportista (solo para TRANSPORTE_PUBLICO)
   @ManyToOne

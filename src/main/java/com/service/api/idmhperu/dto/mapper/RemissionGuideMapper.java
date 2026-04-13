@@ -18,6 +18,7 @@ public interface RemissionGuideMapper {
   @Mapping(target = "documentSeriesId", source = "documentSeries.id")
   @Mapping(target = "client", source = "client")
   @Mapping(target = "clientAddress", source = "clientAddress")
+  @Mapping(target = "selectedClientAddress", source = "selectedClientAddress")
   @Mapping(target = "carrier", source = "carrier")
   @Mapping(target = "items", source = "items")
   @Mapping(target = "drivers", source = "drivers")
@@ -30,5 +31,6 @@ public interface RemissionGuideMapper {
 
   @Mapping(target = "driver", source = "driver", qualifiedByName = "toDriverResponse")
   @Mapping(target = "driverVehicle", source = "driverVehicle")
+  @Mapping(target = "vehiclePlate", source = "vehiclePlate")
   RemissionGuideDriverResponse toDriverResponse(RemissionGuideDriver entity);
 }

@@ -66,7 +66,11 @@ public class RemissionGuideRequest {
   @NotNull(message = "clientId es obligatorio")
   private Long clientId;
 
-  // Dirección del cliente (referencial, puede ser null)
+  /** Dirección del cliente para el comprobante (obligatoria). */
+  @NotBlank(message = "La dirección del cliente es obligatoria")
+  private String clientAddress;
+
+  /** ID de dirección registrada del cliente (opcional, referencial). */
   private Long clientAddressId;
 
   /** ID del transportista (maestro). Requerido cuando transportMode = TRANSPORTE_PUBLICO. */

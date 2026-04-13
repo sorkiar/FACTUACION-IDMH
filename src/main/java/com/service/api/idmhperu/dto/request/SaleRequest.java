@@ -1,6 +1,7 @@
 package com.service.api.idmhperu.dto.request;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
@@ -10,6 +11,13 @@ import lombok.Data;
 public class SaleRequest {
   @NotNull
   private Long clientId;
+
+  /** ID de dirección registrada del cliente (opcional). */
+  private Long clientAddressId;
+
+  /** Dirección del cliente para el comprobante (obligatoria). */
+  @NotBlank(message = "La dirección del cliente es obligatoria")
+  private String clientAddress;
 
   @Valid
   @NotEmpty

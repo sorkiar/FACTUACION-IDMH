@@ -2,19 +2,25 @@ package com.service.api.idmhperu.dto.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
@@ -59,9 +65,11 @@ public class Client {
   @Column(name = "email_2", length = 150)
   private String email2;
 
-  // Dirección (nullable: las direcciones ahora viven en client_address)
-  @Column(length = 500)
-  private String address;
+  // Direcciones (excluye soft-deleted automáticamente)
+  @OneToMany(mappedBy = "client", fetch = FetchType.LAZY)
+  @SQLRestriction("deleted_at IS NULL")
+  @BatchSize(size = 30)
+  private List<ClientAddress> addresses = new ArrayList<>();
 
   // Retención
   @Column(name = "retention_agent", nullable = false)

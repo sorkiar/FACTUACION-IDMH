@@ -1,9 +1,12 @@
 package com.service.api.idmhperu.dto.external.apiperu;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ExternalRucData {
 
   @JsonProperty("ruc")
@@ -12,9 +15,11 @@ public class ExternalRucData {
   @JsonProperty("nombre_o_razon_social")
   private String name;
 
+  @JsonAlias({"estado", "estado_del_contribuyente"})
   @JsonProperty("estado_del_contribuyente")
   private String state;
 
+  @JsonAlias({"condicion", "condicion_de_domicilio"})
   @JsonProperty("condicion_de_domicilio")
   private String condition;
 
@@ -40,14 +45,14 @@ public class ExternalRucData {
   private String[] ubigeo;
 
   @JsonProperty("es_agente_de_retencion")
-  private Boolean isRetentionAgent;
+  private String isRetentionAgent;
 
   @JsonProperty("es_agente_de_percepcion")
-  private Boolean isPerceptionAgent;
+  private String isPerceptionAgent;
 
   @JsonProperty("es_agente_de_percepcion_combustible")
-  private Boolean isPerceptionFuelAgent;
+  private String isPerceptionFuelAgent;
 
   @JsonProperty("es_buen_contribuyente")
-  private Boolean isGoodTaxpayer;
+  private String isGoodTaxpayer;
 }

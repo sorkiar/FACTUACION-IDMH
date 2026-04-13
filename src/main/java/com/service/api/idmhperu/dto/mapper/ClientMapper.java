@@ -10,7 +10,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {ClientAddressMapper.class})
 public interface ClientMapper {
   /* ============================
      CREATE
@@ -19,7 +19,7 @@ public interface ClientMapper {
   @Mapping(target = "personType", ignore = true)
   @Mapping(target = "documentType", ignore = true)
   @Mapping(target = "status", ignore = true)
-  @Mapping(target = "address", ignore = true)
+  @Mapping(target = "addresses", ignore = true)
   @Mapping(target = "birthDate", source = "birthDate", dateFormat = "yyyy-MM-dd")
   @Mapping(target = "createdAt", ignore = true)
   @Mapping(target = "createdBy", ignore = true)
@@ -37,7 +37,7 @@ public interface ClientMapper {
   @Mapping(target = "personType", ignore = true)
   @Mapping(target = "documentType", ignore = true)
   @Mapping(target = "status", ignore = true)
-  @Mapping(target = "address", ignore = true)
+  @Mapping(target = "addresses", ignore = true)
   @Mapping(target = "createdAt", ignore = true)
   @Mapping(target = "createdBy", ignore = true)
   @Mapping(target = "updatedAt", ignore = true)
@@ -54,7 +54,6 @@ public interface ClientMapper {
   @Mapping(target = "documentTypeId", source = "documentType.id")
   @Mapping(target = "documentType", source = "documentType.name")
   @Mapping(target = "birthDate", source = "birthDate", dateFormat = "yyyy-MM-dd")
-  @Mapping(target = "addresses", ignore = true)
   ClientResponse toResponse(Client client);
 
   List<ClientResponse> toResponseList(List<Client> clients);

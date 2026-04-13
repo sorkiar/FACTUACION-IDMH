@@ -1,5 +1,9 @@
 package com.service.api.idmhperu.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.service.api.idmhperu.dto.entity.Configuration;
 import com.service.api.idmhperu.dto.entity.DniRecord;
 import com.service.api.idmhperu.dto.entity.RucRecord;
@@ -20,7 +24,7 @@ import com.service.api.idmhperu.util.JwtUtils;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.ParameterizedTypeReference;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -28,6 +32,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DocumentLookupServiceImpl implements DocumentLookupService {
@@ -42,7 +47,8 @@ public class DocumentLookupServiceImpl implements DocumentLookupService {
   private final ConfigurationRepository configurationRepository;
   private final DniRecordMapper dniRecordMapper;
   private final RucRecordMapper rucRecordMapper;
-  private final RestTemplate restTemplate = new RestTemplate(); // not injected — created inline
+  private final ObjectMapper objectMapper;
+  private final RestTemplate restTemplate;
 
   @Override
   public ApiResponse<DniRecordResponse> queryDni(String dni) {
@@ -54,18 +60,31 @@ public class DocumentLookupServiceImpl implements DocumentLookupService {
     String token = resolveToken();
     HttpHeaders headers = buildHeaders(token);
 
-    ResponseEntity<ExternalApiResponse<ExternalDniData>> response = restTemplate.exchange(
-        APIPERU_BASE_URL + "/dni/" + dni,
-        HttpMethod.GET,
-        new HttpEntity<>(headers),
-        new ParameterizedTypeReference<ExternalApiResponse<ExternalDniData>>() {}
-    );
+    ResponseEntity<String> response;
+    try {
+      response = restTemplate.exchange(
+          APIPERU_BASE_URL + "/dni/" + dni,
+          HttpMethod.GET,
+          new HttpEntity<>(headers),
+          String.class);
+    } catch (Exception e) {
+      log.error("Error comunicándose con la API externa para el DNI {}", dni, e);
+      throw new BusinessValidationException("Error comunicándose con la API externa");
+    }
 
-    ExternalApiResponse<ExternalDniData> body = response.getBody();
+    ExternalApiResponse<ExternalDniData> body;
+    try {
+      body = objectMapper.readValue(response.getBody(), new TypeReference<ExternalApiResponse<ExternalDniData>>() {
+      });
+    } catch (JsonProcessingException e) {
+      log.error("Error deserializando la respuesta JSON para el DNI {}. Respuesta original: {}", dni,
+          response.getBody(), e);
+      throw new BusinessValidationException("A ocurrido un error procesando la estructura de datos");
+    }
     if (body == null || body.getSuccess() == null) {
       throw new BusinessValidationException("La API externa no respondió correctamente");
     }
-    if (!Boolean.TRUE.equals(body.getSuccess())) {
+    if (!body.getSuccess()) {
       throw new BusinessValidationException(body.getMessage());
     }
 
@@ -93,18 +112,31 @@ public class DocumentLookupServiceImpl implements DocumentLookupService {
     String token = resolveToken();
     HttpHeaders headers = buildHeaders(token);
 
-    ResponseEntity<ExternalApiResponse<ExternalRucData>> response = restTemplate.exchange(
-        APIPERU_BASE_URL + "/ruc/" + ruc,
-        HttpMethod.GET,
-        new HttpEntity<>(headers),
-        new ParameterizedTypeReference<ExternalApiResponse<ExternalRucData>>() {}
-    );
+    ResponseEntity<String> response;
+    try {
+      response = restTemplate.exchange(
+          APIPERU_BASE_URL + "/ruc/" + ruc,
+          HttpMethod.GET,
+          new HttpEntity<>(headers),
+          String.class);
+    } catch (Exception e) {
+      log.error("Error comunicándose con la API externa para el RUC {}", ruc, e);
+      throw new BusinessValidationException("Error comunicándose con la API externa");
+    }
 
-    ExternalApiResponse<ExternalRucData> body = response.getBody();
+    ExternalApiResponse<ExternalRucData> body;
+    try {
+      body = objectMapper.readValue(response.getBody(), new TypeReference<ExternalApiResponse<ExternalRucData>>() {
+      });
+    } catch (JsonProcessingException e) {
+      log.error("Error deserializando la respuesta JSON para el RUC {}. Respuesta original: {}", ruc,
+          response.getBody(), e);
+      throw new BusinessValidationException("A ocurrido un error procesando la estructura de datos");
+    }
     if (body == null || body.getSuccess() == null) {
       throw new BusinessValidationException("La API externa no respondió correctamente");
     }
-    if (!Boolean.TRUE.equals(body.getSuccess())) {
+    if (!body.getSuccess()) {
       throw new BusinessValidationException(body.getMessage());
     }
 

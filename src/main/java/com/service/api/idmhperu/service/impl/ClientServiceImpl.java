@@ -40,19 +40,18 @@ public class ClientServiceImpl implements ClientService {
   private final ClientAddressMapper addressMapper;
 
   @Override
+  @Transactional
   public ApiResponse<List<ClientResponse>> findAll(ClientFilter filter) {
     return new ApiResponse<>("Clientes listados correctamente",
         mapper.toResponseList(repository.findAll(ClientSpecification.byFilter(filter))));
   }
 
   @Override
+  @Transactional
   public ApiResponse<ClientResponse> findById(Long id) {
     Client client = repository.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado"));
-    ClientResponse response = mapper.toResponse(client);
-    response.setAddresses(
-        addressMapper.toResponseList(addressRepository.findByClientIdAndDeletedAtIsNull(id)));
-    return new ApiResponse<>("Cliente obtenido correctamente", response);
+    return new ApiResponse<>("Cliente obtenido correctamente", mapper.toResponse(client));
   }
 
   @Override

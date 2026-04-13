@@ -141,13 +141,16 @@ public class RemissionGuideServiceImpl implements RemissionGuideService {
         .orElseThrow(() -> new ResourceNotFoundException("Destinatario no encontrado"));
     guide.setClient(client);
 
-    // Dirección del cliente (referencial, nullable)
+    // Dirección del cliente para el comprobante (texto obligatorio del request)
+    guide.setClientAddress(request.getClientAddress());
+
+    // Dirección registrada del cliente (referencial, nullable)
     if (request.getClientAddressId() != null) {
-      ClientAddress clientAddress = clientAddressRepository
+      ClientAddress selectedAddress = clientAddressRepository
           .findByIdAndClientIdAndDeletedAtIsNull(request.getClientAddressId(), client.getId())
           .orElseThrow(
               () -> new ResourceNotFoundException("Dirección del destinatario no encontrada"));
-      guide.setClientAddress(clientAddress);
+      guide.setSelectedClientAddress(selectedAddress);
     }
 
     // Transportista (TRANSPORTE_PUBLICO → master carrier)
@@ -203,15 +206,21 @@ public class RemissionGuideServiceImpl implements RemissionGuideService {
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Conductor no encontrado o inactivo: id=" + driverReq.getDriverId()));
 
-        DriverVehicle vehicle = vehicleRepository
-            .findByIdAndDriverIdAndDeletedAtIsNull(driverReq.getVehiclePlateId(), driver.getId())
-            .orElseThrow(() -> new ResourceNotFoundException(
-                "Placa no encontrada para el conductor id=" + driverReq.getDriverId()));
-
         RemissionGuideDriver guideDriver = new RemissionGuideDriver();
         guideDriver.setRemissionGuide(guide);
         guideDriver.setDriver(driver);
-        guideDriver.setDriverVehicle(vehicle);
+
+        if (driverReq.getVehiclePlateId() != null) {
+          DriverVehicle vehicle = vehicleRepository
+              .findByIdAndDriverIdAndDeletedAtIsNull(driverReq.getVehiclePlateId(), driver.getId())
+              .orElseThrow(() -> new ResourceNotFoundException(
+                  "Placa no encontrada para el conductor id=" + driverReq.getDriverId()));
+          guideDriver.setDriverVehicle(vehicle);
+          guideDriver.setVehiclePlate(vehicle.getPlate());
+        } else {
+          guideDriver.setVehiclePlate(driverReq.getVehiclePlate());
+        }
+
         guideDriver.setCreatedBy(username);
         driverRepository.save(guideDriver);
       }

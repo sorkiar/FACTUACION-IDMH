@@ -44,6 +44,10 @@ public class RemissionGuideDriver {
   @JoinColumn(name = "driver_vehicle_id")
   private DriverVehicle driverVehicle;
 
+  /** Placa denormalizada (del maestro o ingresada manualmente). */
+  @Column(name = "vehicle_plate", length = 20)
+  private String vehiclePlate;
+
   // Auditoría
   @CreationTimestamp
   @Column(name = "created_at", updatable = false)

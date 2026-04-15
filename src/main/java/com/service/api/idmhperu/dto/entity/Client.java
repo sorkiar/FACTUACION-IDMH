@@ -56,9 +56,13 @@ public class Client {
   private String contactPersonName;
 
   // Contacto
-  @Column(name = "phone_1", length = 15)
+  @Column(name = "country_code_1", length = 10)
+  private String countryCode1;
+  @Column(name = "phone_1", length = 25)
   private String phone1;
-  @Column(name = "phone_2", length = 15)
+  @Column(name = "country_code_2", length = 10)
+  private String countryCode2;
+  @Column(name = "phone_2", length = 25)
   private String phone2;
   @Column(name = "email_1", length = 150)
   private String email1;

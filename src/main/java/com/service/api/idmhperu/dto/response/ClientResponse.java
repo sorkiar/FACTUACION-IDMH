@@ -17,8 +17,10 @@ public class ClientResponse {
   private LocalDate birthDate;
   private String businessName;
   private String contactPersonName;
+  private String countryCode1;
   private String phone1;
   private String email1;
+  private String countryCode2;
   private String phone2;
   private String email2;
   private Boolean retentionAgent;

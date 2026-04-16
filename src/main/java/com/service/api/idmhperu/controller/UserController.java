@@ -1,6 +1,7 @@
 package com.service.api.idmhperu.controller;
 
 import com.service.api.idmhperu.dto.filter.UserFilter;
+import com.service.api.idmhperu.dto.request.ChangePasswordRequest;
 import com.service.api.idmhperu.dto.request.UserRequest;
 import com.service.api.idmhperu.dto.request.UserStatusRequest;
 import com.service.api.idmhperu.dto.response.ApiResponse;
@@ -59,5 +60,12 @@ public class UserController {
       @Valid @RequestBody UserStatusRequest request
   ) {
     return service.updateStatus(id, request);
+  }
+
+  @PatchMapping("/me/password")
+  public ApiResponse<Void> changePassword(
+      @Valid @RequestBody ChangePasswordRequest request
+  ) {
+    return service.changePassword(request);
   }
 }

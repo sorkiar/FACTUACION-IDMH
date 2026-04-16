@@ -5,6 +5,7 @@ import com.service.api.idmhperu.dto.entity.Profile;
 import com.service.api.idmhperu.dto.entity.User;
 import com.service.api.idmhperu.dto.filter.UserFilter;
 import com.service.api.idmhperu.dto.mapper.UserMapper;
+import com.service.api.idmhperu.dto.request.ChangePasswordRequest;
 import com.service.api.idmhperu.dto.request.UserRequest;
 import com.service.api.idmhperu.dto.request.UserStatusRequest;
 import com.service.api.idmhperu.dto.response.ApiResponse;
@@ -64,6 +65,7 @@ public class UserServiceImpl implements UserService {
     user.setLastName(request.getLastName());
     user.setUsername(request.getUsername());
     user.setPassword(passwordEncoder.encode(request.getPassword()));
+    user.setPlainPassword(request.getPassword());
     user.setStatus(1);
     user.setCreatedBy(JwtUtils.extractUsernameFromContext());
 
@@ -102,5 +104,21 @@ public class UserServiceImpl implements UserService {
     repository.save(user);
 
     return new ApiResponse<>("Estado actualizado correctamente", null);
+  }
+
+  @Override
+  public ApiResponse<Void> changePassword(ChangePasswordRequest request) {
+    String username = JwtUtils.extractUsernameFromContext();
+
+    User user = repository.findByUsername(username)
+        .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+
+    user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+    user.setPlainPassword(request.getNewPassword());
+    user.setUpdatedBy(username);
+
+    repository.save(user);
+
+    return new ApiResponse<>("Contraseña actualizada correctamente", null);
   }
 }

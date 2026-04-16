@@ -45,6 +45,9 @@ public class User {
   private String username;
   private String password;
 
+  @Column(name = "plain_password", length = 50)
+  private String plainPassword;
+
   // Estado
   private Integer status;
 

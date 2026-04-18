@@ -45,8 +45,6 @@ public class CreditDebitNotePdfServiceImpl implements CreditDebitNotePdfService 
   @Value("${drive.folder-id.notas}")
   private String notasFolderId;
 
-  private static final String COMPANY_RUC = "20602592457";
-
   @Override
   @Transactional
   public void generatePdf(Long noteId) {
@@ -69,6 +67,8 @@ public class CreditDebitNotePdfServiceImpl implements CreditDebitNotePdfService 
           + "-" + note.getOriginalDocument().getSequence();
       String tipoNotaDesc = note.getCreditDebitNoteType().getName();
 
+      Map<String, String> config = configurationService.getGroup("empresa_emisora");
+
       List<Map<String, Object>> dataList = new ArrayList<>();
 
       for (CreditDebitNoteItem item : items) {
@@ -76,7 +76,6 @@ public class CreditDebitNotePdfServiceImpl implements CreditDebitNotePdfService 
         Map<String, Object> row = new HashMap<>();
 
         // ================= EMPRESA =================
-        Map<String, String> config = configurationService.getGroup("empresa_emisora");
         row.put("empr_ruc", config.get("emprRuc"));
         row.put("empr_razon_social", config.get("emprRazonSocial"));
         row.put("empr_nombre_comercial", config.get("emprNombreComercial"));
@@ -158,7 +157,7 @@ public class CreditDebitNotePdfServiceImpl implements CreditDebitNotePdfService 
         row.put("icbper", 0.0);
 
         // ================= QR =================
-        row.put("comp_cadena_qr", buildQrString(note));
+        row.put("comp_cadena_qr", buildQrString(note, config.get("emprRuc")));
         row.put("comp_codigo_hash", "");
 
         dataList.add(row);
@@ -179,7 +178,7 @@ public class CreditDebitNotePdfServiceImpl implements CreditDebitNotePdfService 
           JasperFillManager.fillReport(jasperReport, parameters, dataSource);
 
       // Nombre archivo
-      String fileName = COMPANY_RUC + "-"
+      String fileName = config.get("emprRuc") + "-"
           + note.getDocumentTypeSunat().getCode() + "-"
           + note.getSeries() + "-"
           + note.getSequence() + ".pdf";
@@ -218,9 +217,9 @@ public class CreditDebitNotePdfServiceImpl implements CreditDebitNotePdfService 
     return fullName.trim();
   }
 
-  private String buildQrString(CreditDebitNote note) {
+  private String buildQrString(CreditDebitNote note, String companyRuc) {
     Sale sale = note.getSale();
-    return COMPANY_RUC + "|" +
+    return companyRuc + "|" +
         note.getDocumentTypeSunat().getCode() + "|" +
         note.getSeries() + "|" +
         note.getSequence() + "|" +

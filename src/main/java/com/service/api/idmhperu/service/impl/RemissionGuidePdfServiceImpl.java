@@ -45,7 +45,6 @@ public class RemissionGuidePdfServiceImpl implements RemissionGuidePdfService {
   @Value("${drive.folder-id.guias}")
   private String guiasFolderId;
 
-  private static final String COMPANY_RUC = "20602592457";
   private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
   @Override
@@ -77,7 +76,7 @@ public class RemissionGuidePdfServiceImpl implements RemissionGuidePdfService {
 
       // Construir cadena QR
       String numDoc = guide.getClient().getDocumentNumber();
-      String qrString = COMPANY_RUC + " | 09 | "
+      String qrString = config.get("emprRuc") + " | 09 | "
           + guide.getSeries() + " | "
           + guide.getSequence() + " | "
           + guide.getIssueDate().format(DATE_FMT) + " | 6 | "
@@ -211,7 +210,7 @@ public class RemissionGuidePdfServiceImpl implements RemissionGuidePdfService {
           JasperFillManager.fillReport(jasperReport, parameters, dataSource);
 
       // Nombre del archivo
-      String fileName = COMPANY_RUC + "-09-"
+      String fileName = config.get("emprRuc") + "-09-"
           + guide.getSeries() + "-"
           + guide.getSequence() + ".pdf";
 

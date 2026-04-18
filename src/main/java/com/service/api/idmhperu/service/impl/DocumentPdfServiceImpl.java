@@ -60,8 +60,6 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
   @Value("${drive.folder-id.facturas}")
   private String facturasFolderId;
 
-  private static final String COMPANY_RUC = "20602592457";
-
   @Override
   @Transactional
   public void generatePdf(Long saleId) {
@@ -76,6 +74,8 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
       // Construir datos del reporte
       // ================================
 
+      Map<String, String> config = configurationService.getGroup("empresa_emisora");
+
       List<Map<String, Object>> dataList = new ArrayList<>();
 
       List<SaleItem> items = saleItemRepository.findBySaleId(saleId);
@@ -89,9 +89,6 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
         Map<String, Object> row = new HashMap<>();
 
         // ================= EMPRESA =================
-
-        Map<String, String> config =
-            configurationService.getGroup("empresa_emisora");
 
         row.put("empr_ruc", config.get("emprRuc"));
         row.put("empr_razon_social", config.get("emprRazonSocial"));
@@ -178,7 +175,7 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
         row.put("icbper", 0.0);
 
         // ================= QR =================
-        row.put("comp_cadena_qr", buildQrString(document, sale));
+        row.put("comp_cadena_qr", buildQrString(document, sale, config.get("emprRuc")));
         row.put("comp_codigo_hash", "");
 
         dataList.add(row);
@@ -280,7 +277,7 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
       // ================================
 
       String fileName =
-          COMPANY_RUC + "-" +
+          config.get("emprRuc") + "-" +
               document.getDocumentTypeSunat().getCode() + "-" +
               document.getSeries() + "-" +
               document.getSequence() + ".pdf";
@@ -347,11 +344,11 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
     return "";
   }
 
-  private String buildQrString(Document document, Sale sale) {
+  private String buildQrString(Document document, Sale sale, String companyRuc) {
 
     if (document.getDocumentTypeSunat() == null) return "";
 
-    return COMPANY_RUC + "|" +
+    return companyRuc + "|" +
         document.getDocumentTypeSunat().getCode() + "|" +
         document.getSeries() + "|" +
         document.getSequence() + "|" +

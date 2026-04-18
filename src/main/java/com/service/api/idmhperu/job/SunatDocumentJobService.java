@@ -114,7 +114,6 @@ public class SunatDocumentJobService {
   @Value("${drive.folder-id.guias}")
   private String guiasFolderId;
 
-  private static final String COMPANY_RUC = "20602592457";
 
   /**
    * Tick base: se ejecuta cada minuto y procesa cada tipo de comprobante
@@ -1136,9 +1135,10 @@ public class SunatDocumentJobService {
                                    String sequence, String xmlBase64, String cdrBase64,
                                    String folderId) {
     try {
-      String xmlFileName = "XML-" + COMPANY_RUC + "-" + typeCode + "-"
+      String companyRuc = configurationService.getGroup("empresa_emisora").get("emprRuc");
+      String xmlFileName = "XML-" + companyRuc + "-" + typeCode + "-"
           + series + "-" + sequence + ".xml";
-      String cdrFileName = "CDR-" + COMPANY_RUC + "-" + typeCode + "-"
+      String cdrFileName = "CDR-" + companyRuc + "-" + typeCode + "-"
           + series + "-" + sequence + ".xml";
 
       File xmlFile = new File(

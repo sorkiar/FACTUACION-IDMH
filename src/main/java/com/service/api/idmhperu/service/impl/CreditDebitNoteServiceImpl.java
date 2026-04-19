@@ -162,10 +162,9 @@ public class CreditDebitNoteServiceImpl implements CreditDebitNoteService {
 
     // 8. Procesar items y calcular totales
     BigDecimal subtotal = BigDecimal.ZERO;
-    BigDecimal tax = BigDecimal.ZERO;
-    BigDecimal total = BigDecimal.ZERO;
 
-    BigDecimal divisor = BigDecimal.ONE.add(new BigDecimal("0.18"));
+    BigDecimal taxRate = new BigDecimal("0.18");
+    BigDecimal hundred = new BigDecimal("100");
 
     for (CreditDebitNoteItemRequest itemReq : request.getItems()) {
 
@@ -173,20 +172,16 @@ public class CreditDebitNoteServiceImpl implements CreditDebitNoteService {
           ? itemReq.getDiscountPercentage()
           : BigDecimal.ZERO;
 
-      BigDecimal grossTotal = itemReq.getQuantity()
+      // lineTotal = qty × unitPrice × (1 - disc/100) — no intermediate rounding
+      BigDecimal lineTotal = itemReq.getQuantity()
           .multiply(itemReq.getUnitPrice())
-          .setScale(2, RoundingMode.HALF_UP);
+          .multiply(hundred.subtract(discountPct))
+          .divide(hundred, 10, RoundingMode.HALF_UP);
 
-      BigDecimal discountAmount = grossTotal
-          .multiply(discountPct)
-          .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+      BigDecimal itemTax = lineTotal.multiply(taxRate);
+      BigDecimal itemTotal = lineTotal.add(itemTax);
 
-      BigDecimal itemTotal = grossTotal.subtract(discountAmount);
-
-      BigDecimal itemBase = itemTotal.divide(divisor, 10, RoundingMode.HALF_UP);
-      BigDecimal itemTax = itemTotal.subtract(itemBase);
-
-      itemBase = itemBase.setScale(2, RoundingMode.HALF_UP);
+      BigDecimal itemBase = lineTotal.setScale(2, RoundingMode.HALF_UP);
       itemTax = itemTax.setScale(2, RoundingMode.HALF_UP);
 
       CreditDebitNoteItem item = new CreditDebitNoteItem();
@@ -198,7 +193,7 @@ public class CreditDebitNoteServiceImpl implements CreditDebitNoteService {
       item.setDiscountPercentage(discountPct);
       item.setSubtotalAmount(itemBase);
       item.setTaxAmount(itemTax);
-      item.setTotalAmount(itemTotal);
+      item.setTotalAmount(itemTotal.setScale(2, RoundingMode.HALF_UP));
       item.setCreatedBy(username);
 
       if ("PRODUCTO".equals(itemReq.getItemType())) {
@@ -222,14 +217,16 @@ public class CreditDebitNoteServiceImpl implements CreditDebitNoteService {
 
       noteItemRepository.save(item);
 
-      subtotal = subtotal.add(itemBase);
-      tax = tax.add(itemTax);
-      total = total.add(itemTotal);
+      subtotal = subtotal.add(lineTotal);  // accumulate unrounded
     }
 
-    note.setSubtotalAmount(subtotal);
-    note.setTaxAmount(tax);
-    note.setTotalAmount(total);
+    // Global totals — round only when persisting (HALF_UP, 2 dec)
+    BigDecimal igv = subtotal.multiply(taxRate);
+    BigDecimal total = subtotal.add(igv);
+
+    note.setSubtotalAmount(subtotal.setScale(2, RoundingMode.HALF_UP));
+    note.setTaxAmount(igv.setScale(2, RoundingMode.HALF_UP));
+    note.setTotalAmount(total.setScale(2, RoundingMode.HALF_UP));
     noteRepository.save(note);
 
     creditDebitNotePdfService.generatePdf(note.getId());

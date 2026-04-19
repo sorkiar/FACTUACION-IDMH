@@ -274,10 +274,9 @@ public class SaleServiceImpl implements SaleService {
     }
 
     BigDecimal subtotal = BigDecimal.ZERO;
-    BigDecimal tax = BigDecimal.ZERO;
-    BigDecimal total = BigDecimal.ZERO;
 
     BigDecimal taxRate = new BigDecimal("0.18");
+    BigDecimal hundred = new BigDecimal("100");
 
     List<SaleItem> itemsToSave = new ArrayList<>();
 
@@ -287,21 +286,14 @@ public class SaleServiceImpl implements SaleService {
           ? itemReq.getDiscountPercentage()
           : BigDecimal.ZERO;
 
-      BigDecimal grossTotal =
-          itemReq.getQuantity()
-              .multiply(itemReq.getUnitPrice())
-              .setScale(2, RoundingMode.HALF_UP);
+      // lineTotal = qty × unitPrice × (1 - disc/100) — no intermediate rounding
+      BigDecimal lineTotal = itemReq.getQuantity()
+          .multiply(itemReq.getUnitPrice())
+          .multiply(hundred.subtract(discountPct))
+          .divide(hundred, 10, RoundingMode.HALF_UP);
 
-      BigDecimal discountAmount =
-          grossTotal.multiply(discountPct)
-              .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-
-      BigDecimal itemBase = grossTotal.subtract(discountAmount);
-
-      BigDecimal itemTax =
-          itemBase.multiply(taxRate).setScale(2, RoundingMode.HALF_UP);
-
-      BigDecimal itemTotal = itemBase.add(itemTax);
+      BigDecimal itemTax = lineTotal.multiply(taxRate);
+      BigDecimal itemTotal = lineTotal.add(itemTax);
 
       SaleItem item = new SaleItem();
 
@@ -335,21 +327,27 @@ public class SaleServiceImpl implements SaleService {
       item.setQuantity(itemReq.getQuantity());
       item.setUnitPrice(itemReq.getUnitPrice());
       item.setDiscountPercentage(discountPct);
-      item.setSubtotalAmount(itemBase);
-      item.setTaxAmount(itemTax);
-      item.setTotalAmount(itemTotal);
+      item.setSubtotalAmount(lineTotal.setScale(2, RoundingMode.HALF_UP));
+      item.setTaxAmount(itemTax.setScale(2, RoundingMode.HALF_UP));
+      item.setTotalAmount(itemTotal.setScale(2, RoundingMode.HALF_UP));
       item.setCreatedBy(username);
 
       itemsToSave.add(item);
 
-      subtotal = subtotal.add(itemBase);
-      tax = tax.add(itemTax);
-      total = total.add(itemTotal);
+      subtotal = subtotal.add(lineTotal);  // accumulate unrounded
     }
 
     saleItemRepository.saveAll(itemsToSave);
 
-    return new Totals(subtotal, tax, total);
+    // Global totals — round only when persisting (HALF_UP, 2 dec)
+    BigDecimal igv = subtotal.multiply(taxRate);
+    BigDecimal total = subtotal.add(igv);
+
+    return new Totals(
+        subtotal.setScale(2, RoundingMode.HALF_UP),
+        igv.setScale(2, RoundingMode.HALF_UP),
+        total.setScale(2, RoundingMode.HALF_UP)
+    );
   }
 
   private void processPayments(
@@ -788,7 +786,9 @@ public class SaleServiceImpl implements SaleService {
     if (documentSeriesId == null) return;
 
     DocumentSeries series = documentSeriesRepository.findById(documentSeriesId).orElse(null);
-    if (series == null || !"01".equals(series.getDocumentTypeSunat().getCode())) return;
+    if (series == null) return;
+    String docTypeCode = series.getDocumentTypeSunat().getCode();
+    if (!"01".equals(docTypeCode) && !"03".equals(docTypeCode)) return;
 
     // Recopilar códigos de detracción de los ítems (load directly — in-memory set may be empty)
     List<SaleItem> saleItems = saleItemRepository.findBySaleIdAndDeletedAtIsNull(sale.getId());

@@ -297,15 +297,18 @@ public class SunatDocumentJobService {
     for (CreditDebitNoteItem item : items) {
 
       BigDecimal cantidad = item.getQuantity();
-      BigDecimal precioConIgv = item.getUnitPrice();
-      BigDecimal valorUnitario = precioConIgv.divide(
-          new BigDecimal("1.18"), 6, RoundingMode.HALF_UP);
 
-      // Descuento: diferencia entre precio bruto y total neto almacenado
-      BigDecimal grossTotal = cantidad.multiply(precioConIgv)
+      // unitPrice es la BASE sin IGV (nuevo modelo igual que Sale)
+      BigDecimal valorUnitario = item.getUnitPrice();
+      BigDecimal precioConIgv = item.getUnitPrice()
+          .multiply(new BigDecimal("1.18"))
           .setScale(2, RoundingMode.HALF_UP);
-      BigDecimal descuentoAfecta = grossTotal
-          .subtract(item.getTotalAmount())
+
+      // Garantiza: valorUnitario × cantidad - descuentoAfecta == itcoSubTotal
+      BigDecimal grossBase = cantidad.multiply(item.getUnitPrice())
+          .setScale(2, RoundingMode.HALF_UP);
+      BigDecimal descuentoAfecta = grossBase
+          .subtract(item.getSubtotalAmount())
           .setScale(2, RoundingMode.HALF_UP);
 
       ItemSendRequest dto = new ItemSendRequest();
@@ -316,8 +319,8 @@ public class SunatDocumentJobService {
       dto.setItcoUnidadMedida(unidad);
       dto.setItcoDescripcion(item.getDescription());
       dto.setItcoCantidad(cantidad);
-      dto.setItcoValorUnitario(valorUnitario); // 6 dec — evita desfase con itcoSubTotal al multiplicar por cantidad
-      dto.setItcoPrecioUnitario(precioConIgv.setScale(2, RoundingMode.HALF_UP));
+      dto.setItcoValorUnitario(valorUnitario);
+      dto.setItcoPrecioUnitario(precioConIgv);
       dto.setItcoDescuentoAfecta(descuentoAfecta);
       dto.setItcoSubTotal(item.getSubtotalAmount());
       dto.setItcoIgv(item.getTaxAmount());

@@ -12,6 +12,7 @@ import com.service.api.idmhperu.dto.request.ClientStatusRequest;
 import com.service.api.idmhperu.dto.response.ApiResponse;
 import com.service.api.idmhperu.dto.response.ClientAddressResponse;
 import com.service.api.idmhperu.dto.response.ClientResponse;
+import com.service.api.idmhperu.exception.BusinessValidationException;
 import com.service.api.idmhperu.exception.ResourceNotFoundException;
 import com.service.api.idmhperu.repository.ClientAddressRepository;
 import com.service.api.idmhperu.repository.ClientRepository;
@@ -64,6 +65,12 @@ public class ClientServiceImpl implements ClientService {
 
     validator.validateByPersonType(personType, request);
 
+    if (repository.existsByDocumentTypeIdAndDocumentNumberAndDeletedAtIsNull(
+        request.getDocumentTypeId(), request.getDocumentNumber())) {
+      throw new BusinessValidationException(
+          "Ya existe un cliente con ese tipo y número de documento");
+    }
+
     Client client = mapper.toEntity(request);
     client.setPersonType(personType);
     client.setDocumentType(documentTypeRepository.findById(request.getDocumentTypeId())
@@ -104,6 +111,12 @@ public class ClientServiceImpl implements ClientService {
         .orElseThrow(() -> new ResourceNotFoundException("Tipo de persona no válido"));
 
     validator.validateByPersonType(personType, request);
+
+    if (repository.existsByDocumentTypeIdAndDocumentNumberAndDeletedAtIsNullAndIdNot(
+        request.getDocumentTypeId(), request.getDocumentNumber(), id)) {
+      throw new BusinessValidationException(
+          "Ya existe un cliente con ese tipo y número de documento");
+    }
 
     mapper.updateEntity(client, request);
     client.setPersonType(personType);

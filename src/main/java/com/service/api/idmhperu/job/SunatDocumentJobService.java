@@ -298,18 +298,17 @@ public class SunatDocumentJobService {
 
       BigDecimal cantidad = item.getQuantity();
 
-      // unitPrice es la BASE sin IGV (nuevo modelo igual que Sale)
-      BigDecimal valorUnitario = item.getUnitPrice();
-      BigDecimal precioConIgv = item.getUnitPrice()
-          .multiply(new BigDecimal("1.18"))
-          .setScale(2, RoundingMode.HALF_UP);
-
-      // Garantiza: valorUnitario × cantidad - descuentoAfecta == itcoSubTotal
-      BigDecimal grossBase = cantidad.multiply(item.getUnitPrice())
-          .setScale(2, RoundingMode.HALF_UP);
-      BigDecimal descuentoAfecta = grossBase
-          .subtract(item.getSubtotalAmount())
-          .setScale(2, RoundingMode.HALF_UP);
+      // SUNAT regla 3271: LineExtensionAmount = CreditedQuantity × Price/PriceAmount
+      // → Price/PriceAmount debe ser el valor unitario NETO (subtotalAmount / cantidad)
+      //   para que qty × valorUnitario == LineExtensionAmount (subtotalAmount).
+      // El descuento ya está en subtotalAmount; no se envía AllowanceCharge separado.
+      // Precio con IGV se deriva de totalAmount / cantidad (IGV calculado desde subtotal).
+      BigDecimal netValorUnitario = cantidad.compareTo(BigDecimal.ZERO) != 0
+          ? item.getSubtotalAmount().divide(cantidad, 6, RoundingMode.HALF_UP)
+          : item.getUnitPrice();
+      BigDecimal netPrecioConIgv = cantidad.compareTo(BigDecimal.ZERO) != 0
+          ? item.getTotalAmount().divide(cantidad, 6, RoundingMode.HALF_UP)
+          : item.getUnitPrice().multiply(new BigDecimal("1.18")).setScale(2, RoundingMode.HALF_UP);
 
       ItemSendRequest dto = new ItemSendRequest();
       String unidad = "NIU";
@@ -319,9 +318,9 @@ public class SunatDocumentJobService {
       dto.setItcoUnidadMedida(unidad);
       dto.setItcoDescripcion(item.getDescription());
       dto.setItcoCantidad(cantidad);
-      dto.setItcoValorUnitario(valorUnitario);
-      dto.setItcoPrecioUnitario(precioConIgv);
-      dto.setItcoDescuentoAfecta(descuentoAfecta);
+      dto.setItcoValorUnitario(netValorUnitario);
+      dto.setItcoPrecioUnitario(netPrecioConIgv);
+      dto.setItcoDescuentoAfecta(BigDecimal.ZERO);
       dto.setItcoSubTotal(item.getSubtotalAmount());
       dto.setItcoIgv(item.getTaxAmount());
       dto.setItcoTotal(item.getTotalAmount());

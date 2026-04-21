@@ -21,6 +21,12 @@ public interface ClientRepository
   @NullMarked
   List<Client> findAll(Specification<Client> spec);
 
+  boolean existsByDocumentTypeIdAndDocumentNumberAndDeletedAtIsNull(
+      Long documentTypeId, String documentNumber);
+
+  boolean existsByDocumentTypeIdAndDocumentNumberAndDeletedAtIsNullAndIdNot(
+      Long documentTypeId, String documentNumber, Long id);
+
   long countByDeletedAtIsNull();
 
   long countByCreatedAtBetweenAndDeletedAtIsNull(LocalDateTime start, LocalDateTime end);

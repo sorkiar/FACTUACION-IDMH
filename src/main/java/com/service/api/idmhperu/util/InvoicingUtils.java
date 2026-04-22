@@ -22,13 +22,17 @@ public class InvoicingUtils {
   };
 
   public static String convertir(BigDecimal monto) {
+    return convertir(monto, "SOLES");
+  }
+
+  public static String convertir(BigDecimal monto, String currencyLabel) {
     BigInteger parteEntera = monto.toBigInteger();
     int centavos = monto.remainder(BigDecimal.ONE).movePointRight(2).intValue();
 
     String letras = convertirNumero(parteEntera.longValue());
 
     String centavosStr = centavos < 10 ? "0" + centavos : String.valueOf(centavos);
-    return letras + " CON " + centavosStr + "/100 SOLES";
+    return letras + " CON " + centavosStr + "/100 " + currencyLabel;
   }
 
   private static String convertirNumero(long numero) {

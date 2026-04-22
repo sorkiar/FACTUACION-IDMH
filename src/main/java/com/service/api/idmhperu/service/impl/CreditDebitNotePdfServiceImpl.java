@@ -173,6 +173,7 @@ public class CreditDebitNotePdfServiceImpl implements CreditDebitNotePdfService 
       Map<String, Object> parameters = new HashMap<>();
       parameters.put("urlImagen",
           Objects.requireNonNull(getClass().getResource("/img/logo.png")).toString());
+      parameters.put("comp_total_amount", note.getTotalAmount());
 
       JasperPrint jasperPrint =
           JasperFillManager.fillReport(jasperReport, parameters, dataSource);

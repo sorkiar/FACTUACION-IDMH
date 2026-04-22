@@ -77,6 +77,7 @@
     <parameter name="cuotas_texto" class="java.lang.String"/>
     <parameter name="guias_relacionadas" class="java.lang.String"/>
     <parameter name="orden_compra" class="java.lang.String"/>
+    <parameter name="comp_total_amount" class="java.math.BigDecimal"/>
     <field name="empr_ruc" class="java.lang.String"/>
     <field name="empr_nombre_comercial" class="java.lang.String"/>
     <field name="empr_razon_social" class="java.lang.String"/>
@@ -871,7 +872,7 @@
                 <textElement textAlignment="Right" verticalAlignment="Middle">
                     <font fontName="Arial" isBold="true"/>
                 </textElement>
-                <textFieldExpression><![CDATA[$V{valor_venta}+$V{otros}+$V{ticbper}]]></textFieldExpression>
+                <textFieldExpression><![CDATA[$P{comp_total_amount}]]></textFieldExpression>
             </textField>
             <textField pattern="###0.00;-###0.00">
                 <reportElement x="463" y="62" width="87" height="15" uuid="7063d76f-f5d0-4607-a219-eedcbe1cad89"/>
@@ -892,7 +893,7 @@
                 <textElement verticalAlignment="Bottom">
                     <font fontName="Arial" size="8" isBold="true"/>
                 </textElement>
-                <textFieldExpression><![CDATA["SON: " + InvoicingUtils.convertir($V{valor_venta}+$V{otros})]]></textFieldExpression>
+                <textFieldExpression><![CDATA["SON: " + InvoicingUtils.convertir($P{comp_total_amount}, $F{comp_descripcion_moneda})]]></textFieldExpression>
             </textField>
             <textField>
                 <reportElement mode="Transparent" x="8" y="216" width="540" height="24" forecolor="#000000" backcolor="#FFFFFF" uuid="56c7c70a-b3c0-42d4-96b2-9f698babebe7"/>

@@ -16,4 +16,5 @@ public class SalesReportRowResponse {
   private BigDecimal discountPercentage;
   private BigDecimal subtotal;
   private BigDecimal saleTotal;
+  private String currencyCode;
 }

@@ -89,6 +89,7 @@ public class ReportServiceImpl implements ReportService {
                 ? item.getDiscountPercentage() : BigDecimal.ZERO)
             .subtotal(item.getTotalAmount() != null ? item.getTotalAmount() : BigDecimal.ZERO)
             .saleTotal(saleTotal)
+            .currencyCode(sale.getCurrencyCode())
             .build());
       }
     }

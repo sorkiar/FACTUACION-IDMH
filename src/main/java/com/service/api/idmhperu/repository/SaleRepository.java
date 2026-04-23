@@ -52,12 +52,35 @@ public interface SaleRepository
       @Param("start") LocalDateTime start,
       @Param("end") LocalDateTime end);
 
+  @Query("SELECT COALESCE(SUM(s.totalAmount), 0) FROM Sale s " +
+      "WHERE s.saleDate BETWEEN :start AND :end AND s.currencyCode = :currency " +
+      "AND s.deletedAt IS NULL AND s.saleStatus <> 'BORRADOR' " +
+      "AND NOT EXISTS (SELECT nc.id FROM CreditDebitNote nc WHERE nc.sale = s " +
+      "AND nc.creditDebitNoteType.code = 'C01' AND nc.status = 'ACEPTADO' AND nc.deletedAt IS NULL)")
+  BigDecimal sumTotalAmountBySaleDateBetweenAndCurrency(
+      @Param("start") LocalDateTime start,
+      @Param("end") LocalDateTime end,
+      @Param("currency") String currency);
+
   @Query("SELECT FUNCTION('DAY', s.saleDate), COALESCE(SUM(s.totalAmount), 0) FROM Sale s " +
-      "WHERE s.saleDate BETWEEN :start AND :end AND s.deletedAt IS NULL " +
+      "WHERE s.saleDate BETWEEN :start AND :end AND s.deletedAt IS NULL AND s.saleStatus <> 'BORRADOR' " +
+      "AND NOT EXISTS (SELECT nc.id FROM CreditDebitNote nc WHERE nc.sale = s " +
+      "AND nc.creditDebitNoteType.code = 'C01' AND nc.status = 'ACEPTADO' AND nc.deletedAt IS NULL) " +
       "GROUP BY FUNCTION('DAY', s.saleDate)")
   List<Object[]> sumTotalAmountGroupedByDay(
       @Param("start") LocalDateTime start,
       @Param("end") LocalDateTime end);
+
+  @Query("SELECT FUNCTION('DAY', s.saleDate), COALESCE(SUM(s.totalAmount), 0) FROM Sale s " +
+      "WHERE s.saleDate BETWEEN :start AND :end AND s.currencyCode = :currency " +
+      "AND s.deletedAt IS NULL AND s.saleStatus <> 'BORRADOR' " +
+      "AND NOT EXISTS (SELECT nc.id FROM CreditDebitNote nc WHERE nc.sale = s " +
+      "AND nc.creditDebitNoteType.code = 'C01' AND nc.status = 'ACEPTADO' AND nc.deletedAt IS NULL) " +
+      "GROUP BY FUNCTION('DAY', s.saleDate)")
+  List<Object[]> sumTotalAmountGroupedByDayAndCurrency(
+      @Param("start") LocalDateTime start,
+      @Param("end") LocalDateTime end,
+      @Param("currency") String currency);
 
   @EntityGraph(attributePaths = {
       "client",
@@ -69,7 +92,10 @@ public interface SaleRepository
       "documents.documentTypeSunat",
   })
   @Query("SELECT s FROM Sale s WHERE s.saleDate BETWEEN :start AND :end " +
-      "AND s.deletedAt IS NULL AND s.saleStatus <> 'BORRADOR' ORDER BY s.saleDate DESC")
+      "AND s.deletedAt IS NULL AND s.saleStatus <> 'BORRADOR' " +
+      "AND NOT EXISTS (SELECT nc.id FROM CreditDebitNote nc WHERE nc.sale = s " +
+      "AND nc.creditDebitNoteType.code = 'C01' AND nc.status = 'ACEPTADO' AND nc.deletedAt IS NULL) " +
+      "ORDER BY s.saleDate DESC")
   List<Sale> findForReport(
       @Param("start") LocalDateTime start,
       @Param("end") LocalDateTime end);

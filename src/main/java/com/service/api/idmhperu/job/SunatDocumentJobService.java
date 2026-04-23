@@ -961,7 +961,8 @@ public class SunatDocumentJobService {
       dto.setItcoTotal(item.getTotalAmount());
       dto.setTipoAfectacionIgv("GRAVADO");
 
-      // Retención por ítem: itcoTotal × tasa / 100 (informativo, Catálogo 53 código 02)
+      // Retención por ítem en moneda del comprobante (el facturador lo coloca en AllowanceCharge
+      // con currencyID de la moneda del doc; SUNAT valida Amount = MultiplierFactor × BaseAmount)
       if (Boolean.TRUE.equals(sale.getHasRetention()) && sale.getRetentionRate() != null) {
         BigDecimal itemRetention = item.getTotalAmount()
             .multiply(sale.getRetentionRate())

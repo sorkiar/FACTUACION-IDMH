@@ -105,11 +105,15 @@ public class Sale {
   @Column(name = "detraction_amount", precision = 14, scale = 2)
   private BigDecimal detractionAmount;
 
-  /** Monto neto a pagar: totalAmount menos retención (si aplica). */
+  /** Monto neto a pagar en moneda de la venta: totalAmount menos retención local (si aplica).
+   *  retentionAmount se almacena en PEN; se usa retentionRate para calcular el equivalente local. */
   @Transient
   public BigDecimal getNetAmount() {
-    if (Boolean.TRUE.equals(hasRetention) && retentionAmount != null) {
-      return totalAmount.subtract(retentionAmount);
+    if (Boolean.TRUE.equals(hasRetention) && retentionRate != null) {
+      BigDecimal retLocal = totalAmount
+          .multiply(retentionRate)
+          .divide(new java.math.BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
+      return totalAmount.subtract(retLocal);
     }
     return totalAmount;
   }

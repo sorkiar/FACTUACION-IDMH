@@ -244,8 +244,15 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
       parameters.put("comp_total_amount", sale.getTotalAmount());
       parameters.put("has_retention", Boolean.TRUE.equals(sale.getHasRetention()));
       parameters.put("retention_rate", sale.getRetentionRate());
+      // retention_amount ya está en PEN; retention_base = retentionAmount * 100 / rate (base en PEN)
       parameters.put("retention_amount", sale.getRetentionAmount());
-      parameters.put("retention_base", sale.getTotalAmount());
+      BigDecimal retentionBase = (sale.getRetentionAmount() != null && sale.getRetentionRate() != null
+          && sale.getRetentionRate().compareTo(java.math.BigDecimal.ZERO) != 0)
+          ? sale.getRetentionAmount()
+              .multiply(new java.math.BigDecimal("100"))
+              .divide(sale.getRetentionRate(), 2, java.math.RoundingMode.HALF_UP)
+          : sale.getTotalAmount();
+      parameters.put("retention_base", retentionBase);
 
       boolean hasDetraction = Boolean.TRUE.equals(sale.getHasDetraction());
       parameters.put("has_detraction", hasDetraction);

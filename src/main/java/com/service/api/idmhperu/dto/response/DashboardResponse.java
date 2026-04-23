@@ -18,6 +18,8 @@ public class DashboardResponse {
   private Long totalSalesWeek;
   private Long newSalesToday;
 
-  private BigDecimal revenueWeek;
-  private BigDecimal revenueToday;
+  private BigDecimal revenueWeekPen;
+  private BigDecimal revenueWeekUsd;
+  private BigDecimal revenueTodayPen;
+  private BigDecimal revenueTodayUsd;
 }

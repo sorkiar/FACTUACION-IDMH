@@ -17,4 +17,6 @@ public class MonthlyRevenueResponse {
   private int month;
   private List<Integer> categories;
   private List<BigDecimal> series;
+  private BigDecimal totalPen;
+  private BigDecimal totalUsd;
 }

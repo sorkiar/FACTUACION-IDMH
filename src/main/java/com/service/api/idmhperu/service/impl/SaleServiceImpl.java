@@ -649,9 +649,13 @@ public class SaleServiceImpl implements SaleService {
         .setScale(2, RoundingMode.HALF_UP);
 
     // Monto neto esperado: total menos retención (si aplica) menos detracción en moneda local (si aplica)
+    // retentionAmount está en PEN; usar tasa para obtener equivalente en moneda de la venta
     BigDecimal expectedTotal = sale.getTotalAmount();
-    if (Boolean.TRUE.equals(sale.getHasRetention()) && sale.getRetentionAmount() != null) {
-      expectedTotal = expectedTotal.subtract(sale.getRetentionAmount());
+    if (Boolean.TRUE.equals(sale.getHasRetention()) && sale.getRetentionRate() != null) {
+      BigDecimal retLocal = sale.getTotalAmount()
+          .multiply(sale.getRetentionRate())
+          .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+      expectedTotal = expectedTotal.subtract(retLocal);
     }
     if (Boolean.TRUE.equals(sale.getHasDetraction()) && sale.getDetractionRate() != null) {
       BigDecimal detrLocal = sale.getTotalAmount()
@@ -721,7 +725,7 @@ public class SaleServiceImpl implements SaleService {
    *  - Solo para FACTURA (código "01")
    *  - Solo si el cliente es agente de retención
    *  - Solo si el total en PEN supera el monto mínimo configurado
-   *  - El monto de retención se calcula sobre el total en la moneda de la venta
+   *  - El monto de retención se almacena SIEMPRE en PEN (soles)
    */
   private void computeRetention(Sale sale, Long documentSeriesId) {
     sale.setHasRetention(false);
@@ -760,8 +764,8 @@ public class SaleServiceImpl implements SaleService {
 
     if (totalInPen.compareTo(minAmount) <= 0) return;
 
-    // Retención se calcula sobre el total en la moneda de la venta
-    BigDecimal retentionAmount = sale.getTotalAmount()
+    // Retención siempre en PEN: base en soles × tasa / 100
+    BigDecimal retentionAmount = totalInPen
         .multiply(rate)
         .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
 
@@ -855,8 +859,12 @@ public class SaleServiceImpl implements SaleService {
    */
   private BigDecimal getExpectedAmount(Sale sale) {
     BigDecimal expected = sale.getTotalAmount();
-    if (Boolean.TRUE.equals(sale.getHasRetention()) && sale.getRetentionAmount() != null) {
-      expected = expected.subtract(sale.getRetentionAmount());
+    // retentionAmount está en PEN; usar tasa para equivalente en moneda de la venta
+    if (Boolean.TRUE.equals(sale.getHasRetention()) && sale.getRetentionRate() != null) {
+      BigDecimal retLocal = sale.getTotalAmount()
+          .multiply(sale.getRetentionRate())
+          .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+      expected = expected.subtract(retLocal);
     }
     if (Boolean.TRUE.equals(sale.getHasDetraction()) && sale.getDetractionRate() != null) {
       BigDecimal detrLocal = sale.getTotalAmount()
@@ -869,16 +877,16 @@ public class SaleServiceImpl implements SaleService {
 
   /**
    * Redondeo especial para montos de detracción:
-   * - Si la parte decimal es > 0.5  → redondea a la unidad superior
-   * - Si la parte decimal es <= 0.5 → redondea a X.50
+   * - Si la parte decimal es >= 0.5 → redondea a la unidad superior
+   * - Si la parte decimal es < 0.5  → redondea a la unidad inferior (cero)
    */
   private BigDecimal roundDetraction(BigDecimal amount) {
     BigDecimal floor = amount.setScale(0, RoundingMode.FLOOR);
     BigDecimal decimal = amount.subtract(floor);
-    if (decimal.compareTo(new BigDecimal("0.5")) > 0) {
+    if (decimal.compareTo(new BigDecimal("0.5")) >= 0) {
       return floor.add(BigDecimal.ONE).setScale(2, RoundingMode.UNNECESSARY);
     } else {
-      return floor.add(new BigDecimal("0.5")).setScale(2, RoundingMode.UNNECESSARY);
+      return floor.setScale(2, RoundingMode.UNNECESSARY);
     }
   }
 

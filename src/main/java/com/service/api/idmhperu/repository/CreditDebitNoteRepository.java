@@ -82,13 +82,40 @@ public interface CreditDebitNoteRepository
       @Param("end") LocalDateTime end,
       @Param("noteCategory") String noteCategory);
 
+  @Query("SELECT COALESCE(SUM(n.totalAmount), 0) FROM CreditDebitNote n " +
+      "WHERE n.issueDate BETWEEN :start AND :end " +
+      "AND n.creditDebitNoteType.noteCategory = :noteCategory " +
+      "AND n.creditDebitNoteType.code <> 'C01' " +
+      "AND n.currencyCode = :currency " +
+      "AND n.status = 'ACEPTADO' " +
+      "AND n.deletedAt IS NULL")
+  BigDecimal sumTotalAmountByIssueDateBetweenAndNoteCategoryAndCurrency(
+      @Param("start") LocalDateTime start,
+      @Param("end") LocalDateTime end,
+      @Param("noteCategory") String noteCategory,
+      @Param("currency") String currency);
+
   @Query("SELECT FUNCTION('DAY', n.issueDate), COALESCE(SUM(n.totalAmount), 0) FROM CreditDebitNote n " +
       "WHERE n.issueDate BETWEEN :start AND :end " +
       "AND n.creditDebitNoteType.noteCategory = :noteCategory " +
+      "AND n.creditDebitNoteType.code <> 'C01' " +
       "AND n.status = 'ACEPTADO' AND n.deletedAt IS NULL " +
       "GROUP BY FUNCTION('DAY', n.issueDate)")
   List<Object[]> sumTotalAmountGroupedByDayAndNoteCategory(
       @Param("start") LocalDateTime start,
       @Param("end") LocalDateTime end,
       @Param("noteCategory") String noteCategory);
+
+  @Query("SELECT FUNCTION('DAY', n.issueDate), COALESCE(SUM(n.totalAmount), 0) FROM CreditDebitNote n " +
+      "WHERE n.issueDate BETWEEN :start AND :end " +
+      "AND n.creditDebitNoteType.noteCategory = :noteCategory " +
+      "AND n.creditDebitNoteType.code <> 'C01' " +
+      "AND n.currencyCode = :currency " +
+      "AND n.status = 'ACEPTADO' AND n.deletedAt IS NULL " +
+      "GROUP BY FUNCTION('DAY', n.issueDate)")
+  List<Object[]> sumTotalAmountGroupedByDayAndNoteCategoryAndCurrency(
+      @Param("start") LocalDateTime start,
+      @Param("end") LocalDateTime end,
+      @Param("noteCategory") String noteCategory,
+      @Param("currency") String currency);
 }

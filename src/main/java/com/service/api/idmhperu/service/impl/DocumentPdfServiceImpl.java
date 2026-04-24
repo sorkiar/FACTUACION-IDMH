@@ -8,8 +8,10 @@ import com.service.api.idmhperu.dto.entity.SaleItem;
 import com.service.api.idmhperu.dto.entity.SaleRelatedGuide;
 import com.service.api.idmhperu.exception.BusinessValidationException;
 import com.service.api.idmhperu.exception.ResourceNotFoundException;
+import com.service.api.idmhperu.dto.entity.ExchangeRate;
 import com.service.api.idmhperu.repository.DetractionCodeRepository;
 import com.service.api.idmhperu.repository.DocumentRepository;
+import com.service.api.idmhperu.repository.ExchangeRateRepository;
 import com.service.api.idmhperu.repository.SaleInstallmentRepository;
 import com.service.api.idmhperu.repository.SaleItemRepository;
 import com.service.api.idmhperu.repository.SaleRelatedGuideRepository;
@@ -51,6 +53,7 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
   private final SaleInstallmentRepository saleInstallmentRepository;
   private final SaleRelatedGuideRepository saleRelatedGuideRepository;
   private final DetractionCodeRepository detractionCodeRepository;
+  private final ExchangeRateRepository exchangeRateRepository;
   private final GoogleDriveService googleDriveService;
   private final ConfigurationService configurationService;
 
@@ -244,14 +247,25 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
       parameters.put("comp_total_amount", sale.getTotalAmount());
       parameters.put("has_retention", Boolean.TRUE.equals(sale.getHasRetention()));
       parameters.put("retention_rate", sale.getRetentionRate());
-      // retention_amount ya está en PEN; retention_base = retentionAmount * 100 / rate (base en PEN)
+      // retention_amount ya está en PEN; retention_base en PEN
       parameters.put("retention_amount", sale.getRetentionAmount());
-      BigDecimal retentionBase = (sale.getRetentionAmount() != null && sale.getRetentionRate() != null
-          && sale.getRetentionRate().compareTo(java.math.BigDecimal.ZERO) != 0)
-          ? sale.getRetentionAmount()
-              .multiply(new java.math.BigDecimal("100"))
-              .divide(sale.getRetentionRate(), 2, java.math.RoundingMode.HALF_UP)
-          : sale.getTotalAmount();
+      BigDecimal retentionBase;
+      if ("USD".equalsIgnoreCase(sale.getCurrencyCode())
+          && Boolean.TRUE.equals(sale.getHasRetention())) {
+        // Para USD: base = totalUSD × TC (evita error de redondeo del back-cálculo)
+        BigDecimal tc = exchangeRateRepository
+            .findByDateAndType(sale.getSaleDate().toLocalDate(), "V")
+            .map(ExchangeRate::getValue)
+            .orElse(BigDecimal.ONE);
+        retentionBase = sale.getTotalAmount().multiply(tc).setScale(2, RoundingMode.HALF_UP);
+      } else {
+        retentionBase = (sale.getRetentionAmount() != null && sale.getRetentionRate() != null
+            && sale.getRetentionRate().compareTo(BigDecimal.ZERO) != 0)
+            ? sale.getRetentionAmount()
+                .multiply(new BigDecimal("100"))
+                .divide(sale.getRetentionRate(), 2, RoundingMode.HALF_UP)
+            : sale.getTotalAmount();
+      }
       parameters.put("retention_base", retentionBase);
 
       boolean hasDetraction = Boolean.TRUE.equals(sale.getHasDetraction());

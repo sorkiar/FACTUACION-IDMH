@@ -1,11 +1,21 @@
 package com.service.api.idmhperu.job;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.service.api.idmhperu.dto.entity.ExchangeRate;
 import com.service.api.idmhperu.repository.ExchangeRateRepository;
 import com.service.api.idmhperu.service.ConfigurationService;
 import java.math.BigDecimal;
+import java.net.CookieManager;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Map;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -25,25 +35,35 @@ import org.springframework.web.client.RestTemplate;
 public class ExchangeRateJobService {
 
   /**
-   * Fuente primaria: API pública JSON con soporte de fechas históricas.
-   * Patrón: GET https://free.e-api.net.pe/tipo-cambio/{YYYY-MM-DD}.json
-   */
-  private static final String EAPI_URL_TEMPLATE =
-      "https://free.e-api.net.pe/tipo-cambio/{date}.json";
-
-  /**
-   * Fuente de respaldo: archivo TXT oficial de SUNAT, solo retorna el tipo de cambio del día.
+   * Fuente oficial SUNAT TXT. Retorna el tipo de cambio del día actual.
    * Formato de respuesta: DD/MM/YYYY|compra|venta|
    */
   private static final String SUNAT_TXT_URL =
       "https://www.sunat.gob.pe/a/txt/tipoCambio.txt";
 
+  private static final String SUNAT_ECONSULTA_BASE =
+      "https://e-consulta.sunat.gob.pe/cl-at-ittipcam/tcS01Alias";
+
+  /** Endpoint real del POST mensual. */
+  private static final String SUNAT_ECONSULTA_DATA_URL =
+      SUNAT_ECONSULTA_BASE + "/listarTipoCambio";
+
   private static final String CONFIG_GROUP = "tipo_cambio";
+
+  private static final DateTimeFormatter ECONSULTA_DATE_FORMAT =
+      DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
   private final ExchangeRateRepository exchangeRateRepository;
   private final ConfigurationService configurationService;
+  private final ObjectMapper objectMapper;
 
   private final RestTemplate restTemplate = new RestTemplate();
+
+  /** HttpClient con CookieManager para mantener sesión entre GET (token) y POST (datos). */
+  private final HttpClient scraperClient = HttpClient.newBuilder()
+      .cookieHandler(new CookieManager())
+      .followRedirects(HttpClient.Redirect.NORMAL)
+      .build();
 
   /**
    * Corre cada minuto. Cuando la hora actual coincide con fetch_hour (config),
@@ -81,41 +101,11 @@ public class ExchangeRateJobService {
       log.debug("Tipo de cambio para {} ya registrado", today);
       return;
     }
-    fetchAndStore(today);
+    fetchFromSunatTxt(today);
   }
 
   /**
-   * Intenta obtener el tipo de cambio para la fecha dada.
-   * Fuente primaria: eApi (JSON). Fallback: TXT de SUNAT (solo para hoy).
-   */
-  private void fetchAndStore(LocalDate date) {
-    log.info("Obteniendo tipo de cambio para {}", date);
-
-    try {
-      String url = EAPI_URL_TEMPLATE.replace("{date}", date.toString());
-      ResponseEntity<EApiResponse> response =
-          restTemplate.getForEntity(url, EApiResponse.class);
-
-      EApiResponse body = response.getBody();
-      if (body == null || body.getCompra() == null || body.getVenta() == null) {
-        log.warn("Respuesta vacía o incompleta de eApi para {}. Intentando fuente alternativa...", date);
-        if (date.equals(LocalDate.now())) fetchFromSunatTxt(date);
-        return;
-      }
-
-      saveRate(date, body.getCompra(), "C");
-      saveRate(date, body.getVenta(), "V");
-      log.info("Tipo de cambio para {} registrado: compra={}, venta={}", date, body.getCompra(), body.getVenta());
-
-    } catch (Exception e) {
-      log.warn("Error obteniendo tipo de cambio de eApi para {}: {}. Intentando fuente alternativa...",
-          date, e.getMessage());
-      if (date.equals(LocalDate.now())) fetchFromSunatTxt(date);
-    }
-  }
-
-  /**
-   * Fallback: lee el archivo TXT oficial de SUNAT.
+   * Lee el archivo TXT oficial de SUNAT.
    * Solo retorna el tipo de cambio del día actual.
    * Formato: DD/MM/YYYY|compra|venta|
    */
@@ -141,13 +131,135 @@ public class ExchangeRateJobService {
 
       saveRate(date, compra, "C");
       saveRate(date, venta, "V");
-      log.info("Tipo de cambio para {} registrado desde TXT SUNAT: compra={}, venta={}", date, compra, venta);
+      log.info("Tipo de cambio para {} registrado: compra={}, venta={}", date, compra, venta);
 
     } catch (Exception e) {
       log.error("Error obteniendo tipo de cambio del TXT SUNAT: {}", e.getMessage(), e);
     }
   }
 
+  // ──────────────────────────────────────────────
+  // Importación masiva via SUNAT e-consulta
+  // ──────────────────────────────────────────────
+
+  /**
+   * Obtiene los tipos de cambio de SUNAT e-consulta para el rango [from, to] (mismo mes/año)
+   * y los persiste. Devuelve la cantidad de registros nuevos guardados.
+   */
+  public int fetchAndSaveRange(LocalDate from, LocalDate to) {
+    log.info("Importando tipos de cambio desde SUNAT e-consulta: {} a {}", from, to);
+    try {
+      String token = fetchEconsultaToken();
+      List<SunatEconsultaRateItem> items =
+          fetchMonthlyRates(from.getYear(), from.getMonthValue(), token);
+
+      int saved = 0;
+      for (SunatEconsultaRateItem item : items) {
+        LocalDate date = LocalDate.parse(item.getFecPublica(), ECONSULTA_DATE_FORMAT);
+        if (date.isBefore(from) || date.isAfter(to)) continue;
+
+        BigDecimal value = new BigDecimal(item.getValTipo().trim());
+        String type = item.getCodTipo(); // "C" o "V"
+        upsertRate(date, value, type);
+        saved++;
+      }
+      log.info("Importación finalizada. Registros procesados en rango: {}", saved);
+      return saved;
+
+    } catch (Exception e) {
+      log.error("Error importando tipos de cambio desde e-consulta: {}", e.getMessage(), e);
+      throw new RuntimeException("Error al importar tipos de cambio desde SUNAT e-consulta: " + e.getMessage(), e);
+    }
+  }
+
+  private static final String TOKEN_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
+  private static final int TOKEN_LENGTH = 52;
+  private static final SecureRandom RANDOM = new SecureRandom();
+
+  /**
+   * GET a la página de e-consulta para establecer las cookies de sesión (IAASISTENCIAGESTIONSESSION).
+   * El token real es generado por reCAPTCHA v3 de SUNAT via JS — no es recuperable del HTML.
+   * Se genera un token aleatorio con el mismo formato; si SUNAT lo rechaza se registra la respuesta.
+   */
+  private String fetchEconsultaToken() throws Exception {
+    HttpRequest request = HttpRequest.newBuilder()
+        .uri(URI.create(SUNAT_ECONSULTA_BASE))
+        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+        .GET()
+        .build();
+
+    scraperClient.send(request, HttpResponse.BodyHandlers.ofString());
+    // Cookies de sesión quedaron guardadas en el CookieManager del scraperClient
+
+    String token = generateRandomToken();
+    log.debug("Token generado para e-consulta: {}", token);
+    return token;
+  }
+
+  private String generateRandomToken() {
+    StringBuilder sb = new StringBuilder(TOKEN_LENGTH);
+    for (int i = 0; i < TOKEN_LENGTH; i++) {
+      sb.append(TOKEN_CHARS.charAt(RANDOM.nextInt(TOKEN_CHARS.length())));
+    }
+    return sb.toString();
+  }
+
+  /**
+   * POST a e-consulta con {anio, mes, token} → lista de tipos de cambio del mes.
+   */
+  private List<SunatEconsultaRateItem> fetchMonthlyRates(int year, int month, String token)
+      throws Exception {
+    // SUNAT e-consulta usa mes 0-based (JavaScript getMonth(): 0=ene, 11=dic)
+    String body = objectMapper.writeValueAsString(
+        Map.of("anio", year, "mes", month - 1, "token", token));
+
+    HttpRequest request = HttpRequest.newBuilder()
+        .uri(URI.create(SUNAT_ECONSULTA_DATA_URL))
+        .header("Content-Type", "application/json; charset=UTF-8")
+        .header("Accept", "application/json, text/javascript, */*; q=0.01")
+        .header("X-Requested-With", "XMLHttpRequest")
+        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+        .header("Referer", SUNAT_ECONSULTA_BASE)
+        .POST(HttpRequest.BodyPublishers.ofString(body))
+        .build();
+
+    HttpResponse<String> response = scraperClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+    if (response.statusCode() != 200) {
+      throw new RuntimeException(
+          "SUNAT e-consulta respondió HTTP " + response.statusCode() + ": " + response.body());
+    }
+
+    log.debug("Respuesta e-consulta HTTP {}: {}", response.statusCode(), response.body());
+    return objectMapper.readValue(response.body(),
+        new TypeReference<>() {});
+  }
+
+  // ──────────────────────────────────────────────
+  // DTO interno para la respuesta de e-consulta
+  // ──────────────────────────────────────────────
+
+  @Getter
+  @Setter
+  static class SunatEconsultaRateItem {
+    private String fecPublica;
+    private String valTipo;
+    private String codTipo;
+  }
+
+  /** Inserta o reemplaza un tipo de cambio en BD (usado por el bulk import). */
+  private void upsertRate(LocalDate date, BigDecimal value, String type) {
+    ExchangeRate rate = exchangeRateRepository.findByDateAndType(date, type)
+        .orElseGet(ExchangeRate::new);
+    rate.setDate(date);
+    rate.setValue(value);
+    rate.setType(type);
+    exchangeRateRepository.save(rate);
+    log.debug("Tipo de cambio upserted: {} tipo {} = {}", date, type, value);
+  }
+
+  /** Inserta solo si no existe (usado por el fetch diario). */
   private void saveRate(LocalDate date, BigDecimal value, String type) {
     if (exchangeRateRepository.existsByDateAndType(date, type)) {
       log.debug("Tipo de cambio para {} tipo {} ya existe, ignorando", date, type);
@@ -162,22 +274,5 @@ public class ExchangeRateJobService {
     } catch (DataIntegrityViolationException e) {
       log.debug("Tipo de cambio para {} tipo {} ya existe (concurrencia), ignorando", date, type);
     }
-  }
-
-  // ──────────────────────────────────────────────
-  // DTO interno para la respuesta de eApi
-  // ──────────────────────────────────────────────
-
-  @Getter
-  @Setter
-  static class EApiResponse {
-    /** Fecha en formato YYYY-MM-DD */
-    private String fecha;
-    /** Tipo de cambio referencial SUNAT */
-    private BigDecimal sunat;
-    /** Tipo de cambio compra */
-    private BigDecimal compra;
-    /** Tipo de cambio venta */
-    private BigDecimal venta;
   }
 }

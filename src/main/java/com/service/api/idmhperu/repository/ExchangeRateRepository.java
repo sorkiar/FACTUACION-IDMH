@@ -9,6 +9,8 @@ public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, Long
 
   boolean existsByDateAndType(LocalDate date, String type);
 
+  java.util.Optional<ExchangeRate> findByDateAndType(LocalDate date, String type);
+
   List<ExchangeRate> findByDate(LocalDate date);
 
   List<ExchangeRate> findByDateBetweenAndType(LocalDate start, LocalDate end, String type);

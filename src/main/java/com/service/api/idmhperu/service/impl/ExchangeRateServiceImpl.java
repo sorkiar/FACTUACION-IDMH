@@ -4,10 +4,15 @@ import com.service.api.idmhperu.dto.entity.ExchangeRate;
 import com.service.api.idmhperu.dto.response.ApiResponse;
 import com.service.api.idmhperu.dto.response.ExchangeRateResponse;
 import com.service.api.idmhperu.exception.ResourceNotFoundException;
+import com.service.api.idmhperu.job.ExchangeRateJobService;
 import com.service.api.idmhperu.repository.ExchangeRateRepository;
 import com.service.api.idmhperu.service.ExchangeRateService;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +21,7 @@ import org.springframework.stereotype.Service;
 public class ExchangeRateServiceImpl implements ExchangeRateService {
 
   private final ExchangeRateRepository exchangeRateRepository;
+  private final ExchangeRateJobService exchangeRateJobService;
 
   @Override
   public ApiResponse<ExchangeRateResponse> findByDate(LocalDate date) {
@@ -38,5 +44,38 @@ public class ExchangeRateServiceImpl implements ExchangeRateService {
     }
 
     return new ApiResponse<>("Tipo de cambio obtenido correctamente", response);
+  }
+
+  @Override
+  public ApiResponse<List<ExchangeRateResponse>> bulkImport(LocalDate from, LocalDate to) {
+    if (from.getYear() != to.getYear() || from.getMonth() != to.getMonth()) {
+      throw new IllegalArgumentException("Las fechas deben estar en el mismo mes y año");
+    }
+    if (from.isAfter(to)) {
+      throw new IllegalArgumentException("La fecha inicial no puede ser mayor a la final");
+    }
+
+    exchangeRateJobService.fetchAndSaveRange(from, to);
+
+    Map<LocalDate, BigDecimal> purchaseMap = exchangeRateRepository
+        .findByDateBetweenAndType(from, to, "C").stream()
+        .collect(Collectors.toMap(ExchangeRate::getDate, ExchangeRate::getValue));
+    Map<LocalDate, BigDecimal> saleMap = exchangeRateRepository
+        .findByDateBetweenAndType(from, to, "V").stream()
+        .collect(Collectors.toMap(ExchangeRate::getDate, ExchangeRate::getValue));
+
+    Map<LocalDate, ExchangeRateResponse> byDate = new TreeMap<>();
+    purchaseMap.forEach((date, value) -> {
+      ExchangeRateResponse r = byDate.computeIfAbsent(date, d -> new ExchangeRateResponse());
+      r.setDate(date);
+      r.setPurchase(value);
+    });
+    saleMap.forEach((date, value) -> {
+      ExchangeRateResponse r = byDate.computeIfAbsent(date, d -> new ExchangeRateResponse());
+      r.setDate(date);
+      r.setSale(value);
+    });
+
+    return new ApiResponse<>("Tipos de cambio importados correctamente", List.copyOf(byDate.values()));
   }
 }

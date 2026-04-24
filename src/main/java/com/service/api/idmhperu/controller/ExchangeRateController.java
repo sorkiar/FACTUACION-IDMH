@@ -1,13 +1,18 @@
 package com.service.api.idmhperu.controller;
 
+import com.service.api.idmhperu.dto.request.BulkImportExchangeRateRequest;
 import com.service.api.idmhperu.dto.response.ApiResponse;
 import com.service.api.idmhperu.dto.response.ExchangeRateResponse;
 import com.service.api.idmhperu.service.ExchangeRateService;
+import jakarta.validation.Valid;
 import java.time.LocalDate;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,5 +32,13 @@ public class ExchangeRateController {
       date = LocalDate.now();
     }
     return ResponseEntity.ok(exchangeRateService.findByDate(date));
+  }
+
+  @PostMapping("/bulk")
+  public ResponseEntity<ApiResponse<List<ExchangeRateResponse>>> bulkImport(
+      @RequestBody @Valid BulkImportExchangeRateRequest request
+  ) {
+    return ResponseEntity.ok(
+        exchangeRateService.bulkImport(request.getFrom(), request.getTo()));
   }
 }

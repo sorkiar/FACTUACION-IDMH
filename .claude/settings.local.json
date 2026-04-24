@@ -38,7 +38,8 @@
       "WebFetch(domain:gist.github.com)",
       "WebFetch(domain:docs.e-api.net.pe)",
       "WebFetch(domain:free.e-api.net.pe)",
-      "Bash(powershell.exe -ExecutionPolicy Bypass -File \"D:\\\\Proyectos Java\\\\idmhperu\\\\fix_jrxml.ps1\")"
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File \"D:\\\\Proyectos Java\\\\idmhperu\\\\fix_jrxml.ps1\")",
+      "Bash(curl:*)"
     ]
   }
 }

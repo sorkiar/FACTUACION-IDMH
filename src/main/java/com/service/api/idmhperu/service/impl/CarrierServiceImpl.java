@@ -7,6 +7,7 @@ import com.service.api.idmhperu.dto.request.CarrierRequest;
 import com.service.api.idmhperu.dto.request.CarrierStatusRequest;
 import com.service.api.idmhperu.dto.response.ApiResponse;
 import com.service.api.idmhperu.dto.response.CarrierResponse;
+import com.service.api.idmhperu.exception.BusinessValidationException;
 import com.service.api.idmhperu.exception.ResourceNotFoundException;
 import com.service.api.idmhperu.repository.CarrierRepository;
 import com.service.api.idmhperu.repository.spec.CarrierSpecification;
@@ -41,6 +42,10 @@ public class CarrierServiceImpl implements CarrierService {
   public ApiResponse<CarrierResponse> create(CarrierRequest request) {
     String username = JwtUtils.extractUsernameFromContext();
 
+    if (repository.existsByDocNumber(request.getDocNumber())) {
+      throw new BusinessValidationException("Ya existe un transportista con ese número de documento");
+    }
+
     Carrier carrier = new Carrier();
     carrier.setDocType(request.getDocType() != null ? request.getDocType() : "RUC");
     carrier.setDocNumber(request.getDocNumber());
@@ -59,6 +64,10 @@ public class CarrierServiceImpl implements CarrierService {
     Carrier carrier = repository.findById(id)
         .filter(c -> !Integer.valueOf(2).equals(c.getStatus()))
         .orElseThrow(() -> new ResourceNotFoundException("Transportista no encontrado"));
+
+    if (repository.existsByDocNumberAndIdNot(request.getDocNumber(), id)) {
+      throw new BusinessValidationException("Ya existe un transportista con ese número de documento");
+    }
 
     carrier.setDocType(request.getDocType() != null ? request.getDocType() : "RUC");
     carrier.setDocNumber(request.getDocNumber());

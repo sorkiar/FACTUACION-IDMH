@@ -257,7 +257,7 @@
                 <textFieldExpression><![CDATA[$F{empr_ruc}]]></textFieldExpression>
             </textField>
             <textField textAdjust="StretchHeight">
-                <reportElement x="73" y="77" width="238" height="12"
+                <reportElement x="73" y="77" width="230" height="12"
                                uuid="2293af56-c73b-437f-b6e5-51c796975596"/>
                 <textElement verticalAlignment="Middle">
                     <font fontName="Arial" size="7"/>

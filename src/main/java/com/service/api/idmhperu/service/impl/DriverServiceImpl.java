@@ -10,6 +10,7 @@ import com.service.api.idmhperu.dto.request.DriverVehicleRequest;
 import com.service.api.idmhperu.dto.response.ApiResponse;
 import com.service.api.idmhperu.dto.response.DriverResponse;
 import com.service.api.idmhperu.dto.response.DriverVehicleResponse;
+import com.service.api.idmhperu.exception.BusinessValidationException;
 import com.service.api.idmhperu.exception.ResourceNotFoundException;
 import com.service.api.idmhperu.repository.DriverRepository;
 import com.service.api.idmhperu.repository.DriverVehicleRepository;
@@ -48,6 +49,10 @@ public class DriverServiceImpl implements DriverService {
   public ApiResponse<DriverResponse> create(DriverRequest request) {
     String username = JwtUtils.extractUsernameFromContext();
 
+    if (repository.existsByDocNumber(request.getDocNumber())) {
+      throw new BusinessValidationException("Ya existe un conductor con ese número de documento");
+    }
+
     Driver driver = new Driver();
     driver.setDocType(request.getDocType() != null ? request.getDocType() : "DNI");
     driver.setDocNumber(request.getDocNumber());
@@ -68,6 +73,10 @@ public class DriverServiceImpl implements DriverService {
     Driver driver = repository.findById(id)
         .filter(d -> !Integer.valueOf(2).equals(d.getStatus()))
         .orElseThrow(() -> new ResourceNotFoundException("Conductor no encontrado"));
+
+    if (repository.existsByDocNumberAndIdNot(request.getDocNumber(), id)) {
+      throw new BusinessValidationException("Ya existe un conductor con ese número de documento");
+    }
 
     driver.setDocType(request.getDocType() != null ? request.getDocType() : "DNI");
     driver.setDocNumber(request.getDocNumber());

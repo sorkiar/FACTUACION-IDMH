@@ -7,4 +7,8 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 public interface DriverRepository
     extends JpaRepository<Driver, Long>,
     JpaSpecificationExecutor<Driver> {
+
+  boolean existsByDocNumber(String docNumber);
+
+  boolean existsByDocNumberAndIdNot(String docNumber, Long id);
 }

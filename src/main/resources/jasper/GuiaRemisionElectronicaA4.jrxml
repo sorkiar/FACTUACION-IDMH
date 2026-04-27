@@ -142,9 +142,9 @@
         </band>
     </background>
     <pageHeader>
-        <band height="252" splitType="Stretch">
+        <band height="278" splitType="Stretch">
             <line>
-                <reportElement style="DefaultLine" x="0" y="134" width="555" height="1"
+                <reportElement style="DefaultLine" x="0" y="147" width="555" height="1"
                                forecolor="#999999" uuid="e7e7dd30-6d90-405e-87e2-efe5c59e110b"/>
                 <graphicElement>
                     <pen lineWidth="0.5" lineStyle="Dashed"/>
@@ -183,7 +183,7 @@
             </staticText>
             <!-- Razón Social para RUC -->
             <staticText>
-                <reportElement x="0" y="122" width="84" height="12" forecolor="#000000"
+                <reportElement x="0" y="135" width="84" height="12" forecolor="#000000"
                                uuid="c29c7bc9-a951-4ac2-9252-8cfc36e27b0e">
                     <printWhenExpression>
                         <![CDATA[$F{ruccliente} != null && $F{ruccliente}.length() == 11]]></printWhenExpression>
@@ -195,7 +195,7 @@
             </staticText>
             <!-- Nombre Completo para DNI -->
             <staticText>
-                <reportElement x="0" y="122" width="84" height="12" forecolor="#000000"
+                <reportElement x="0" y="135" width="84" height="12" forecolor="#000000"
                                uuid="c29c7bc9-a951-4ac2-9252-8cfc36e27b01">
                     <printWhenExpression>
                         <![CDATA[$F{dni_cliente} != null && $F{dni_cliente}.length() == 8]]></printWhenExpression>
@@ -206,7 +206,7 @@
                 <text><![CDATA[Nombre Completo :]]></text>
             </staticText>
             <line>
-                <reportElement style="DefaultLine" x="2" y="151" width="555" height="1"
+                <reportElement style="DefaultLine" x="2" y="164" width="555" height="1"
                                forecolor="#999999" uuid="0768405e-bd1d-478f-b3c3-d3666b73e622"/>
                 <graphicElement>
                     <pen lineWidth="0.5" lineStyle="Dashed"/>
@@ -214,7 +214,7 @@
             </line>
             <!-- RUC para empresas -->
             <staticText>
-                <reportElement x="0" y="138" width="84" height="12" forecolor="#000000"
+                <reportElement x="0" y="151" width="84" height="12" forecolor="#000000"
                                uuid="d5e48970-cb8b-4d45-a060-cee879f3341f">
                     <printWhenExpression>
                         <![CDATA[$F{ruccliente} != null && $F{ruccliente}.length() == 11]]></printWhenExpression>
@@ -226,7 +226,7 @@
             </staticText>
             <!-- DNI para personas naturales -->
             <staticText>
-                <reportElement x="0" y="138" width="84" height="12" forecolor="#000000"
+                <reportElement x="0" y="151" width="84" height="12" forecolor="#000000"
                                uuid="d5e48970-cb8b-4d45-a060-cee879f33402">
                     <printWhenExpression>
                         <![CDATA[$F{dni_cliente} != null && $F{dni_cliente}.length() == 8]]></printWhenExpression>
@@ -237,7 +237,7 @@
                 <text><![CDATA[DNI :]]></text>
             </staticText>
             <staticText>
-                <reportElement x="166" y="138" width="75" height="12" forecolor="#000000"
+                <reportElement x="166" y="151" width="75" height="12" forecolor="#000000"
                                uuid="0e18cb84-8cc9-48ce-87e8-41874bff4069"/>
                 <textElement textAlignment="Right" verticalAlignment="Middle">
                     <font fontName="Arial" size="9" isBold="true"/>
@@ -245,7 +245,7 @@
                 <text><![CDATA[Fecha Emision:]]></text>
             </staticText>
             <staticText>
-                <reportElement x="2" y="154" width="84" height="12" forecolor="#000000"
+                <reportElement x="2" y="167" width="84" height="12" forecolor="#000000"
                                uuid="2fc52132-57b9-4eeb-9ffd-16bf279c6863"/>
                 <textElement textAlignment="Right" verticalAlignment="Top">
                     <font fontName="Arial" size="9" isBold="true"/>
@@ -253,7 +253,7 @@
                 <text><![CDATA[Dirección Partida:]]></text>
             </staticText>
             <line>
-                <reportElement style="DefaultLine" x="3" y="173" width="555" height="1"
+                <reportElement style="DefaultLine" x="3" y="186" width="555" height="1"
                                forecolor="#999999" uuid="09712ebf-4773-4f67-9539-9830b995ee7e"/>
                 <graphicElement>
                     <pen lineWidth="0.5" lineStyle="Dashed"/>
@@ -308,7 +308,7 @@
                 <textFieldExpression><![CDATA[$F{comp_numero_comprobante}]]></textFieldExpression>
             </textField>
             <textField>
-                <reportElement x="88" y="122" width="463" height="12"
+                <reportElement x="88" y="135" width="463" height="12"
                                uuid="3e620cb0-d640-42dc-8d5f-c77fd8308864"/>
                 <textElement verticalAlignment="Middle">
                     <font fontName="Arial" size="8"/>
@@ -316,7 +316,7 @@
                 <textFieldExpression><![CDATA[$F{nombre_representante}]]></textFieldExpression>
             </textField>
             <textField>
-                <reportElement x="88" y="138" width="78" height="12"
+                <reportElement x="88" y="151" width="78" height="12"
                                uuid="08be2209-0337-4703-a9a6-8e7ca0af1424"/>
                 <textElement verticalAlignment="Middle">
                     <font fontName="Arial" size="8"/>
@@ -324,7 +324,7 @@
                 <textFieldExpression><![CDATA[$F{ruccliente}]]></textFieldExpression>
             </textField>
             <textField isStretchWithOverflow="true">
-                <reportElement x="90" y="154" width="463" height="18"
+                <reportElement x="90" y="167" width="463" height="18"
                                uuid="72f50b4f-4233-4251-ba32-72b2abc833cb"/>
                 <textElement verticalAlignment="Top">
                     <font fontName="Arial" size="8"/>
@@ -332,7 +332,7 @@
                 <textFieldExpression><![CDATA[$F{direccionpartida}]]></textFieldExpression>
             </textField>
             <textField pattern="dd/MM/yyyy">
-                <reportElement x="241" y="138" width="74" height="12"
+                <reportElement x="241" y="151" width="74" height="12"
                                uuid="7964df9e-830c-4369-931c-b34c8ee5918d"/>
                 <textElement verticalAlignment="Middle">
                     <font fontName="Arial" size="8"/>
@@ -340,7 +340,7 @@
                 <textFieldExpression><![CDATA[$F{fecha_hora}]]></textFieldExpression>
             </textField>
             <staticText>
-                <reportElement x="315" y="138" width="103" height="12" forecolor="#000000"
+                <reportElement x="315" y="151" width="103" height="12" forecolor="#000000"
                                uuid="fa69d728-5426-4642-b7b7-93b8cb11b06b"/>
                 <textElement textAlignment="Right" verticalAlignment="Middle">
                     <font fontName="Arial" size="9" isBold="true"/>
@@ -348,7 +348,7 @@
                 <text><![CDATA[Fecha Inicio Traslado:]]></text>
             </staticText>
             <textField pattern="dd/MM/yyyy">
-                <reportElement x="418" y="138" width="60" height="12"
+                <reportElement x="418" y="151" width="60" height="12"
                                uuid="99e76f0c-b94d-4eab-9d48-f921bdfa849e"/>
                 <textElement verticalAlignment="Middle">
                     <font fontName="Arial" size="8"/>
@@ -373,15 +373,8 @@
                 </textElement>
                 <textFieldExpression><![CDATA[$F{empr_razon_social}]]></textFieldExpression>
             </textField>
-            <line>
-                <reportElement style="DefaultLine" x="1" y="121" width="555" height="1"
-                               forecolor="#999999" uuid="e899de00-9857-4883-9180-eee2e0104800"/>
-                <graphicElement>
-                    <pen lineWidth="0.5" lineStyle="Dashed"/>
-                </graphicElement>
-            </line>
             <staticText>
-                <reportElement x="3" y="174" width="84" height="12" forecolor="#000000"
+                <reportElement x="3" y="187" width="84" height="12" forecolor="#000000"
                                uuid="5e59100d-bdd1-4fbd-a8d1-5dc7060c3fe1"/>
                 <textElement textAlignment="Right" verticalAlignment="Top">
                     <font fontName="Arial" size="9" isBold="true"/>
@@ -389,14 +382,14 @@
                 <text><![CDATA[Dirección LLegada:]]></text>
             </staticText>
             <line>
-                <reportElement style="DefaultLine" x="4" y="193" width="555" height="1"
+                <reportElement style="DefaultLine" x="4" y="206" width="555" height="1"
                                forecolor="#999999" uuid="5fb25b7b-a23c-4073-8476-84164ecc1a5e"/>
                 <graphicElement>
                     <pen lineWidth="0.5" lineStyle="Dashed"/>
                 </graphicElement>
             </line>
             <textField isStretchWithOverflow="true">
-                <reportElement x="91" y="174" width="463" height="18"
+                <reportElement x="91" y="187" width="463" height="18"
                                uuid="bdb5abfa-653a-4a26-9941-6fa1df29f55b"/>
                 <textElement verticalAlignment="Top">
                     <font fontName="Arial" size="8"/>
@@ -404,7 +397,7 @@
                 <textFieldExpression><![CDATA[$F{direccionllegada}]]></textFieldExpression>
             </textField>
             <staticText>
-                <reportElement x="166" y="195" width="70" height="12" forecolor="#000000"
+                <reportElement x="166" y="208" width="70" height="12" forecolor="#000000"
                                uuid="a96dc344-c029-49e3-acb9-3546845a79f0"/>
                 <textElement textAlignment="Right" verticalAlignment="Top">
                     <font fontName="Arial" size="9" isBold="true"/>
@@ -412,7 +405,7 @@
                 <text><![CDATA[Numero Bultos:]]></text>
             </staticText>
             <textField>
-                <reportElement x="240" y="195" width="33" height="12"
+                <reportElement x="240" y="208" width="33" height="12"
                                uuid="11ba7958-4995-4609-b278-58af65684474"/>
                 <textElement verticalAlignment="Middle">
                     <font fontName="Arial" size="8"/>
@@ -421,7 +414,7 @@
             </textField>
             <!-- Vehículo - solo para TRANSPORTE_PRIVADO -->
             <staticText>
-                <reportElement x="273" y="195" width="58" height="12" forecolor="#000000"
+                <reportElement x="273" y="208" width="58" height="12" forecolor="#000000"
                                uuid="5f6df861-a910-4707-bb1c-070464d6d971">
                     <printWhenExpression>
                         <![CDATA["TRANSPORTE_PRIVADO".equals($F{tipo_transporte}) || "PRIVADO".equals($F{tipo_transporte})]]></printWhenExpression>
@@ -432,7 +425,7 @@
                 <text><![CDATA[Vehiculo:]]></text>
             </staticText>
             <staticText>
-                <reportElement x="8" y="195" width="78" height="12" forecolor="#000000"
+                <reportElement x="8" y="208" width="78" height="12" forecolor="#000000"
                                uuid="ba6995a8-f375-4077-9686-34ef64b0600c"/>
                 <textElement textAlignment="Right" verticalAlignment="Top">
                     <font fontName="Arial" size="9" isBold="true"/>
@@ -440,7 +433,7 @@
                 <text><![CDATA[Tipo Transporte:]]></text>
             </staticText>
             <staticText>
-                <reportElement mode="Transparent" x="91" y="195" width="75" height="12"
+                <reportElement mode="Transparent" x="91" y="208" width="75" height="12"
                                forecolor="#000000" backcolor="#333333"
                                uuid="50d74689-3c29-4d01-9357-750cbc4c7abe"/>
                 <textElement verticalAlignment="Middle" rotation="None" markup="none">
@@ -453,7 +446,7 @@
             </staticText>
             <!-- RUC Transportista - solo para TRANSPORTE_PUBLICO -->
             <staticText>
-                <reportElement x="4" y="210" width="84" height="12" forecolor="#000000"
+                <reportElement x="4" y="223" width="84" height="12" forecolor="#000000"
                                uuid="6ca05929-61bf-46bf-af40-8fcc919f7a01">
                     <printWhenExpression>
                         <![CDATA["TRANSPORTE_PUBLICO".equals($F{tipo_transporte}) || "PUBLICO".equals($F{tipo_transporte})]]></printWhenExpression>
@@ -465,7 +458,7 @@
             </staticText>
             <!-- DNI Transportista - solo para TRANSPORTE_PRIVADO -->
             <staticText>
-                <reportElement x="4" y="210" width="84" height="12" forecolor="#000000"
+                <reportElement x="4" y="223" width="84" height="12" forecolor="#000000"
                                uuid="6ca05929-61bf-46bf-af40-8fcc919f7a02">
                     <printWhenExpression>
                         <![CDATA["TRANSPORTE_PRIVADO".equals($F{tipo_transporte}) || "PRIVADO".equals($F{tipo_transporte})]]></printWhenExpression>
@@ -476,7 +469,7 @@
                 <text><![CDATA[DNI Conductor:]]></text>
             </staticText>
             <line>
-                <reportElement style="DefaultLine" x="4" y="208" width="555" height="1"
+                <reportElement style="DefaultLine" x="4" y="221" width="555" height="1"
                                forecolor="#999999" uuid="1440dd69-d95e-4d28-9187-ad5138d7bfab"/>
                 <graphicElement>
                     <pen lineWidth="0.5" lineStyle="Dashed"/>
@@ -484,7 +477,7 @@
             </line>
             <!-- RUC Transportista - solo para TRANSPORTE_PUBLICO -->
             <textField>
-                <reportElement x="91" y="210" width="71" height="12"
+                <reportElement x="91" y="223" width="71" height="12"
                                uuid="ac0457c9-8b85-44a7-9f14-7c16b05cb301">
                     <printWhenExpression>
                         <![CDATA["TRANSPORTE_PUBLICO".equals($F{tipo_transporte}) || "PUBLICO".equals($F{tipo_transporte})]]></printWhenExpression>
@@ -496,7 +489,7 @@
             </textField>
             <!-- DNI Conductor - solo para TRANSPORTE_PRIVADO -->
             <textField>
-                <reportElement x="91" y="210" width="71" height="12"
+                <reportElement x="91" y="223" width="71" height="12"
                                uuid="ac0457c9-8b85-44a7-9f14-7c16b05cb302">
                     <printWhenExpression>
                         <![CDATA["TRANSPORTE_PRIVADO".equals($F{tipo_transporte}) || "PRIVADO".equals($F{tipo_transporte})]]></printWhenExpression>
@@ -508,7 +501,7 @@
             </textField>
             <!-- Transportista - solo para TRANSPORTE_PUBLICO -->
             <staticText>
-                <reportElement x="166" y="210" width="75" height="12" forecolor="#000000"
+                <reportElement x="166" y="223" width="75" height="12" forecolor="#000000"
                                uuid="3d4d3339-473c-43bb-95ef-d2bbb9809199">
                     <printWhenExpression>
                         <![CDATA["TRANSPORTE_PUBLICO".equals($F{tipo_transporte}) || "PUBLICO".equals($F{tipo_transporte})]]></printWhenExpression>
@@ -520,7 +513,7 @@
             </staticText>
             <!-- Transportista - solo para TRANSPORTE_PUBLICO -->
             <textField>
-                <reportElement x="244" y="210" width="202" height="12"
+                <reportElement x="244" y="223" width="202" height="12"
                                uuid="aeda0471-3559-46ce-bce6-114326bda7ef">
                     <printWhenExpression>
                         <![CDATA["TRANSPORTE_PUBLICO".equals($F{tipo_transporte}) || "PUBLICO".equals($F{tipo_transporte})]]></printWhenExpression>
@@ -532,7 +525,7 @@
             </textField>
             <!-- Placa - solo para TRANSPORTE_PRIVADO -->
             <staticText>
-                <reportElement x="452" y="195" width="28" height="12" forecolor="#000000"
+                <reportElement x="452" y="208" width="28" height="12" forecolor="#000000"
                                uuid="f2eb6707-ec0e-44a2-add6-8218d19b0fe5">
                     <printWhenExpression>
                         <![CDATA["TRANSPORTE_PRIVADO".equals($F{tipo_transporte}) || "PRIVADO".equals($F{tipo_transporte})]]></printWhenExpression>
@@ -544,7 +537,7 @@
             </staticText>
             <!-- Placa - solo para TRANSPORTE_PRIVADO -->
             <textField>
-                <reportElement x="481" y="195" width="73" height="12"
+                <reportElement x="481" y="208" width="73" height="12"
                                uuid="be1c3e3b-aced-4d83-a035-7e76ec1109d8">
                     <printWhenExpression>
                         <![CDATA["TRANSPORTE_PRIVADO".equals($F{tipo_transporte}) || "PRIVADO".equals($F{tipo_transporte})]]></printWhenExpression>
@@ -556,7 +549,7 @@
             </textField>
             <!-- Licencia - solo para TRANSPORTE_PRIVADO -->
             <textField>
-                <reportElement x="88" y="225" width="71" height="12"
+                <reportElement x="88" y="238" width="71" height="12"
                                uuid="3ee80e6d-ddd8-495d-a583-7f96ec83e0cd">
                     <printWhenExpression>
                         <![CDATA["TRANSPORTE_PRIVADO".equals($F{tipo_transporte}) || "PRIVADO".equals($F{tipo_transporte})]]></printWhenExpression>
@@ -568,7 +561,7 @@
             </textField>
             <!-- Conductor - solo para TRANSPORTE_PRIVADO -->
             <textField>
-                <reportElement x="241" y="225" width="313" height="12"
+                <reportElement x="241" y="238" width="313" height="12"
                                uuid="0c6218fc-ac5d-41f4-970d-03c173805323">
                     <printWhenExpression>
                         <![CDATA["TRANSPORTE_PRIVADO".equals($F{tipo_transporte}) || "PRIVADO".equals($F{tipo_transporte})]]></printWhenExpression>
@@ -580,7 +573,7 @@
             </textField>
             <!-- Número de Licencia - solo para TRANSPORTE_PRIVADO -->
             <staticText>
-                <reportElement x="1" y="225" width="84" height="12" forecolor="#000000"
+                <reportElement x="1" y="238" width="84" height="12" forecolor="#000000"
                                uuid="c3950c73-7791-4eae-bec3-f97722834287">
                     <printWhenExpression>
                         <![CDATA["TRANSPORTE_PRIVADO".equals($F{tipo_transporte}) || "PRIVADO".equals($F{tipo_transporte})]]></printWhenExpression>
@@ -591,7 +584,7 @@
                 <text><![CDATA[Num. Licencia:]]></text>
             </staticText>
             <line>
-                <reportElement style="DefaultLine" x="1" y="223" width="555" height="1"
+                <reportElement style="DefaultLine" x="1" y="236" width="555" height="1"
                                forecolor="#999999" uuid="e25c3792-bdaa-4334-ab6f-a7f7c1c016ab"/>
                 <graphicElement>
                     <pen lineWidth="0.5" lineStyle="Dashed"/>
@@ -599,7 +592,7 @@
             </line>
             <!-- Conductor - solo para TRANSPORTE_PRIVADO -->
             <staticText>
-                <reportElement x="163" y="225" width="75" height="12" forecolor="#000000"
+                <reportElement x="163" y="238" width="75" height="12" forecolor="#000000"
                                uuid="2c0583ed-28a9-4600-9e13-9937b8961105">
                     <printWhenExpression>
                         <![CDATA["TRANSPORTE_PRIVADO".equals($F{tipo_transporte}) || "PRIVADO".equals($F{tipo_transporte})]]></printWhenExpression>
@@ -611,7 +604,7 @@
             </staticText>
             <!-- Vehículo - solo para TRANSPORTE_PRIVADO -->
             <textField>
-                <reportElement x="331" y="195" width="121" height="12"
+                <reportElement x="331" y="208" width="121" height="12"
                                uuid="07e19b2e-fba4-4def-ae26-af119267e510">
                     <printWhenExpression>
                         <![CDATA["TRANSPORTE_PRIVADO".equals($F{tipo_transporte}) || "PRIVADO".equals($F{tipo_transporte})]]></printWhenExpression>
@@ -622,7 +615,7 @@
                 <textFieldExpression><![CDATA[$F{vehiculo}]]></textFieldExpression>
             </textField>
             <staticText>
-                <reportElement x="453" y="209" width="28" height="12" forecolor="#000000"
+                <reportElement x="453" y="223" width="28" height="12" forecolor="#000000"
                                uuid="5cb5f66f-0eec-4f27-93c4-72e91489769e"/>
                 <textElement textAlignment="Right" verticalAlignment="Middle">
                     <font fontName="Arial" size="9" isBold="true"/>
@@ -630,12 +623,12 @@
                 <text><![CDATA[Peso:]]></text>
             </staticText>
             <textField pattern="" isBlankWhenNull="true">
-                <reportElement mode="Transparent" x="481" y="210" width="70" height="11"
+                <reportElement mode="Transparent" x="481" y="223" width="70" height="11"
                                forecolor="#000000" backcolor="#333333"
                                uuid="9f7d0d03-fce0-4da8-8c8e-2d501b9d6b79"/>
                 <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None"
                              markup="none">
-                    <font fontName="Arial" size="8" isBold="false" isItalic="false"
+                    <font fontName="Arial" size="9" isBold="false" isItalic="false"
                           isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252"
                           isPdfEmbedded="false"/>
                     <paragraph lineSpacing="Single"/>
@@ -643,14 +636,14 @@
                 <textFieldExpression><![CDATA[$F{peso}]]></textFieldExpression>
             </textField>
             <line>
-                <reportElement style="DefaultLine" x="1" y="238" width="555" height="1"
+                <reportElement style="DefaultLine" x="1" y="251" width="555" height="1"
                                forecolor="#999999" uuid="d2020129-b3b2-45fc-90cd-30bf87afd618"/>
                 <graphicElement>
                     <pen lineWidth="0.5" lineStyle="Dashed"/>
                 </graphicElement>
             </line>
             <textField>
-                <reportElement x="89" y="239" width="184" height="12"
+                <reportElement x="89" y="252" width="184" height="12"
                                uuid="c221a902-9b50-4db1-a5fb-479a5867d5c1"/>
                 <textElement verticalAlignment="Middle">
                     <font fontName="Arial" size="8"/>
@@ -658,7 +651,7 @@
                 <textFieldExpression><![CDATA[$F{inscripcion}]]></textFieldExpression>
             </textField>
             <staticText>
-                <reportElement x="2" y="239" width="84" height="12" forecolor="#000000"
+                <reportElement x="2" y="252" width="84" height="12" forecolor="#000000"
                                uuid="88fa3b1d-b110-419c-8344-3ddab5a1f652"/>
                 <textElement textAlignment="Right" verticalAlignment="Middle">
                     <font fontName="Arial" size="9" isBold="true"/>

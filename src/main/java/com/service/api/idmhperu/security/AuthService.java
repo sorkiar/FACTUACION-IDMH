@@ -37,13 +37,14 @@ public class AuthService {
     UserDetails userDetails = new User(
         user.getUsername(),
         user.getPassword(),
-        List.of(new SimpleGrantedAuthority("ROLE_" + user.getProfile().getCode()))
+        List.of(new SimpleGrantedAuthority("ROLE_" + user.getProfile().getName()))
     );
 
     UserAuthResponse response = new UserAuthResponse();
     response.setId(user.getId());
     response.setDocumentType(user.getDocumentType().getName());
     response.setDocumentNumber(user.getDocumentNumber());
+    response.setProfileId(user.getProfile().getId());
     response.setProfile(user.getProfile().getName());
     response.setFirstName(user.getFirstName());
     response.setLastName(user.getLastName());

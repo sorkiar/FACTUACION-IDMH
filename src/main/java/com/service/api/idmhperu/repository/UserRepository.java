@@ -16,5 +16,11 @@ public interface UserRepository
   })
   Optional<User> findByUsername(String username);
 
+  @EntityGraph(attributePaths = {
+      "profile",
+      "profile.menus",
+  })
+  Optional<User> findWithMenusByUsername(String username);
+
   boolean existsByUsername(String username);
 }

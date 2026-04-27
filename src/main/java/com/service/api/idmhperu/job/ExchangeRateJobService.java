@@ -14,6 +14,7 @@ import java.net.http.HttpResponse;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +50,7 @@ public class ExchangeRateJobService {
       SUNAT_ECONSULTA_BASE + "/listarTipoCambio";
 
   private static final String CONFIG_GROUP = "tipo_cambio";
+  private static final ZoneId LIMA_ZONE = ZoneId.of("America/Lima");
 
   private static final DateTimeFormatter ECONSULTA_DATE_FORMAT =
       DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -69,12 +71,12 @@ public class ExchangeRateJobService {
    * Corre cada minuto. Cuando la hora actual coincide con fetch_hour (config),
    * registra el tipo de cambio del día si aún no existe.
    */
-  @Scheduled(fixedRate = 60_000)
+  @Scheduled(fixedRate = 300_000)
   public void scheduledFetch() {
     try {
       Map<String, String> config = configurationService.getGroup(CONFIG_GROUP);
-      int configHour = Integer.parseInt(config.getOrDefault("fetch_hour", "9")) % 24;
-      if (LocalTime.now().getHour() != configHour) return;
+      int configHour = Integer.parseInt(config.getOrDefault("fetch_hour", "1")) % 24;
+      if (LocalTime.now(LIMA_ZONE).getHour() < configHour) return;
       fetchTodayIfMissing();
     } catch (Exception e) {
       log.error("Error en scheduled exchange rate fetch: {}", e.getMessage(), e);
@@ -96,12 +98,19 @@ public class ExchangeRateJobService {
   }
 
   private void fetchTodayIfMissing() {
-    LocalDate today = LocalDate.now();
+    LocalDate today = LocalDate.now(LIMA_ZONE);
     if (exchangeRateRepository.existsByDateAndType(today, "C")) {
       log.debug("Tipo de cambio para {} ya registrado", today);
       return;
     }
-    fetchFromSunatTxt(today);
+    try {
+      int saved = fetchAndSaveRange(today, today);
+      if (saved == 0) {
+        log.warn("e-consulta aún no publicó TC para {}, se reintentará en la próxima ejecución.", today);
+      }
+    } catch (Exception e) {
+      log.error("Error obteniendo TC del día desde e-consulta: {}", e.getMessage());
+    }
   }
 
   /**
@@ -126,12 +135,19 @@ public class ExchangeRateJobService {
         return;
       }
 
+      LocalDate txtDate = LocalDate.parse(parts[0].trim(), ECONSULTA_DATE_FORMAT);
+      if (!txtDate.equals(date)) {
+        log.warn("SUNAT TXT retornó fecha {} pero se esperaba {}. TC aún no publicado para hoy, se reintentará.",
+            txtDate, date);
+        return;
+      }
+
       BigDecimal compra = new BigDecimal(parts[1].trim());
       BigDecimal venta = new BigDecimal(parts[2].trim());
 
-      saveRate(date, compra, "C");
-      saveRate(date, venta, "V");
-      log.info("Tipo de cambio para {} registrado: compra={}, venta={}", date, compra, venta);
+      saveRate(txtDate, compra, "C");
+      saveRate(txtDate, venta, "V");
+      log.info("Tipo de cambio para {} registrado: compra={}, venta={}", txtDate, compra, venta);
 
     } catch (Exception e) {
       log.error("Error obteniendo tipo de cambio del TXT SUNAT: {}", e.getMessage(), e);

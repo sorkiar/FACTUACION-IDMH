@@ -7,6 +7,7 @@ public class UserAuthResponse {
   private Long id;
   private String documentType;
   private String documentNumber;
+  private Long profileId;
   private String profile;
   private String firstName;
   private String lastName;

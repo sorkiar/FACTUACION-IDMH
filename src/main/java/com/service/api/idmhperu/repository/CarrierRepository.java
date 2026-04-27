@@ -7,4 +7,8 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 public interface CarrierRepository
     extends JpaRepository<Carrier, Long>,
     JpaSpecificationExecutor<Carrier> {
+
+  boolean existsByDocNumber(String docNumber);
+
+  boolean existsByDocNumberAndIdNot(String docNumber, Long id);
 }

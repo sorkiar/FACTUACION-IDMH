@@ -2,11 +2,17 @@ package com.service.api.idmhperu.dto.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,19 +27,24 @@ import org.hibernate.annotations.UpdateTimestamp;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Profile {
+
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
-
-  @Column(length = 20, nullable = false, unique = true)
-  private String code;
 
   @Column(length = 100, nullable = false)
   private String name;
 
   private Integer status;
 
-  // Auditoría
+  @ManyToMany(fetch = FetchType.LAZY)
+  @JoinTable(
+      name = "profile_menu",
+      joinColumns = @JoinColumn(name = "profile_id"),
+      inverseJoinColumns = @JoinColumn(name = "menu_id")
+  )
+  private Set<Menu> menus = new HashSet<>();
+
   @Column(name = "created_at", updatable = false)
   @CreationTimestamp
   private LocalDateTime createdAt;

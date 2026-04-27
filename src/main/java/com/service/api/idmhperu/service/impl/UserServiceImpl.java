@@ -45,6 +45,10 @@ public class UserServiceImpl implements UserService {
   @Override
   public ApiResponse<UserResponse> create(UserRequest request) {
 
+    if (request.getPassword() == null || request.getPassword().isBlank()) {
+      throw new BusinessValidationException("La contraseña es obligatoria");
+    }
+
     if (repository.existsByUsername(request.getUsername())) {
       throw new BusinessValidationException("El usuario ya existe");
     }
@@ -81,6 +85,16 @@ public class UserServiceImpl implements UserService {
     User user = repository.findById(id)
         .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
+    DocumentType documentType = documentTypeRepository.findById(
+        request.getDocumentTypeId()
+    ).orElseThrow(() -> new ResourceNotFoundException("Tipo de documento no encontrado"));
+
+    Profile profile = profileRepository.findById(
+        request.getProfileId()
+    ).orElseThrow(() -> new ResourceNotFoundException("Perfil no encontrado"));
+
+    user.setDocumentType(documentType);
+    user.setProfile(profile);
     user.setDocumentNumber(request.getDocumentNumber());
     user.setFirstName(request.getFirstName());
     user.setLastName(request.getLastName());

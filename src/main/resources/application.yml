@@ -47,6 +47,14 @@ sunat:
   url-guia: https://e-fact.facturacion-idmhperu.website/facturador/sunat/guia/sent
   url-guia-valid: https://e-fact.facturacion-idmhperu.website/facturador/sunat/guia/valid
 
+recaptcha:
+  secret:
+    key: 6Lcwa9EsAAAAAGOKG_i4jHuvZffpDhJkssSMbaJ1
+  min:
+    score: 0.5
+  bypass:
+    enabled: false
+
 drive:
   folder-id:
     boletas: 12-tPZ-j4uxeEKfn23NnAzjmI1YK1hJmc

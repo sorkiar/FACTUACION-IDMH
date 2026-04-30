@@ -9,4 +9,5 @@ public class AuthRequest {
   private String username;
   @NotBlank(message = "password es requerido")
   private String password;
+  private String recaptchaToken;
 }

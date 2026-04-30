@@ -51,6 +51,7 @@ public class ExchangeRateJobService {
 
   private static final String CONFIG_GROUP = "tipo_cambio";
   private static final ZoneId LIMA_ZONE = ZoneId.of("America/Lima");
+  private static final int FETCH_START_HOUR = 1; // 1 AM Lima
 
   private static final DateTimeFormatter ECONSULTA_DATE_FORMAT =
       DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -68,45 +69,63 @@ public class ExchangeRateJobService {
       .build();
 
   /**
-   * Corre cada minuto. Cuando la hora actual coincide con fetch_hour (config),
-   * registra el tipo de cambio del día si aún no existe.
+   * Corre cada 5 minutos. Intenta obtener el tipo de cambio del día en ventanas horarias
+   * separadas por fetch_hour horas, comenzando desde FETCH_START_HOUR (1 AM Lima).
+   * Ejemplo con fetch_hour=5: intenta a la 1h, 6h, 11h, 16h, 21h.
    */
   @Scheduled(fixedRate = 300_000)
   public void scheduledFetch() {
     try {
       Map<String, String> config = configurationService.getGroup(CONFIG_GROUP);
-      int configHour = Integer.parseInt(config.getOrDefault("fetch_hour", "1")) % 24;
-      if (LocalTime.now(LIMA_ZONE).getHour() < configHour) return;
-      fetchTodayIfMissing();
+      int intervalHours = Math.max(1, Integer.parseInt(config.getOrDefault("fetch_hour", "5")));
+      int currentHour = LocalTime.now(LIMA_ZONE).getHour();
+
+      boolean inFetchWindow = false;
+      for (int h = FETCH_START_HOUR; h < 24; h += intervalHours) {
+        if (currentHour == h) {
+          inFetchWindow = true;
+          break;
+        }
+      }
+      if (!inFetchWindow) return;
+
+      fetchAndUpsertToday();
     } catch (Exception e) {
       log.error("Error en scheduled exchange rate fetch: {}", e.getMessage(), e);
     }
   }
 
   /**
-   * Al iniciar la aplicación, verifica si el tipo de cambio de hoy ya está registrado.
-   * Si no, lo obtiene de inmediato (cubre el caso de despliegue tardío).
+   * Al iniciar la aplicación intenta obtener/actualizar el tipo de cambio del día.
+   * Solo inserta si aún no existe (el startup no reemplaza un valor ya registrado).
    */
   @EventListener(ApplicationReadyEvent.class)
   public void fetchOnStartup() {
     try {
       log.info("Verificando tipo de cambio al inicio...");
-      fetchTodayIfMissing();
+      LocalDate today = LocalDate.now(LIMA_ZONE);
+      if (exchangeRateRepository.existsByDateAndType(today, "C")) {
+        log.debug("TC para {} ya registrado, se omite fetch en startup", today);
+        return;
+      }
+      fetchAndUpsertToday();
     } catch (Exception e) {
       log.error("Error al obtener tipo de cambio al inicio: {}", e.getMessage(), e);
     }
   }
 
-  private void fetchTodayIfMissing() {
+  /**
+   * Llama a e-consulta y hace upsert del TC del día (insert o reemplazo).
+   * Si SUNAT aún no publicó el TC (0 resultados), se reintentará en la próxima ventana.
+   */
+  private void fetchAndUpsertToday() {
     LocalDate today = LocalDate.now(LIMA_ZONE);
-    if (exchangeRateRepository.existsByDateAndType(today, "C")) {
-      log.debug("Tipo de cambio para {} ya registrado", today);
-      return;
-    }
     try {
       int saved = fetchAndSaveRange(today, today);
       if (saved == 0) {
-        log.warn("e-consulta aún no publicó TC para {}, se reintentará en la próxima ejecución.", today);
+        log.warn("e-consulta aún no publicó TC para {}, se reintentará en la próxima ventana horaria.", today);
+      } else {
+        log.info("TC del {} actualizado/insertado ({} registro(s)).", today, saved);
       }
     } catch (Exception e) {
       log.error("Error obteniendo TC del día desde e-consulta: {}", e.getMessage());

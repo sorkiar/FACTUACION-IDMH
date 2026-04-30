@@ -50,6 +50,14 @@ sunat:
   #  url-guia: http://localhost:8889/facturador/sunat/guia/sent
   #  url-guia-valid: http://localhost:8889/facturador/sunat/guia/valid
 
+recaptcha:
+  secret:
+    key: 6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe
+  min:
+    score: 0.5
+  bypass:
+    enabled: true
+
 drive:
   folder-id:
     boletas: 1syslu2o7g8nBGDbdFGnUQjaEua8UNNZC

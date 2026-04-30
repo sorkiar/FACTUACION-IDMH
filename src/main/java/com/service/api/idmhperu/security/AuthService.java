@@ -6,9 +6,11 @@ import com.service.api.idmhperu.dto.response.UserAuthResponse;
 import com.service.api.idmhperu.exception.LoginException;
 import com.service.api.idmhperu.exception.ResourceNotFoundException;
 import com.service.api.idmhperu.repository.UserRepository;
+import com.service.api.idmhperu.service.RecaptchaService;
 import com.service.api.idmhperu.util.JwtUtils;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,8 +23,21 @@ public class AuthService {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final JwtUtils jwtUtils;
+  private final RecaptchaService recaptchaService;
+
+  @Value("${recaptcha.bypass.enabled:false}")
+  private boolean bypassEnabled;
 
   public ApiResponse<UserAuthResponse> login(AuthRequest request) {
+    if (!bypassEnabled) {
+      if (request.getRecaptchaToken() == null || request.getRecaptchaToken().isBlank()) {
+        throw new LoginException("reCAPTCHA token requerido", 400);
+      }
+      var recaptchaResult = recaptchaService.validate(request.getRecaptchaToken());
+      if (!recaptchaResult.isValid()) {
+        throw new LoginException("reCAPTCHA inválido: " + recaptchaResult.getReason(), 400);
+      }
+    }
     com.service.api.idmhperu.dto.entity.User user = userRepository.findByUsername(request.getUsername())
         .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado o credenciales inválidas"));
 

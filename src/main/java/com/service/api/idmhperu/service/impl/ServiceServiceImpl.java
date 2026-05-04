@@ -289,8 +289,11 @@ public class ServiceServiceImpl implements ServiceService {
       JasperReport jasperReport = JasperCompileManager.compileReport(inputStream);
 
       Map<String, Object> parameters = new HashMap<>();
-      parameters.put("urlImagen",
-          Objects.requireNonNull(getClass().getResource("/img/logo.png")).toString());
+      String logoUrl = config.get("emprLogo");
+      if (logoUrl == null || logoUrl.isBlank()) {
+        logoUrl = Objects.requireNonNull(getClass().getResource("/img/logo.png")).toString();
+      }
+      parameters.put("urlImagen", logoUrl);
 
       JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, dataSource);
 

@@ -21,5 +21,9 @@ public interface MenuService {
 
   ApiResponse<List<SidebarItemResponse>> getSidebar();
 
+  ApiResponse<List<SidebarItemResponse>> getNavbar();
+
+  ApiResponse<List<SidebarItemResponse>> getInternal();
+
   ApiResponse<List<String>> getAllowedPaths();
 }

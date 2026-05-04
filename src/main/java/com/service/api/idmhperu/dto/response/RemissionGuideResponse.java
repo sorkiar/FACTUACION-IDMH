@@ -16,7 +16,7 @@ public class RemissionGuideResponse {
   private LocalDateTime issueDate;
   private LocalDate transferDate;
 
-  private String transferReason;
+  private TransferReasonResponse transferReason;
   private String transferReasonDescription;
   private String transportMode;
 

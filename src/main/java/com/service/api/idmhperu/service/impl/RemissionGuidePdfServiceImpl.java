@@ -203,8 +203,11 @@ public class RemissionGuidePdfServiceImpl implements RemissionGuidePdfService {
       JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(dataList);
 
       Map<String, Object> parameters = new HashMap<>();
-      parameters.put("urlImagen",
-          Objects.requireNonNull(getClass().getResource("/img/logo.png")).toString());
+      String logoUrl = config.get("emprLogo");
+      if (logoUrl == null || logoUrl.isBlank()) {
+        logoUrl = Objects.requireNonNull(getClass().getResource("/img/logo.png")).toString();
+      }
+      parameters.put("urlImagen", logoUrl);
 
       JasperPrint jasperPrint =
           JasperFillManager.fillReport(jasperReport, parameters, dataSource);

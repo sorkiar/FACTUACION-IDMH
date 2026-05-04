@@ -642,7 +642,7 @@ public class SunatDocumentJobService {
     guia.setGuiaPuntoLlegadaDireccion(guide.getDestinationAddress());
     guia.setGuiaUbigeoLlegada(guide.getDestinationUbigeo());
     guia.setGuiaCodigoLocalLlegada(guide.getDestinationLocalCode());
-    guia.setMotivoTraslado(guide.getTransferReason());
+    guia.setMotivoTraslado(guide.getTransferReason().getCode());
     guia.setGuiaMotivoTrasladoDescripcion(guide.getTransferReasonDescription());
     guia.setTipoTransporte(guide.getTransportMode());
     guia.setGuiaTrasladoVehiculoMenores(guide.getMinorVehicleTransfer());

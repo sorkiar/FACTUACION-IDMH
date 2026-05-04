@@ -239,8 +239,11 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
 
       Map<String, Object> parameters = new HashMap<>();
 
-      parameters.put("urlImagen",
-          Objects.requireNonNull(getClass().getResource("/img/logo.png")).toString());
+      String logoUrl = config.get("emprLogo");
+      if (logoUrl == null || logoUrl.isBlank()) {
+        logoUrl = Objects.requireNonNull(getClass().getResource("/img/logo.png")).toString();
+      }
+      parameters.put("urlImagen", logoUrl);
       parameters.put("cuotas_texto", cuotasTexto);
       parameters.put("guias_relacionadas", guiasTexto);
       parameters.put("orden_compra", sale.getPurchaseOrder());

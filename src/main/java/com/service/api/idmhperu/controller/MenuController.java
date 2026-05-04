@@ -37,6 +37,16 @@ public class MenuController {
     return service.getSidebar();
   }
 
+  @GetMapping("/navbar")
+  public ApiResponse<List<SidebarItemResponse>> navbar() {
+    return service.getNavbar();
+  }
+
+  @GetMapping("/internal")
+  public ApiResponse<List<SidebarItemResponse>> internal() {
+    return service.getInternal();
+  }
+
   @GetMapping("/allowed-paths")
   public ApiResponse<List<String>> allowedPaths() {
     return service.getAllowedPaths();

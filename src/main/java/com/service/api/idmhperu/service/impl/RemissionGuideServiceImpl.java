@@ -9,6 +9,7 @@ import com.service.api.idmhperu.dto.entity.DriverVehicle;
 import com.service.api.idmhperu.dto.entity.RemissionGuide;
 import com.service.api.idmhperu.dto.entity.RemissionGuideDriver;
 import com.service.api.idmhperu.dto.entity.RemissionGuideItem;
+import com.service.api.idmhperu.dto.entity.TransferReason;
 import com.service.api.idmhperu.dto.filter.RemissionGuideFilter;
 import com.service.api.idmhperu.dto.mapper.RemissionGuideMapper;
 import com.service.api.idmhperu.dto.request.RemissionGuideDriverRequest;
@@ -29,6 +30,7 @@ import com.service.api.idmhperu.repository.ProductRepository;
 import com.service.api.idmhperu.repository.RemissionGuideDriverRepository;
 import com.service.api.idmhperu.repository.RemissionGuideItemRepository;
 import com.service.api.idmhperu.repository.RemissionGuideRepository;
+import com.service.api.idmhperu.repository.TransferReasonRepository;
 import com.service.api.idmhperu.repository.spec.RemissionGuideSpecification;
 import com.service.api.idmhperu.service.RemissionGuidePdfService;
 import com.service.api.idmhperu.service.RemissionGuideService;
@@ -55,6 +57,8 @@ public class RemissionGuideServiceImpl implements RemissionGuideService {
   private final CarrierRepository carrierRepository;
   private final DriverRepository driverMasterRepository;
   private final DriverVehicleRepository vehicleRepository;
+  private final TransferReasonRepository transferReasonRepository;
+  private final com.service.api.idmhperu.service.ConfigurationService configurationService;
   private final RemissionGuideMapper mapper;
   private final RemissionGuidePdfService pdfService;
   private final SunatDocumentJobService sunatDocumentJobService;
@@ -95,11 +99,27 @@ public class RemissionGuideServiceImpl implements RemissionGuideService {
       }
     }
 
-    if ("OTROS".equals(request.getTransferReason())) {
+    TransferReason transferReason = transferReasonRepository.findById(request.getTransferReasonId())
+        .orElseThrow(() -> new ResourceNotFoundException("Motivo de traslado no encontrado"));
+    if (transferReason.getStatus() != 1) {
+      throw new BusinessValidationException("El motivo de traslado seleccionado no está activo");
+    }
+    if ("13".equals(transferReason.getCode())) {
       if (request.getTransferReasonDescription() == null
           || request.getTransferReasonDescription().isBlank()) {
         throw new BusinessValidationException(
-            "transferReasonDescription es obligatorio cuando transferReason = OTROS");
+            "transferReasonDescription es obligatorio cuando el motivo es Otros (13)");
+      }
+    }
+
+    if ("04".equals(transferReason.getCode())) {
+      if (request.getOriginLocalCode() == null || request.getOriginLocalCode().isBlank()) {
+        throw new BusinessValidationException(
+            "originLocalCode es obligatorio para motivo 04 - Traslado entre establecimientos");
+      }
+      if (request.getDestinationLocalCode() == null || request.getDestinationLocalCode().isBlank()) {
+        throw new BusinessValidationException(
+            "destinationLocalCode es obligatorio para motivo 04 - Traslado entre establecimientos");
       }
     }
 
@@ -121,7 +141,7 @@ public class RemissionGuideServiceImpl implements RemissionGuideService {
     guide.setSequence(String.format("%08d", nextSequence));
     guide.setIssueDate(LocalDateTime.now());
     guide.setTransferDate(request.getTransferDate());
-    guide.setTransferReason(request.getTransferReason());
+    guide.setTransferReason(transferReason);
     guide.setTransferReasonDescription(request.getTransferReasonDescription());
     guide.setTransportMode(request.getTransportMode());
     guide.setGrossWeight(request.getGrossWeight());
@@ -129,16 +149,25 @@ public class RemissionGuideServiceImpl implements RemissionGuideService {
     guide.setPackageCount(request.getPackageCount() != null ? request.getPackageCount() : 1);
     guide.setOriginAddress(request.getOriginAddress());
     guide.setOriginUbigeo(request.getOriginUbigeo());
-    guide.setOriginLocalCode(request.getOriginLocalCode());
+    guide.setOriginLocalCode("04".equals(transferReason.getCode()) ? request.getOriginLocalCode() : null);
     guide.setDestinationAddress(request.getDestinationAddress());
     guide.setDestinationUbigeo(request.getDestinationUbigeo());
-    guide.setDestinationLocalCode(request.getDestinationLocalCode());
+    guide.setDestinationLocalCode("04".equals(transferReason.getCode()) ? request.getDestinationLocalCode() : null);
     guide.setMinorVehicleTransfer(
         request.getMinorVehicleTransfer() != null && request.getMinorVehicleTransfer());
 
     // Destinatario (cliente)
     Client client = clientRepository.findById(request.getClientId())
         .orElseThrow(() -> new ResourceNotFoundException("Destinatario no encontrado"));
+
+    if ("04".equals(transferReason.getCode())) {
+      String companyRuc = configurationService.getGroup("empresa_emisora").get("emprRuc");
+      if (!companyRuc.equals(client.getDocumentNumber())) {
+        throw new BusinessValidationException(
+            "Para motivo 04, el cliente destino debe ser el propio emisor (RUC: " + companyRuc + ")");
+      }
+    }
+
     guide.setClient(client);
 
     // Dirección del cliente para el comprobante (texto obligatorio del request)

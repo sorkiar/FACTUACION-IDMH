@@ -78,23 +78,37 @@ public class MenuServiceImpl implements MenuService {
   @Override
   @Transactional(readOnly = true)
   public ApiResponse<List<SidebarItemResponse>> getSidebar() {
+    return buildMenuResponse("SIDEBAR", "Sidebar cargado correctamente");
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public ApiResponse<List<SidebarItemResponse>> getNavbar() {
+    return buildMenuResponse("NAVBAR", "Navbar cargado correctamente");
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public ApiResponse<List<SidebarItemResponse>> getInternal() {
+    return buildMenuResponse("INTERNAL", "Menús internos cargados correctamente");
+  }
+
+  private ApiResponse<List<SidebarItemResponse>> buildMenuResponse(String menuType, String message) {
     String username = JwtUtils.extractUsernameFromContext();
 
     com.service.api.idmhperu.dto.entity.User user = userRepository.findWithMenusByUsername(username)
         .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
     List<Menu> allowed = user.getProfile().getMenus().stream()
-        .filter(m -> m.getStatus() == 1 && "SIDEBAR".equals(m.getMenuType()))
+        .filter(m -> m.getStatus() == 1 && menuType.equals(m.getMenuType()))
         .sorted(Comparator.comparingInt(Menu::getSortOrder).thenComparingLong(Menu::getId))
         .collect(Collectors.toList());
 
-    // Group children by parent id
     Map<Long, List<Menu>> byParent = allowed.stream()
         .filter(m -> m.getParent() != null)
         .collect(Collectors.groupingBy(m -> m.getParent().getId()));
 
-    // Build tree from top-level items
-    List<SidebarItemResponse> sidebar = allowed.stream()
+    List<SidebarItemResponse> items = allowed.stream()
         .filter(m -> m.getParent() == null)
         .map(parent -> {
           SidebarItemResponse item = new SidebarItemResponse();
@@ -116,7 +130,7 @@ public class MenuServiceImpl implements MenuService {
         })
         .collect(Collectors.toList());
 
-    return new ApiResponse<>("Sidebar cargado correctamente", sidebar);
+    return new ApiResponse<>(message, items);
   }
 
   @Override

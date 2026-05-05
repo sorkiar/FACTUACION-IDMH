@@ -140,11 +140,11 @@ public class RemissionGuidePdfServiceImpl implements RemissionGuidePdfService {
         row.put("tipo_transporte", guide.getTransportMode());
         row.put("num_bultos", guide.getPackageCount());
         row.put("peso", guide.getGrossWeight().doubleValue());
-        row.put("tipo_guia", guide.getTransferReason());
+        row.put("tipo_guia", guide.getTransferReason() != null ? guide.getTransferReason().getName() : null);
         row.put("tipo_guia_descripcion",
             guide.getTransferReasonDescription() != null
                 ? guide.getTransferReasonDescription()
-                : guide.getTransferReason());
+                : (guide.getTransferReason() != null ? guide.getTransferReason().getName() : null));
 
         // TRANSPORTE_PUBLICO
         String carrierName = (guide.getCarrier() != null) ? guide.getCarrier().getBusinessName() : null;

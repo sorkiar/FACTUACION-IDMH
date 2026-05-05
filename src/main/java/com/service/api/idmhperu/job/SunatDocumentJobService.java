@@ -66,6 +66,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 @Service
@@ -472,6 +473,8 @@ public class SunatDocumentJobService {
 
   @org.springframework.transaction.annotation.Transactional
   public void sendRemissionGuideNow(RemissionGuide guide) {
+    String requestJson = null;
+    LocalDateTime sentAt = LocalDateTime.now();
     try {
       List<RemissionGuideItem> items =
           remissionGuideItemRepository.findByRemissionGuideIdAndDeletedAtIsNull(guide.getId());
@@ -479,12 +482,12 @@ public class SunatDocumentJobService {
           remissionGuideDriverRepository.findByRemissionGuideIdAndDeletedAtIsNull(guide.getId());
       SunatSendRequest request = buildGuideRequest(guide, items, drivers);
 
-      String requestJson = serializeJson(request);
+      requestJson = serializeJson(request);
       log.info("====== JSON GUÍA ENVIADO A SUNAT ======\n{}", requestJson);
 
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
-      LocalDateTime sentAt = LocalDateTime.now();
+      sentAt = LocalDateTime.now();
       ResponseEntity<FacturacionResponse> response = restTemplate.exchange(
           sunatGuiaUrl, HttpMethod.POST, new HttpEntity<>(request, headers),
           FacturacionResponse.class);
@@ -494,6 +497,14 @@ public class SunatDocumentJobService {
           requestJson, serializeJson(response.getBody()),
           response.getStatusCode().value(), response.getStatusCode().is2xxSuccessful()
               && response.getBody() != null && response.getBody().isSuccess(), sentAt);
+    } catch (HttpClientErrorException e) {
+      guide.setStatus("ERROR");
+      guide.setSunatMessage("Error enviando: " + e.getMessage());
+      log.error("Error enviando guía {} de forma manual", guide.getId(), e);
+      saveLog("manual-resend", "09",
+          guide.getSeries(), guide.getSequence(),
+          requestJson, e.getResponseBodyAsString(),
+          e.getStatusCode().value(), false, sentAt);
     } catch (Exception e) {
       guide.setStatus("ERROR");
       guide.setSunatMessage("Error enviando: " + e.getMessage());
@@ -518,6 +529,8 @@ public class SunatDocumentJobService {
 
     for (RemissionGuide guide : pendientes) {
 
+      String requestJson = null;
+      LocalDateTime sentAt = LocalDateTime.now();
       try {
 
         List<RemissionGuideItem> items =
@@ -534,10 +547,10 @@ public class SunatDocumentJobService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<SunatSendRequest> entity = new HttpEntity<>(request, headers);
 
-        String requestJson = serializeJson(request);
+        requestJson = serializeJson(request);
         log.info("====== JSON GUÍA ENVIADO A SUNAT ======\n{}", requestJson);
 
-        LocalDateTime sentAt = LocalDateTime.now();
+        sentAt = LocalDateTime.now();
         ResponseEntity<FacturacionResponse> response =
             restTemplate.exchange(sunatGuiaUrl, HttpMethod.POST, entity, FacturacionResponse.class);
 
@@ -548,6 +561,14 @@ public class SunatDocumentJobService {
             response.getStatusCode().value(), response.getStatusCode().is2xxSuccessful()
                 && response.getBody() != null && response.getBody().isSuccess(), sentAt);
 
+      } catch (HttpClientErrorException e) {
+        guide.setStatus("ERROR");
+        guide.setSunatMessage("Error enviando: " + e.getMessage());
+        log.error("Error enviando guía {}", guide.getId(), e);
+        saveLog("job-system", "09",
+            guide.getSeries(), guide.getSequence(),
+            requestJson, e.getResponseBodyAsString(),
+            e.getStatusCode().value(), false, sentAt);
       } catch (Exception e) {
         guide.setStatus("ERROR");
         guide.setSunatMessage("Error enviando: " + e.getMessage());
@@ -642,7 +663,7 @@ public class SunatDocumentJobService {
     guia.setGuiaPuntoLlegadaDireccion(guide.getDestinationAddress());
     guia.setGuiaUbigeoLlegada(guide.getDestinationUbigeo());
     guia.setGuiaCodigoLocalLlegada(guide.getDestinationLocalCode());
-    guia.setMotivoTraslado(guide.getTransferReason().getCode());
+    guia.setMotivoTraslado(resolveTransferReasonEnumName(guide.getTransferReason().getCode()));
     guia.setGuiaMotivoTrasladoDescripcion(guide.getTransferReasonDescription());
     guia.setTipoTransporte(guide.getTransportMode());
     guia.setGuiaTrasladoVehiculoMenores(guide.getMinorVehicleTransfer());
@@ -847,6 +868,29 @@ public class SunatDocumentJobService {
       case "D11" -> "DEBITO_AJUSTES_OPERACIONES_EXPORTACION";
       case "D12" -> "DEBITO_AJUSTES_IVAP";
       default -> throw new IllegalArgumentException("Código de nota inválido: " + noteTypeCode);
+    };
+  }
+
+  /**
+   * Maps SUNAT Catalog 20 code to facturador enum name Catalog20MotivoTraslado.
+   */
+  private String resolveTransferReasonEnumName(String code) {
+    return switch (code) {
+      case "01" -> "VENTA";
+      case "02" -> "COMPRA";
+      case "03" -> "VENTA_ENTREGA_TERCEROS";
+      case "04" -> "TRASLADO_EMPRESA";
+      case "05" -> "CONSIGNACION";
+      case "06" -> "DEVOLUCION";
+      case "07" -> "TRASLADO_TRANSFORMACION";
+      case "08" -> "RECOJO_BIENES_TRANSFORMADOS";
+      case "09" -> "TRASLADO_ITINERANTE";
+      case "13" -> "OTROS";
+      case "14" -> "VENTA_CONFIRMACION";
+      case "17" -> "EXPORTACION";
+      case "18" -> "IMPORTACION";
+      case "19" -> "TRASLADO_ZONA_PRIMARIA";
+      default -> throw new IllegalArgumentException("Código Catálogo 20 inválido: " + code);
     };
   }
 

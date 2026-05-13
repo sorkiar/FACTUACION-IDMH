@@ -2,6 +2,7 @@ package com.service.api.idmhperu.controller;
 
 import com.service.api.idmhperu.dto.filter.UserFilter;
 import com.service.api.idmhperu.dto.request.ChangePasswordRequest;
+import com.service.api.idmhperu.dto.request.ResetPasswordRequest;
 import com.service.api.idmhperu.dto.request.UserRequest;
 import com.service.api.idmhperu.dto.request.UserStatusRequest;
 import com.service.api.idmhperu.dto.response.ApiResponse;
@@ -65,6 +66,21 @@ public class UserController {
       @Valid @RequestBody UserStatusRequest request
   ) {
     return service.updateStatus(id, request);
+  }
+
+  @PatchMapping("/{id}/password")
+  public ApiResponse<Void> resetPassword(
+      @PathVariable Long id,
+      @Valid @RequestBody ResetPasswordRequest request
+  ) {
+    return service.resetPassword(id, request);
+  }
+
+  @PatchMapping("/me/set-password")
+  public ApiResponse<Void> setPassword(
+      @Valid @RequestBody ResetPasswordRequest request
+  ) {
+    return service.setPassword(request);
   }
 
   @PatchMapping("/me/password")

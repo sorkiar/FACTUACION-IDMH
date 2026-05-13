@@ -2,6 +2,7 @@ package com.service.api.idmhperu.service;
 
 import com.service.api.idmhperu.dto.filter.UserFilter;
 import com.service.api.idmhperu.dto.request.ChangePasswordRequest;
+import com.service.api.idmhperu.dto.request.ResetPasswordRequest;
 import com.service.api.idmhperu.dto.request.UserRequest;
 import com.service.api.idmhperu.dto.request.UserStatusRequest;
 import com.service.api.idmhperu.dto.response.ApiResponse;
@@ -18,4 +19,8 @@ public interface UserService {
   ApiResponse<Void> updateStatus(Long id, UserStatusRequest request);
 
   ApiResponse<Void> changePassword(ChangePasswordRequest request);
+
+  ApiResponse<Void> resetPassword(Long id, ResetPasswordRequest request);
+
+  ApiResponse<Void> setPassword(ResetPasswordRequest request);
 }

@@ -6,6 +6,7 @@ import com.service.api.idmhperu.dto.entity.User;
 import com.service.api.idmhperu.dto.filter.UserFilter;
 import com.service.api.idmhperu.dto.mapper.UserMapper;
 import com.service.api.idmhperu.dto.request.ChangePasswordRequest;
+import com.service.api.idmhperu.dto.request.ResetPasswordRequest;
 import com.service.api.idmhperu.dto.request.UserRequest;
 import com.service.api.idmhperu.dto.request.UserStatusRequest;
 import com.service.api.idmhperu.dto.response.ApiResponse;
@@ -127,6 +128,10 @@ public class UserServiceImpl implements UserService {
     User user = repository.findByUsername(username)
         .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
+    if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+      throw new BusinessValidationException("La contraseña actual es incorrecta");
+    }
+
     user.setPassword(passwordEncoder.encode(request.getNewPassword()));
     user.setPlainPassword(request.getNewPassword());
     user.setUpdatedBy(username);
@@ -134,5 +139,35 @@ public class UserServiceImpl implements UserService {
     repository.save(user);
 
     return new ApiResponse<>("Contraseña actualizada correctamente", null);
+  }
+
+  @Override
+  public ApiResponse<Void> setPassword(ResetPasswordRequest request) {
+    String username = JwtUtils.extractUsernameFromContext();
+
+    User user = repository.findByUsername(username)
+        .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+
+    user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+    user.setPlainPassword(request.getNewPassword());
+    user.setUpdatedBy(username);
+
+    repository.save(user);
+
+    return new ApiResponse<>("Contraseña actualizada correctamente", null);
+  }
+
+  @Override
+  public ApiResponse<Void> resetPassword(Long id, ResetPasswordRequest request) {
+    User user = repository.findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+
+    user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+    user.setPlainPassword(request.getNewPassword());
+    user.setUpdatedBy(JwtUtils.extractUsernameFromContext());
+
+    repository.save(user);
+
+    return new ApiResponse<>("Contraseña restablecida correctamente", null);
   }
 }

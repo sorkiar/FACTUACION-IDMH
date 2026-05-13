@@ -4,10 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class ChangePasswordRequest {
-  @NotBlank(message = "La contraseña actual es obligatoria")
-  private String currentPassword;
-
+public class ResetPasswordRequest {
   @NotBlank(message = "La nueva contraseña es obligatoria")
   private String newPassword;
 }

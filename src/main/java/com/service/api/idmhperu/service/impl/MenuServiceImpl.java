@@ -34,7 +34,7 @@ public class MenuServiceImpl implements MenuService {
   public ApiResponse<List<MenuResponse>> findAll() {
     return new ApiResponse<>(
         "Menús listados correctamente",
-        mapper.toResponseList(repository.findAllWithParent())
+        mapper.toResponseList(repository.findAllByMenuTypeWithParent("SIDEBAR"))
     );
   }
 
@@ -154,7 +154,7 @@ public class MenuServiceImpl implements MenuService {
     menu.setPath(request.getPath());
     menu.setSortOrder(request.getSortOrder());
     menu.setParent(request.getParentId() != null ? findOrThrow(request.getParentId()) : null);
-    menu.setMenuType(request.getMenuType() != null ? request.getMenuType() : "SIDEBAR");
+    menu.setMenuType("SIDEBAR");
   }
 
   private Menu findOrThrow(Long id) {

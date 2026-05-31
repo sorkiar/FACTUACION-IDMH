@@ -71,6 +71,12 @@ public class SaleItem {
   @Column(name = "total_amount", precision = 14, scale = 2, nullable = false)
   private BigDecimal totalAmount;
 
+  @Column(name = "gross_amount", precision = 14, scale = 2)
+  private BigDecimal grossAmount;
+
+  @Column(name = "unit_price_with_tax", precision = 14, scale = 6)
+  private BigDecimal unitPriceWithTax;
+
   @ManyToOne
   @JoinColumn(name = "unit_measure_id")
   private UnitMeasure unitMeasure;

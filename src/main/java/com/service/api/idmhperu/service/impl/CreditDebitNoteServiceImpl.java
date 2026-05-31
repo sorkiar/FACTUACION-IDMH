@@ -193,7 +193,16 @@ public class CreditDebitNoteServiceImpl implements CreditDebitNoteService {
       item.setDiscountPercentage(discountPct);
       item.setSubtotalAmount(itemBase);
       item.setTaxAmount(itemTax);
-      item.setTotalAmount(itemTotal.setScale(2, RoundingMode.HALF_UP));
+      BigDecimal itemTotalRounded = itemTotal.setScale(2, RoundingMode.HALF_UP);
+      item.setTotalAmount(itemTotalRounded);
+      item.setGrossAmount(itemReq.getQuantity().multiply(itemReq.getUnitPrice())
+          .setScale(2, RoundingMode.HALF_UP));
+      item.setNetUnitPrice(itemReq.getQuantity().compareTo(BigDecimal.ZERO) != 0
+          ? itemBase.divide(itemReq.getQuantity(), 6, RoundingMode.HALF_UP)
+          : itemReq.getUnitPrice());
+      item.setNetUnitPriceWithTax(itemReq.getQuantity().compareTo(BigDecimal.ZERO) != 0
+          ? itemTotalRounded.divide(itemReq.getQuantity(), 6, RoundingMode.HALF_UP)
+          : itemReq.getUnitPrice().multiply(new BigDecimal("1.18")).setScale(6, RoundingMode.HALF_UP));
       item.setCreatedBy(username);
 
       if ("PRODUCTO".equals(itemReq.getItemType())) {

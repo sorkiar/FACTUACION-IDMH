@@ -299,17 +299,17 @@ public class SunatDocumentJobService {
 
       BigDecimal cantidad = item.getQuantity();
 
-      // SUNAT regla 3271: LineExtensionAmount = CreditedQuantity × Price/PriceAmount
-      // → Price/PriceAmount debe ser el valor unitario NETO (subtotalAmount / cantidad)
-      //   para que qty × valorUnitario == LineExtensionAmount (subtotalAmount).
-      // El descuento ya está en subtotalAmount; no se envía AllowanceCharge separado.
-      // Precio con IGV se deriva de totalAmount / cantidad (IGV calculado desde subtotal).
-      BigDecimal netValorUnitario = cantidad.compareTo(BigDecimal.ZERO) != 0
-          ? item.getSubtotalAmount().divide(cantidad, 6, RoundingMode.HALF_UP)
-          : item.getUnitPrice();
-      BigDecimal netPrecioConIgv = cantidad.compareTo(BigDecimal.ZERO) != 0
-          ? item.getTotalAmount().divide(cantidad, 6, RoundingMode.HALF_UP)
-          : item.getUnitPrice().multiply(new BigDecimal("1.18")).setScale(2, RoundingMode.HALF_UP);
+      // SUNAT regla 3271: qty × valorUnitario == LineExtensionAmount (subtotalAmount).
+      BigDecimal netValorUnitario = item.getNetUnitPrice() != null
+          ? item.getNetUnitPrice()
+          : (cantidad.compareTo(BigDecimal.ZERO) != 0
+              ? item.getSubtotalAmount().divide(cantidad, 6, RoundingMode.HALF_UP)
+              : item.getUnitPrice());
+      BigDecimal netPrecioConIgv = item.getNetUnitPriceWithTax() != null
+          ? item.getNetUnitPriceWithTax()
+          : (cantidad.compareTo(BigDecimal.ZERO) != 0
+              ? item.getTotalAmount().divide(cantidad, 6, RoundingMode.HALF_UP)
+              : item.getUnitPrice().multiply(new BigDecimal("1.18")).setScale(2, RoundingMode.HALF_UP));
 
       ItemSendRequest dto = new ItemSendRequest();
       String unidad = "NIU";
@@ -974,16 +974,14 @@ public class SunatDocumentJobService {
 
       BigDecimal cantidad = item.getQuantity();
 
-      // unitPrice es ahora la BASE sin IGV (nuevo modelo: precios excluyen IGV)
       BigDecimal valorUnitario = item.getUnitPrice();
-      BigDecimal precioConIgv = item.getUnitPrice()
-          .multiply(new BigDecimal("1.18"))
-          .setScale(2, RoundingMode.HALF_UP);
+      BigDecimal precioConIgv = item.getUnitPriceWithTax() != null
+          ? item.getUnitPriceWithTax().setScale(2, RoundingMode.HALF_UP)
+          : item.getUnitPrice().multiply(new BigDecimal("1.18")).setScale(2, RoundingMode.HALF_UP);
 
-      // Descuento en base: grossBase - subtotalAmount (0 si no hay descuento)
-      // Garantiza: valorUnitario * cantidad - descuentoAfecta == itcoSubTotal
-      BigDecimal grossTotal = cantidad.multiply(item.getUnitPrice())
-          .setScale(2, RoundingMode.HALF_UP);
+      BigDecimal grossTotal = item.getGrossAmount() != null
+          ? item.getGrossAmount()
+          : cantidad.multiply(item.getUnitPrice()).setScale(2, RoundingMode.HALF_UP);
       BigDecimal descuentoAfecta = grossTotal
           .subtract(item.getSubtotalAmount())
           .setScale(2, RoundingMode.HALF_UP);

@@ -330,6 +330,11 @@ public class SaleServiceImpl implements SaleService {
       item.setSubtotalAmount(lineTotal.setScale(2, RoundingMode.HALF_UP));
       item.setTaxAmount(itemTax.setScale(2, RoundingMode.HALF_UP));
       item.setTotalAmount(itemTotal.setScale(2, RoundingMode.HALF_UP));
+      item.setGrossAmount(itemReq.getQuantity().multiply(itemReq.getUnitPrice())
+          .setScale(2, RoundingMode.HALF_UP));
+      item.setUnitPriceWithTax(itemReq.getUnitPrice()
+          .multiply(BigDecimal.ONE.add(taxRate))
+          .setScale(6, RoundingMode.HALF_UP));
       item.setCreatedBy(username);
 
       itemsToSave.add(item);
@@ -734,6 +739,7 @@ public class SaleServiceImpl implements SaleService {
     sale.setHasRetention(false);
     sale.setRetentionAmount(null);
     sale.setRetentionRate(null);
+    sale.setRetentionBasePen(null);
 
     if (documentSeriesId == null) return;
 
@@ -775,6 +781,7 @@ public class SaleServiceImpl implements SaleService {
     sale.setHasRetention(true);
     sale.setRetentionRate(rate);
     sale.setRetentionAmount(retentionAmount);
+    sale.setRetentionBasePen(totalInPen);
   }
 
   /**

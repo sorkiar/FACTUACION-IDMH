@@ -138,14 +138,11 @@ public class CreditDebitNotePdfServiceImpl implements CreditDebitNotePdfService 
         }
         row.put("itco_unidad_medida", unidad);
         row.put("itco_precio_unitario", item.getUnitPrice());
-        BigDecimal discountPct = item.getDiscountPercentage() != null
-            ? item.getDiscountPercentage() : BigDecimal.ZERO;
-        BigDecimal grossItemTotal = item.getQuantity()
-            .multiply(item.getUnitPrice())
-            .setScale(2, RoundingMode.HALF_UP);
-        BigDecimal discountAmount = grossItemTotal
-            .multiply(discountPct)
-            .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+        BigDecimal grossItemTotal = item.getGrossAmount() != null
+            ? item.getGrossAmount()
+            : item.getQuantity().multiply(item.getUnitPrice()).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal discountAmount = grossItemTotal.subtract(item.getSubtotalAmount())
+            .max(BigDecimal.ZERO);
         row.put("itco_descuento", discountAmount);
         row.put("itco_tipo_igv", 10);
         row.put("itco_igv", item.getTaxAmount());

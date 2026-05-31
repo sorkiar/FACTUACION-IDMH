@@ -66,6 +66,15 @@ public class CreditDebitNoteItem {
   @Column(name = "total_amount", precision = 14, scale = 2, nullable = false)
   private BigDecimal totalAmount;
 
+  @Column(name = "gross_amount", precision = 14, scale = 2)
+  private BigDecimal grossAmount;
+
+  @Column(name = "net_unit_price", precision = 14, scale = 6)
+  private BigDecimal netUnitPrice;
+
+  @Column(name = "net_unit_price_with_tax", precision = 14, scale = 6)
+  private BigDecimal netUnitPriceWithTax;
+
   @ManyToOne
   @JoinColumn(name = "unit_measure_id")
   private UnitMeasure unitMeasure;

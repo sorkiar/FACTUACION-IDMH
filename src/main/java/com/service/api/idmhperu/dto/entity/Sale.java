@@ -91,6 +91,10 @@ public class Sale {
   @Column(name = "retention_rate", precision = 5, scale = 2)
   private BigDecimal retentionRate;
 
+  /** Base en PEN sobre la que se calculó la retención (totalAmount convertido a PEN al momento del registro). */
+  @Column(name = "retention_base_pen", precision = 14, scale = 2)
+  private BigDecimal retentionBasePen;
+
   // Detracción
   @Column(name = "has_detraction", nullable = false)
   private Boolean hasDetraction = false;

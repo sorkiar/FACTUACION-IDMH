@@ -40,7 +40,9 @@
       "WebFetch(domain:free.e-api.net.pe)",
       "Bash(powershell.exe -ExecutionPolicy Bypass -File \"D:\\\\Proyectos Java\\\\idmhperu\\\\fix_jrxml.ps1\")",
       "Bash(curl:*)",
-      "Bash(mvn clean compile:*)"
+      "Bash(mvn clean compile:*)",
+      "Bash(Get-ChildItem \"D:\\\\Proyectos Java\\\\idmhperu\\\\src\\\\main\\\\resources\\\\db\\\\migration\" -File)",
+      "Bash(Sort-Object Name)"
     ]
   }
 }

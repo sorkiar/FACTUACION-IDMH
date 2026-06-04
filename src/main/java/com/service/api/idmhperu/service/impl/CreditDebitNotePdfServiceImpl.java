@@ -17,7 +17,6 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -96,7 +95,7 @@ public class CreditDebitNotePdfServiceImpl implements CreditDebitNotePdfService 
 
         row.put("comp_numero_comprobante",
             note.getSeries() + "-" + note.getSequence());
-        row.put("comp_fecha_emicion", Timestamp.valueOf(LocalDateTime.now()));
+        row.put("comp_fecha_emicion", Timestamp.valueOf(note.getIssueDate()));
         row.put("comp_estado", "ACTIVO");
         row.put("comp_descuento_global", 0);
 

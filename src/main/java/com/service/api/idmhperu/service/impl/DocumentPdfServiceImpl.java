@@ -31,7 +31,6 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -114,7 +113,7 @@ public class DocumentPdfServiceImpl implements DocumentPdfService {
             document.getSeries() + "-" + document.getSequence());
 
         row.put("comp_fecha_emicion",
-            Timestamp.valueOf(LocalDateTime.now()));
+            Timestamp.valueOf(document.getIssueDate()));
 
         row.put("comp_estado", "ACTIVO");
         row.put("comp_descuento_global", 0);

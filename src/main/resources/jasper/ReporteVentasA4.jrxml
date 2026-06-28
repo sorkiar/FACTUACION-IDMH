@@ -42,6 +42,7 @@
     <field name="cliente_doc" class="java.lang.String"/>
     <field name="num_comprobante" class="java.lang.String"/>
     <field name="estado_doc" class="java.lang.String"/>
+    <field name="documentTypeName" class="java.lang.String"/>
     <field name="descripcion_items" class="java.lang.String"/>
     <field name="subtotal" class="java.math.BigDecimal"/>
     <field name="igv" class="java.math.BigDecimal"/>
@@ -158,21 +159,28 @@
                 <text><![CDATA[N Doc. Identidad]]></text>
             </staticText>
             <staticText>
-                <reportElement style="Cabecera" x="275" y="0" width="95" height="16" uuid="ch-comp"/>
+                <reportElement style="Cabecera" x="275" y="0" width="77" height="16" uuid="ch-comp"/>
                 <textElement textAlignment="Center" verticalAlignment="Middle">
                     <font fontName="Arial" size="7" isBold="true"/>
                 </textElement>
                 <text><![CDATA[Comprobante]]></text>
             </staticText>
             <staticText>
-                <reportElement style="Cabecera" x="370" y="0" width="55" height="16" uuid="ch-estado"/>
+                <reportElement style="Cabecera" x="352" y="0" width="55" height="16" uuid="ch-estado"/>
                 <textElement textAlignment="Center" verticalAlignment="Middle">
                     <font fontName="Arial" size="7" isBold="true"/>
                 </textElement>
                 <text><![CDATA[Estado]]></text>
             </staticText>
             <staticText>
-                <reportElement style="Cabecera" x="425" y="0" width="197" height="16" uuid="ch-art"/>
+                <reportElement style="Cabecera" x="407" y="0" width="60" height="16" uuid="ch-tipodoc"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial" size="7" isBold="true"/>
+                </textElement>
+                <text><![CDATA[Tipo Doc]]></text>
+            </staticText>
+            <staticText>
+                <reportElement style="Cabecera" x="467" y="0" width="155" height="16" uuid="ch-art"/>
                 <textElement textAlignment="Center" verticalAlignment="Middle">
                     <font fontName="Arial" size="7" isBold="true"/>
                 </textElement>
@@ -245,7 +253,7 @@
                 <textFieldExpression><![CDATA[$F{cliente_doc}]]></textFieldExpression>
             </textField>
             <textField isBlankWhenNull="true">
-                <reportElement style="FilaImpar" x="275" y="1" width="95" height="12" uuid="det-comp"/>
+                <reportElement style="FilaImpar" x="275" y="1" width="77" height="12" uuid="det-comp"/>
                 <box leftPadding="2"/>
                 <textElement textAlignment="Center" verticalAlignment="Middle">
                     <font fontName="Arial" size="7"/>
@@ -253,15 +261,23 @@
                 <textFieldExpression><![CDATA[$F{num_comprobante}]]></textFieldExpression>
             </textField>
             <textField isBlankWhenNull="true">
-                <reportElement style="FilaImpar" x="370" y="1" width="55" height="12" uuid="det-estado"/>
+                <reportElement style="FilaImpar" x="352" y="1" width="55" height="12" uuid="det-estado"/>
                 <box leftPadding="2"/>
                 <textElement textAlignment="Center" verticalAlignment="Middle">
                     <font fontName="Arial" size="7"/>
                 </textElement>
                 <textFieldExpression><![CDATA[$F{estado_doc}]]></textFieldExpression>
             </textField>
+            <textField isBlankWhenNull="true">
+                <reportElement style="FilaImpar" x="407" y="1" width="60" height="12" uuid="det-tipodoc"/>
+                <box leftPadding="2"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial" size="6"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{documentTypeName}]]></textFieldExpression>
+            </textField>
             <textField textAdjust="StretchHeight" isBlankWhenNull="true">
-                <reportElement style="FilaImpar" x="425" y="1" width="197" height="12" uuid="det-art"/>
+                <reportElement style="FilaImpar" x="467" y="1" width="155" height="12" uuid="det-art"/>
                 <box leftPadding="2"/>
                 <textElement verticalAlignment="Middle">
                     <font fontName="Arial" size="6"/>

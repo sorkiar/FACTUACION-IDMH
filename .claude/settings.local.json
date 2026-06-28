@@ -42,7 +42,10 @@
       "Bash(curl:*)",
       "Bash(mvn clean compile:*)",
       "Bash(Get-ChildItem \"D:\\\\Proyectos Java\\\\idmhperu\\\\src\\\\main\\\\resources\\\\db\\\\migration\" -File)",
-      "Bash(Sort-Object Name)"
+      "Bash(Sort-Object Name)",
+      "Bash(xargs head -40)",
+      "Bash(Get-ChildItem \"D:\\\\Proyectos Java\\\\idmhperu\\\\src\\\\main\\\\java\\\\com\\\\service\\\\api\\\\idmhperu\\\\service\" -Filter \"*.java\")",
+      "Bash(Select-Object -First 20 -ExpandProperty Name)"
     ]
   }
 }

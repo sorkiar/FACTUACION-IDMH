@@ -24,6 +24,10 @@ public class DocumentTypeSunatSpecification {
         predicates.add(cb.equal(root.get("status"), filter.getStatus()));
       }
 
+      if (filter.getShowInSalesReport() != null) {
+        predicates.add(cb.equal(root.get("showInSalesReport"), filter.getShowInSalesReport()));
+      }
+
       return cb.and(predicates.toArray(new Predicate[0]));
     };
   }

@@ -38,6 +38,8 @@ public interface SaleMapper {
 
   List<SaleItemResponse> toItemResponseList(List<SaleItem> entities);
 
+  @Mapping(target = "documentTypeCode", source = "documentTypeSunat.code")
+  @Mapping(target = "documentTypeName", source = "documentTypeSunat.name")
   DocumentResponse toDocumentResponse(Document entity);
 
   @Mapping(target = "personTypeId", source = "personType.id")

@@ -27,9 +27,10 @@ public class ReportController {
       @NotNull @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
       @NotNull @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
       @RequestParam(required = false) String clientIds,
-      @RequestParam(required = false) String productIds
+      @RequestParam(required = false) String productIds,
+      @RequestParam(required = false) String documentTypeCodes
   ) {
-    SalesReportResponse data = reportService.salesReport(startDate, endDate, clientIds, productIds);
+    SalesReportResponse data = reportService.salesReport(startDate, endDate, clientIds, productIds, documentTypeCodes);
     return ResponseEntity.ok(ApiResponse.<SalesReportResponse>builder()
         .message("Reporte de ventas generado correctamente")
         .data(data)

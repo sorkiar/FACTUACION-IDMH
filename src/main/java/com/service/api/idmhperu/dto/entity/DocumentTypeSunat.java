@@ -29,6 +29,9 @@ public class DocumentTypeSunat {
   @Column(nullable = false)
   private Integer status;
 
+  @Column(name = "show_in_sales_report", nullable = false)
+  private Boolean showInSalesReport = false;
+
   // Audit
   @CreationTimestamp
   @Column(name = "created_at", updatable = false)

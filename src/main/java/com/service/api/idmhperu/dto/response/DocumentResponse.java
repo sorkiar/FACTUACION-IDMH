@@ -6,6 +6,8 @@ import lombok.Data;
 @Data
 public class DocumentResponse {
   private Long id;
+  private String documentTypeCode;
+  private String documentTypeName;
   private String series;
   private String sequence;
   private LocalDateTime issueDate;

@@ -34,7 +34,8 @@ public class ReportServiceImpl implements ReportService {
       LocalDate startDate,
       LocalDate endDate,
       String clientIds,
-      String productIds
+      String productIds,
+      String documentTypeCodes
   ) {
     LocalDateTime start = startDate.atStartOfDay();
     LocalDateTime end = endDate.atTime(23, 59, 59);
@@ -57,6 +58,15 @@ public class ReportServiceImpl implements ReportService {
           .collect(Collectors.toList());
     }
 
+    Set<String> docTypeCodeSet = parseStringSet(documentTypeCodes);
+    if (!docTypeCodeSet.isEmpty()) {
+      sales = sales.stream()
+          .filter(s -> s.getDocuments().stream()
+              .anyMatch(doc -> doc.getDocumentTypeSunat() != null &&
+                  docTypeCodeSet.contains(doc.getDocumentTypeSunat().getCode())))
+          .collect(Collectors.toList());
+    }
+
     Map<String, String> config = configurationService.getGroup("empresa_emisora");
     DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
@@ -73,14 +83,27 @@ public class ReportServiceImpl implements ReportService {
         document = doc.getSeries() + "-" + doc.getSequence();
       }
 
+      String documentTypeCode = (doc != null && doc.getDocumentTypeSunat() != null)
+          ? doc.getDocumentTypeSunat().getCode() : null;
+      String documentTypeName = (doc != null && doc.getDocumentTypeSunat() != null)
+          ? doc.getDocumentTypeSunat().getName() : null;
+      String sunatStatus = doc != null ? doc.getStatus() : null;
+      BigDecimal saleBaseAmount = sale.getSubtotalAmount() != null
+          ? sale.getSubtotalAmount() : BigDecimal.ZERO;
+      BigDecimal saleTaxAmount = sale.getTaxAmount() != null
+          ? sale.getTaxAmount() : BigDecimal.ZERO;
+      BigDecimal saleTotalAmount = saleBaseAmount.add(saleTaxAmount);
+
       String issueDate = sale.getSaleDate().format(dateFmt);
       String client = buildClientField(sale);
-      BigDecimal saleTotal = sale.getTotalAmount() != null ? sale.getTotalAmount() : BigDecimal.ZERO;
 
       for (SaleItem item : sale.getItems()) {
         rows.add(SalesReportRowResponse.builder()
             .issueDate(issueDate)
             .document(document)
+            .documentTypeCode(documentTypeCode)
+            .documentTypeName(documentTypeName)
+            .sunatStatus(sunatStatus)
             .client(client)
             .itemDescription(buildItemDescription(item))
             .quantity(item.getQuantity())
@@ -88,8 +111,10 @@ public class ReportServiceImpl implements ReportService {
             .discountPercentage(item.getDiscountPercentage() != null
                 ? item.getDiscountPercentage() : BigDecimal.ZERO)
             .subtotal(item.getTotalAmount() != null ? item.getTotalAmount() : BigDecimal.ZERO)
-            .saleTotal(saleTotal)
             .currencyCode(sale.getCurrencyCode())
+            .saleBaseAmount(saleBaseAmount)
+            .saleTaxAmount(saleTaxAmount)
+            .saleTotalAmount(saleTotalAmount)
             .build());
       }
     }
@@ -133,6 +158,14 @@ public class ReportServiceImpl implements ReportService {
         .map(String::trim)
         .filter(s -> !s.isEmpty())
         .map(Long::parseLong)
+        .collect(Collectors.toSet());
+  }
+
+  private Set<String> parseStringSet(String csv) {
+    if (csv == null || csv.isBlank()) return Set.of();
+    return Arrays.stream(csv.split(","))
+        .map(String::trim)
+        .filter(s -> !s.isEmpty())
         .collect(Collectors.toSet());
   }
 }

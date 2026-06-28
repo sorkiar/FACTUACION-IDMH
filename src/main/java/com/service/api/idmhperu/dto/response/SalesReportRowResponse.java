@@ -9,12 +9,17 @@ import lombok.Data;
 public class SalesReportRowResponse {
   private String issueDate;
   private String document;
+  private String documentTypeCode;
+  private String documentTypeName;
+  private String sunatStatus;
   private String client;
   private String itemDescription;
   private BigDecimal quantity;
   private BigDecimal unitPrice;
   private BigDecimal discountPercentage;
   private BigDecimal subtotal;
-  private BigDecimal saleTotal;
   private String currencyCode;
+  private BigDecimal saleBaseAmount;
+  private BigDecimal saleTaxAmount;
+  private BigDecimal saleTotalAmount;
 }

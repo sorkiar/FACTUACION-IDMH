@@ -17,9 +17,8 @@ public class SalesReportRowResponse {
   private BigDecimal quantity;
   private BigDecimal unitPrice;
   private BigDecimal discountPercentage;
-  private BigDecimal subtotal;
   private String currencyCode;
-  private BigDecimal saleBaseAmount;
-  private BigDecimal saleTaxAmount;
-  private BigDecimal saleTotalAmount;
+  private BigDecimal itemBaseAmount;
+  private BigDecimal itemTaxAmount;
+  private BigDecimal itemTotalAmount;
 }

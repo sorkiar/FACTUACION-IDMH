@@ -1,10 +1,13 @@
 package com.service.api.idmhperu.service.impl;
 
+import com.service.api.idmhperu.dto.entity.CreditDebitNote;
+import com.service.api.idmhperu.dto.entity.CreditDebitNoteItem;
 import com.service.api.idmhperu.dto.entity.Document;
 import com.service.api.idmhperu.dto.entity.Sale;
 import com.service.api.idmhperu.dto.entity.SaleItem;
 import com.service.api.idmhperu.dto.response.SalesReportResponse;
 import com.service.api.idmhperu.dto.response.SalesReportRowResponse;
+import com.service.api.idmhperu.repository.CreditDebitNoteRepository;
 import com.service.api.idmhperu.repository.SaleRepository;
 import com.service.api.idmhperu.service.ConfigurationService;
 import com.service.api.idmhperu.service.ReportService;
@@ -27,6 +30,7 @@ import org.springframework.stereotype.Service;
 public class ReportServiceImpl implements ReportService {
 
   private final SaleRepository saleRepository;
+  private final CreditDebitNoteRepository creditDebitNoteRepository;
   private final ConfigurationService configurationService;
 
   @Override
@@ -59,8 +63,11 @@ public class ReportServiceImpl implements ReportService {
     }
 
     Set<String> docTypeCodeSet = parseStringSet(documentTypeCodes);
+
+    // Filter sales by document type if specified (only for sale doc types: 01, 03)
+    List<Sale> filteredSales = sales;
     if (!docTypeCodeSet.isEmpty()) {
-      sales = sales.stream()
+      filteredSales = sales.stream()
           .filter(s -> s.getDocuments().stream()
               .anyMatch(doc -> doc.getDocumentTypeSunat() != null &&
                   docTypeCodeSet.contains(doc.getDocumentTypeSunat().getCode())))
@@ -72,7 +79,8 @@ public class ReportServiceImpl implements ReportService {
 
     List<SalesReportRowResponse> rows = new ArrayList<>();
 
-    for (Sale sale : sales) {
+    // --- Rows from Sales (doc types 01, 03) ---
+    for (Sale sale : filteredSales) {
 
       Document doc = sale.getDocuments().stream()
           .min(Comparator.comparing(Document::getIssueDate))
@@ -88,16 +96,18 @@ public class ReportServiceImpl implements ReportService {
       String documentTypeName = (doc != null && doc.getDocumentTypeSunat() != null)
           ? doc.getDocumentTypeSunat().getName() : null;
       String sunatStatus = doc != null ? doc.getStatus() : null;
-      BigDecimal saleBaseAmount = sale.getSubtotalAmount() != null
-          ? sale.getSubtotalAmount() : BigDecimal.ZERO;
-      BigDecimal saleTaxAmount = sale.getTaxAmount() != null
-          ? sale.getTaxAmount() : BigDecimal.ZERO;
-      BigDecimal saleTotalAmount = saleBaseAmount.add(saleTaxAmount);
 
       String issueDate = sale.getSaleDate().format(dateFmt);
       String client = buildClientField(sale);
 
       for (SaleItem item : sale.getItems()) {
+        BigDecimal itemBase = item.getSubtotalAmount() != null
+            ? item.getSubtotalAmount() : BigDecimal.ZERO;
+        BigDecimal itemTax = item.getTaxAmount() != null
+            ? item.getTaxAmount() : BigDecimal.ZERO;
+        BigDecimal itemTotal = item.getTotalAmount() != null
+            ? item.getTotalAmount() : BigDecimal.ZERO;
+
         rows.add(SalesReportRowResponse.builder()
             .issueDate(issueDate)
             .document(document)
@@ -110,14 +120,88 @@ public class ReportServiceImpl implements ReportService {
             .unitPrice(item.getUnitPrice())
             .discountPercentage(item.getDiscountPercentage() != null
                 ? item.getDiscountPercentage() : BigDecimal.ZERO)
-            .subtotal(item.getTotalAmount() != null ? item.getTotalAmount() : BigDecimal.ZERO)
             .currencyCode(sale.getCurrencyCode())
-            .saleBaseAmount(saleBaseAmount)
-            .saleTaxAmount(saleTaxAmount)
-            .saleTotalAmount(saleTotalAmount)
+            .itemBaseAmount(itemBase)
+            .itemTaxAmount(itemTax)
+            .itemTotalAmount(itemTotal)
             .build());
       }
     }
+
+    // --- Rows from Credit/Debit Notes (doc types 07, 08) ---
+    boolean includeNotes = docTypeCodeSet.isEmpty()
+        || docTypeCodeSet.contains("07")
+        || docTypeCodeSet.contains("08");
+
+    if (includeNotes) {
+      List<CreditDebitNote> notes = creditDebitNoteRepository.findForReport(start, end);
+
+      // Apply client filter
+      if (!clientIdSet.isEmpty()) {
+        notes = notes.stream()
+            .filter(n -> n.getSale() != null && clientIdSet.contains(n.getSale().getClient().getId()))
+            .collect(Collectors.toList());
+      }
+
+      // Apply product filter
+      if (!productIdSet.isEmpty()) {
+        notes = notes.stream()
+            .filter(n -> n.getItems().stream()
+                .anyMatch(item -> item.getProduct() != null &&
+                    productIdSet.contains(item.getProduct().getId())))
+            .collect(Collectors.toList());
+      }
+
+      // Apply doc type filter for notes (07 = Nota de Débito, 08 = Nota de Crédito)
+      if (!docTypeCodeSet.isEmpty()) {
+        notes = notes.stream()
+            .filter(n -> n.getDocumentTypeSunat() != null &&
+                docTypeCodeSet.contains(n.getDocumentTypeSunat().getCode()))
+            .collect(Collectors.toList());
+      }
+
+      for (CreditDebitNote note : notes) {
+        String document = note.getSeries() + "-" + note.getSequence();
+        String documentTypeCode = note.getDocumentTypeSunat() != null
+            ? note.getDocumentTypeSunat().getCode() : null;
+        String documentTypeName = note.getDocumentTypeSunat() != null
+            ? note.getDocumentTypeSunat().getName() : null;
+        String sunatStatus = note.getStatus();
+        String issueDate = note.getIssueDate().format(dateFmt);
+        String client = note.getSale() != null
+            ? buildClientField(note.getSale()) : "-";
+
+        for (CreditDebitNoteItem item : note.getItems()) {
+          BigDecimal itemBase = item.getSubtotalAmount() != null
+              ? item.getSubtotalAmount() : BigDecimal.ZERO;
+          BigDecimal itemTax = item.getTaxAmount() != null
+              ? item.getTaxAmount() : BigDecimal.ZERO;
+          BigDecimal itemTotal = item.getTotalAmount() != null
+              ? item.getTotalAmount() : BigDecimal.ZERO;
+
+          rows.add(SalesReportRowResponse.builder()
+              .issueDate(issueDate)
+              .document(document)
+              .documentTypeCode(documentTypeCode)
+              .documentTypeName(documentTypeName)
+              .sunatStatus(sunatStatus)
+              .client(client)
+              .itemDescription(buildNoteItemDescription(item))
+              .quantity(item.getQuantity())
+              .unitPrice(item.getUnitPrice())
+              .discountPercentage(item.getDiscountPercentage() != null
+                  ? item.getDiscountPercentage() : BigDecimal.ZERO)
+              .currencyCode(note.getCurrencyCode())
+              .itemBaseAmount(itemBase)
+              .itemTaxAmount(itemTax)
+              .itemTotalAmount(itemTotal)
+              .build());
+        }
+      }
+    }
+
+    // Sort all rows by issueDate descending
+    rows.sort(Comparator.comparing(SalesReportRowResponse::getIssueDate).reversed());
 
     return SalesReportResponse.builder()
         .companyName(config.get("emprRazonSocial"))
@@ -141,6 +225,18 @@ public class ReportServiceImpl implements ReportService {
   }
 
   private String buildItemDescription(SaleItem item) {
+    String sku;
+    if (item.getProduct() != null) {
+      sku = item.getProduct().getSku();
+    } else if (item.getService() != null) {
+      sku = item.getService().getSku();
+    } else {
+      sku = "SRV0000000";
+    }
+    return sku + " - " + item.getDescription();
+  }
+
+  private String buildNoteItemDescription(CreditDebitNoteItem item) {
     String sku;
     if (item.getProduct() != null) {
       sku = item.getProduct().getSku();

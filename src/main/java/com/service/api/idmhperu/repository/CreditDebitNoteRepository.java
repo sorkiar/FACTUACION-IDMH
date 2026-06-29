@@ -118,4 +118,22 @@ public interface CreditDebitNoteRepository
       @Param("end") LocalDateTime end,
       @Param("noteCategory") String noteCategory,
       @Param("currency") String currency);
+
+  @EntityGraph(attributePaths = {
+      "sale",
+      "sale.client",
+      "sale.client.documentType",
+      "sale.client.personType",
+      "documentTypeSunat",
+      "creditDebitNoteType",
+      "items",
+      "items.product",
+      "items.service",
+  })
+  @Query("SELECT n FROM CreditDebitNote n WHERE n.issueDate BETWEEN :start AND :end " +
+      "AND n.deletedAt IS NULL " +
+      "ORDER BY n.issueDate DESC")
+  List<CreditDebitNote> findForReport(
+      @Param("start") LocalDateTime start,
+      @Param("end") LocalDateTime end);
 }

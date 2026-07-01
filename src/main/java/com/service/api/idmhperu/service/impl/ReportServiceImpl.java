@@ -121,6 +121,7 @@ public class ReportServiceImpl implements ReportService {
             .discountPercentage(item.getDiscountPercentage() != null
                 ? item.getDiscountPercentage() : BigDecimal.ZERO)
             .currencyCode(sale.getCurrencyCode())
+            .exchangeRate(sale.getExchangeRate() != null ? sale.getExchangeRate() : java.math.BigDecimal.ONE)
             .itemBaseAmount(itemBase)
             .itemTaxAmount(itemTax)
             .itemTotalAmount(itemTotal)
@@ -192,6 +193,7 @@ public class ReportServiceImpl implements ReportService {
               .discountPercentage(item.getDiscountPercentage() != null
                   ? item.getDiscountPercentage() : BigDecimal.ZERO)
               .currencyCode(note.getCurrencyCode())
+              .exchangeRate(note.getExchangeRate() != null ? note.getExchangeRate() : java.math.BigDecimal.ONE)
               .itemBaseAmount(itemBase)
               .itemTaxAmount(itemTax)
               .itemTotalAmount(itemTotal)

@@ -45,7 +45,9 @@
       "Bash(Sort-Object Name)",
       "Bash(xargs head -40)",
       "Bash(Get-ChildItem \"D:\\\\Proyectos Java\\\\idmhperu\\\\src\\\\main\\\\java\\\\com\\\\service\\\\api\\\\idmhperu\\\\service\" -Filter \"*.java\")",
-      "Bash(Select-Object -First 20 -ExpandProperty Name)"
+      "Bash(Select-Object -First 20 -ExpandProperty Name)",
+      "Bash(mvn flyway:repair -Dflyway.url=jdbc:mysql://31.97.133.166:3306/idmhperu_test -Dflyway.user=root -Dflyway.password=)",
+      "Bash(mvn flyway:repair \"-Dflyway.url=jdbc:mysql://31.97.133.166:3306/idmhperu_test\" \"-Dflyway.user=user-idmhperu\" \"-Dflyway.password=Secretoidmh2026.\" \"-Dflyway.locations=classpath:db/migration\")"
     ]
   }
 }

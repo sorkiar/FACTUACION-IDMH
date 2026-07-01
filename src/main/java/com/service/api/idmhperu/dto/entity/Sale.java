@@ -66,6 +66,9 @@ public class Sale {
   @Column(name = "currency_code", length = 4, nullable = false)
   private String currencyCode;
 
+  @Column(name = "exchange_rate", precision = 10, scale = 4)
+  private BigDecimal exchangeRate;
+
   @Column(name = "tax_percentage", precision = 5, scale = 2, nullable = false)
   private BigDecimal taxPercentage;
 

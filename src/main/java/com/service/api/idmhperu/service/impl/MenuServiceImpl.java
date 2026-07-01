@@ -34,7 +34,7 @@ public class MenuServiceImpl implements MenuService {
   public ApiResponse<List<MenuResponse>> findAll() {
     return new ApiResponse<>(
         "Menús listados correctamente",
-        mapper.toResponseList(repository.findAllByMenuTypeWithParent("SIDEBAR"))
+        mapper.toResponseList(repository.findAllWithParent())
     );
   }
 

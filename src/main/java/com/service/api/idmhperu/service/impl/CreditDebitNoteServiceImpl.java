@@ -16,12 +16,14 @@ import com.service.api.idmhperu.dto.response.ApiResponse;
 import com.service.api.idmhperu.dto.response.CreditDebitNoteResponse;
 import com.service.api.idmhperu.exception.BusinessValidationException;
 import com.service.api.idmhperu.exception.ResourceNotFoundException;
+import com.service.api.idmhperu.dto.entity.ExchangeRate;
 import com.service.api.idmhperu.repository.CreditDebitNoteItemRepository;
 import com.service.api.idmhperu.repository.CreditDebitNoteRepository;
 import com.service.api.idmhperu.repository.CreditDebitNoteTypeRepository;
 import com.service.api.idmhperu.repository.DocumentRepository;
 import com.service.api.idmhperu.repository.DocumentSeriesRepository;
 import com.service.api.idmhperu.repository.DocumentTypeSunatRepository;
+import com.service.api.idmhperu.repository.ExchangeRateRepository;
 import com.service.api.idmhperu.repository.ProductRepository;
 import com.service.api.idmhperu.repository.SaleRepository;
 import com.service.api.idmhperu.repository.ServiceRepository;
@@ -33,6 +35,7 @@ import com.service.api.idmhperu.util.JwtUtils;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +58,7 @@ public class CreditDebitNoteServiceImpl implements CreditDebitNoteService {
   private final CreditDebitNotePdfService creditDebitNotePdfService;
   private final SunatDocumentJobService sunatDocumentJobService;
   private final com.service.api.idmhperu.service.SunatSendConfigService sunatSendConfigService;
+  private final ExchangeRateRepository exchangeRateRepository;
 
   @Override
   public ApiResponse<List<CreditDebitNoteResponse>> findAll(CreditDebitNoteFilter filter) {
@@ -154,6 +158,7 @@ public class CreditDebitNoteServiceImpl implements CreditDebitNoteService {
     note.setCreditDebitNoteType(noteType);
     note.setReason(request.getReason());
     note.setCurrencyCode(sale.getCurrencyCode() != null ? sale.getCurrencyCode() : "PEN");
+    note.setExchangeRate(resolveExchangeRate(note.getCurrencyCode()));
     note.setTaxPercentage(sale.getTaxPercentage());
     note.setStatus("PENDIENTE");
     note.setCreatedBy(username);
@@ -253,5 +258,17 @@ public class CreditDebitNoteServiceImpl implements CreditDebitNoteService {
     return new ApiResponse<>(
         "Nota de " + tipoNota + " registrada correctamente",
         mapper.toResponse(saved));
+  }
+
+  private BigDecimal resolveExchangeRate(String currencyCode) {
+    if ("USD".equals(currencyCode)) {
+      List<ExchangeRate> rates = exchangeRateRepository.findByDate(LocalDate.now());
+      return rates.stream()
+          .filter(r -> "V".equals(r.getType()))
+          .map(ExchangeRate::getValue)
+          .findFirst()
+          .orElse(BigDecimal.ONE);
+    }
+    return BigDecimal.ONE;
   }
 }

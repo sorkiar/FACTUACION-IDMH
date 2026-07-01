@@ -9,6 +9,7 @@ public class SaleResponse {
   private Long id;
   private String saleStatus;
   private String currencyCode;
+  private BigDecimal exchangeRate;
   private String paymentType;
   private String purchaseOrder;
   private String observations;

@@ -23,6 +23,7 @@ public class CreditDebitNoteResponse {
   private BigDecimal totalAmount;
   private BigDecimal taxPercentage;
   private String currencyCode;
+  private BigDecimal exchangeRate;
 
   private String status;
   private Integer sunatResponseCode;

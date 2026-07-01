@@ -82,6 +82,9 @@ public class CreditDebitNote {
   @Column(name = "currency_code", length = 4, nullable = false)
   private String currencyCode = "PEN";
 
+  @Column(name = "exchange_rate", precision = 10, scale = 4)
+  private BigDecimal exchangeRate;
+
   @Column(length = 20)
   private String status;
 

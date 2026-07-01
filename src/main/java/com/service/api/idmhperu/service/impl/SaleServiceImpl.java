@@ -122,6 +122,7 @@ public class SaleServiceImpl implements SaleService {
 
     Sale sale = new Sale();
     sale.setCurrencyCode(resolveCurrencyCode(request.getCurrencyCode()));
+    sale.setExchangeRate(resolveExchangeRate(sale.getCurrencyCode()));
     sale.setTaxPercentage(new BigDecimal("18"));
     sale.setCreatedBy(username);
     sale.setSaleDate(LocalDateTime.now());
@@ -217,6 +218,7 @@ public class SaleServiceImpl implements SaleService {
     }
 
     sale.setCurrencyCode(resolveCurrencyCode(request.getCurrencyCode()));
+    sale.setExchangeRate(resolveExchangeRate(sale.getCurrencyCode()));
     sale.setPaymentType(resolvePaymentType(request.getPaymentType()));
     sale.setPurchaseOrder(request.getPurchaseOrder());
     sale.setObservations(request.getObservations());
@@ -706,6 +708,18 @@ public class SaleServiceImpl implements SaleService {
       return "USD";
     }
     return "PEN";
+  }
+
+  private BigDecimal resolveExchangeRate(String currencyCode) {
+    if ("USD".equals(currencyCode)) {
+      List<ExchangeRate> rates = exchangeRateRepository.findByDate(LocalDate.now());
+      return rates.stream()
+          .filter(r -> "V".equals(r.getType()))
+          .map(ExchangeRate::getValue)
+          .findFirst()
+          .orElse(BigDecimal.ONE);
+    }
+    return BigDecimal.ONE;
   }
 
   private String resolvePaymentType(String paymentType) {

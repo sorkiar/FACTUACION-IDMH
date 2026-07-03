@@ -1065,6 +1065,20 @@ public class SunatDocumentJobService {
         cuota.setItcuMonto(inst.getAmount());
         cuotas.add(cuota);
       }
+      // SUNAT valida sum(cuotas) <= sum(itcoTotal items). Si hay desfase de redondeo
+      // de 0.01 entre total-venta y suma-items, ajustar la última cuota para evitar error 3265.
+      BigDecimal itemsTotal = itemDtos.stream()
+          .map(ItemSendRequest::getItcoTotal)
+          .reduce(BigDecimal.ZERO, BigDecimal::add);
+      BigDecimal sumCuotas = cuotas.stream()
+          .map(ItemCuotaSendRequest::getItcuMonto)
+          .reduce(BigDecimal.ZERO, BigDecimal::add);
+      BigDecimal excess = sumCuotas.subtract(itemsTotal);
+      if (excess.compareTo(BigDecimal.ZERO) > 0 && excess.compareTo(new BigDecimal("0.05")) <= 0
+          && !cuotas.isEmpty()) {
+        ItemCuotaSendRequest last = cuotas.get(cuotas.size() - 1);
+        last.setItcuMonto(last.getItcuMonto().subtract(excess));
+      }
       comprobante.setLsItemCuota(cuotas);
     }
 

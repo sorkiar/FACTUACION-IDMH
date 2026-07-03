@@ -336,7 +336,7 @@ public class SaleServiceImpl implements SaleService {
           .setScale(2, RoundingMode.HALF_UP));
       item.setUnitPriceWithTax(itemReq.getUnitPrice()
           .multiply(BigDecimal.ONE.add(taxRate))
-          .setScale(6, RoundingMode.HALF_UP));
+          .setScale(2, RoundingMode.HALF_UP));
       item.setCreatedBy(username);
 
       itemsToSave.add(item);
@@ -344,16 +344,28 @@ public class SaleServiceImpl implements SaleService {
       subtotal = subtotal.add(lineTotal);  // accumulate unrounded
     }
 
-    saleItemRepository.saveAll(itemsToSave);
-
     // Global totals — round only when persisting (HALF_UP, 2 dec)
     BigDecimal igv = subtotal.multiply(taxRate);
-    BigDecimal total = subtotal.add(igv);
+    BigDecimal saleTotal = subtotal.add(igv).setScale(2, RoundingMode.HALF_UP);
+
+    // Absorber el desfase de redondeo per-ítem en el último ítem:
+    // sum(item.totalAmount) puede diferir en 0.01 de saleTotal por redondeos independientes.
+    BigDecimal sumItemTotals = itemsToSave.stream()
+        .map(SaleItem::getTotalAmount)
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
+    BigDecimal diff = saleTotal.subtract(sumItemTotals);
+    if (diff.compareTo(BigDecimal.ZERO) != 0) {
+      SaleItem last = itemsToSave.get(itemsToSave.size() - 1);
+      last.setTaxAmount(last.getTaxAmount().add(diff));
+      last.setTotalAmount(last.getTotalAmount().add(diff));
+    }
+
+    saleItemRepository.saveAll(itemsToSave);
 
     return new Totals(
         subtotal.setScale(2, RoundingMode.HALF_UP),
         igv.setScale(2, RoundingMode.HALF_UP),
-        total.setScale(2, RoundingMode.HALF_UP)
+        saleTotal
     );
   }
 

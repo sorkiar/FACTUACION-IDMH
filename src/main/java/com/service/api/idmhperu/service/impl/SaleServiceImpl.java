@@ -40,6 +40,7 @@ import com.service.api.idmhperu.repository.spec.SaleSpecification;
 import com.service.api.idmhperu.service.ConfigurationService;
 import com.service.api.idmhperu.service.DocumentPdfService;
 import com.service.api.idmhperu.service.GoogleDriveService;
+import com.service.api.idmhperu.util.LineTotalsCalculator;
 import com.service.api.idmhperu.service.SaleService;
 import com.service.api.idmhperu.util.JwtUtils;
 import jakarta.transaction.Transactional;
@@ -278,7 +279,6 @@ public class SaleServiceImpl implements SaleService {
     BigDecimal subtotal = BigDecimal.ZERO;
 
     BigDecimal taxRate = new BigDecimal("0.18");
-    BigDecimal hundred = new BigDecimal("100");
 
     List<SaleItem> itemsToSave = new ArrayList<>();
 
@@ -288,14 +288,8 @@ public class SaleServiceImpl implements SaleService {
           ? itemReq.getDiscountPercentage()
           : BigDecimal.ZERO;
 
-      // lineTotal = qty × unitPrice × (1 - disc/100) — no intermediate rounding
-      BigDecimal lineTotal = itemReq.getQuantity()
-          .multiply(itemReq.getUnitPrice())
-          .multiply(hundred.subtract(discountPct))
-          .divide(hundred, 10, RoundingMode.HALF_UP);
-
-      BigDecimal itemTax = lineTotal.multiply(taxRate);
-      BigDecimal itemTotal = lineTotal.add(itemTax);
+      LineTotalsCalculator.LineTotals lineTotals = LineTotalsCalculator.compute(
+          itemReq.getQuantity(), itemReq.getUnitPrice(), discountPct, taxRate);
 
       SaleItem item = new SaleItem();
 
@@ -329,11 +323,10 @@ public class SaleServiceImpl implements SaleService {
       item.setQuantity(itemReq.getQuantity());
       item.setUnitPrice(itemReq.getUnitPrice());
       item.setDiscountPercentage(discountPct);
-      item.setSubtotalAmount(lineTotal.setScale(2, RoundingMode.HALF_UP));
-      item.setTaxAmount(itemTax.setScale(2, RoundingMode.HALF_UP));
-      item.setTotalAmount(itemTotal.setScale(2, RoundingMode.HALF_UP));
-      item.setGrossAmount(itemReq.getQuantity().multiply(itemReq.getUnitPrice())
-          .setScale(2, RoundingMode.HALF_UP));
+      item.setSubtotalAmount(lineTotals.subtotalAmount());
+      item.setTaxAmount(lineTotals.taxAmount());
+      item.setTotalAmount(lineTotals.totalAmount());
+      item.setGrossAmount(lineTotals.grossAmount());
       item.setUnitPriceWithTax(itemReq.getUnitPrice()
           .multiply(BigDecimal.ONE.add(taxRate))
           .setScale(2, RoundingMode.HALF_UP));
@@ -341,7 +334,7 @@ public class SaleServiceImpl implements SaleService {
 
       itemsToSave.add(item);
 
-      subtotal = subtotal.add(lineTotal);  // accumulate unrounded
+      subtotal = subtotal.add(lineTotals.unroundedLineTotal());  // accumulate unrounded
     }
 
     // Global totals — round only when persisting (HALF_UP, 2 dec)
@@ -350,15 +343,7 @@ public class SaleServiceImpl implements SaleService {
 
     // Absorber el desfase de redondeo per-ítem en el último ítem:
     // sum(item.totalAmount) puede diferir en 0.01 de saleTotal por redondeos independientes.
-    BigDecimal sumItemTotals = itemsToSave.stream()
-        .map(SaleItem::getTotalAmount)
-        .reduce(BigDecimal.ZERO, BigDecimal::add);
-    BigDecimal diff = saleTotal.subtract(sumItemTotals);
-    if (diff.compareTo(BigDecimal.ZERO) != 0) {
-      SaleItem last = itemsToSave.get(itemsToSave.size() - 1);
-      last.setTaxAmount(last.getTaxAmount().add(diff));
-      last.setTotalAmount(last.getTotalAmount().add(diff));
-    }
+    LineTotalsCalculator.absorbRoundingDiff(itemsToSave, saleTotal);
 
     saleItemRepository.saveAll(itemsToSave);
 

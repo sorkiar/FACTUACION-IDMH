@@ -105,3 +105,9 @@ Flyway. Files in `src/main/resources/db/migration/` named `V###__description.sql
 ### Security
 
 Stateless JWT. Public endpoints: `/api/auth/**`, `/api/document-types/**`, Swagger. All others require `Authorization: Bearer <token>`.
+
+### Session summaries
+
+Notas de sesión con contexto detallado de bugs investigados/arreglados (causa raíz, archivos, verificación) — revisar antes de tocar cálculo de totales/redondeo o el flujo de notas de crédito/débito:
+
+- [`RESUMEN_05_08_2026.md`](./RESUMEN_05_08_2026.md) — fix del rechazo SUNAT 3286 en notas de crédito (desfase de redondeo agregado) + bug de consistencia intra-ítem (`subtotal+igv≠total`) en `SaleServiceImpl`/`CreditDebitNoteServiceImpl`, unificado en `util/LineTotalsCalculator.java`.

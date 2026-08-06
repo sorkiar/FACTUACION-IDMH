@@ -32,6 +32,7 @@ import com.service.api.idmhperu.job.SunatDocumentJobService;
 import com.service.api.idmhperu.service.CreditDebitNotePdfService;
 import com.service.api.idmhperu.service.CreditDebitNoteService;
 import com.service.api.idmhperu.util.JwtUtils;
+import com.service.api.idmhperu.util.LineTotalsCalculator;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -169,7 +170,8 @@ public class CreditDebitNoteServiceImpl implements CreditDebitNoteService {
     BigDecimal subtotal = BigDecimal.ZERO;
 
     BigDecimal taxRate = new BigDecimal("0.18");
-    BigDecimal hundred = new BigDecimal("100");
+
+    List<CreditDebitNoteItem> itemsToSave = new java.util.ArrayList<>();
 
     for (CreditDebitNoteItemRequest itemReq : request.getItems()) {
 
@@ -177,17 +179,8 @@ public class CreditDebitNoteServiceImpl implements CreditDebitNoteService {
           ? itemReq.getDiscountPercentage()
           : BigDecimal.ZERO;
 
-      // lineTotal = qty × unitPrice × (1 - disc/100) — no intermediate rounding
-      BigDecimal lineTotal = itemReq.getQuantity()
-          .multiply(itemReq.getUnitPrice())
-          .multiply(hundred.subtract(discountPct))
-          .divide(hundred, 10, RoundingMode.HALF_UP);
-
-      BigDecimal itemTax = lineTotal.multiply(taxRate);
-      BigDecimal itemTotal = lineTotal.add(itemTax);
-
-      BigDecimal itemBase = lineTotal.setScale(2, RoundingMode.HALF_UP);
-      itemTax = itemTax.setScale(2, RoundingMode.HALF_UP);
+      LineTotalsCalculator.LineTotals lineTotals = LineTotalsCalculator.compute(
+          itemReq.getQuantity(), itemReq.getUnitPrice(), discountPct, taxRate);
 
       CreditDebitNoteItem item = new CreditDebitNoteItem();
       item.setCreditDebitNote(note);
@@ -196,17 +189,15 @@ public class CreditDebitNoteServiceImpl implements CreditDebitNoteService {
       item.setQuantity(itemReq.getQuantity());
       item.setUnitPrice(itemReq.getUnitPrice());
       item.setDiscountPercentage(discountPct);
-      item.setSubtotalAmount(itemBase);
-      item.setTaxAmount(itemTax);
-      BigDecimal itemTotalRounded = itemTotal.setScale(2, RoundingMode.HALF_UP);
-      item.setTotalAmount(itemTotalRounded);
-      item.setGrossAmount(itemReq.getQuantity().multiply(itemReq.getUnitPrice())
-          .setScale(2, RoundingMode.HALF_UP));
+      item.setSubtotalAmount(lineTotals.subtotalAmount());
+      item.setTaxAmount(lineTotals.taxAmount());
+      item.setTotalAmount(lineTotals.totalAmount());
+      item.setGrossAmount(lineTotals.grossAmount());
       item.setNetUnitPrice(itemReq.getQuantity().compareTo(BigDecimal.ZERO) != 0
-          ? itemBase.divide(itemReq.getQuantity(), 6, RoundingMode.HALF_UP)
+          ? lineTotals.subtotalAmount().divide(itemReq.getQuantity(), 6, RoundingMode.HALF_UP)
           : itemReq.getUnitPrice());
       item.setNetUnitPriceWithTax(itemReq.getQuantity().compareTo(BigDecimal.ZERO) != 0
-          ? itemTotalRounded.divide(itemReq.getQuantity(), 6, RoundingMode.HALF_UP)
+          ? lineTotals.totalAmount().divide(itemReq.getQuantity(), 6, RoundingMode.HALF_UP)
           : itemReq.getUnitPrice().multiply(new BigDecimal("1.18")).setScale(6, RoundingMode.HALF_UP));
       item.setCreatedBy(username);
 
@@ -229,18 +220,26 @@ public class CreditDebitNoteServiceImpl implements CreditDebitNoteService {
         item.setService(service);
       }
 
-      noteItemRepository.save(item);
+      itemsToSave.add(item);
 
-      subtotal = subtotal.add(lineTotal);  // accumulate unrounded
+      subtotal = subtotal.add(lineTotals.unroundedLineTotal());  // accumulate unrounded
     }
 
     // Global totals — round only when persisting (HALF_UP, 2 dec)
     BigDecimal igv = subtotal.multiply(taxRate);
     BigDecimal total = subtotal.add(igv);
+    BigDecimal noteTotal = total.setScale(2, RoundingMode.HALF_UP);
+
+    // Absorber el desfase de redondeo per-ítem en el último ítem, igual que
+    // SaleServiceImpl, para que sum(item.totalAmount) == note.totalAmount exacto
+    // (SUNAT rechaza con error 3286 si difiere en 1 centavo del comprobante afectado)
+    LineTotalsCalculator.absorbRoundingDiff(itemsToSave, noteTotal);
+
+    noteItemRepository.saveAll(itemsToSave);
 
     note.setSubtotalAmount(subtotal.setScale(2, RoundingMode.HALF_UP));
     note.setTaxAmount(igv.setScale(2, RoundingMode.HALF_UP));
-    note.setTotalAmount(total.setScale(2, RoundingMode.HALF_UP));
+    note.setTotalAmount(noteTotal);
     noteRepository.save(note);
 
     creditDebitNotePdfService.generatePdf(note.getId());

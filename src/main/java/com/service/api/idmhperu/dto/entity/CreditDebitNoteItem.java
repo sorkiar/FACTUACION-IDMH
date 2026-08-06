@@ -1,6 +1,7 @@
 package com.service.api.idmhperu.dto.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.service.api.idmhperu.util.LineTotalsCalculator;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -24,7 +25,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreditDebitNoteItem {
+public class CreditDebitNoteItem implements LineTotalsCalculator.RoundableLine {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
